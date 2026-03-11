@@ -409,6 +409,27 @@
   }
 
   // ═══════════════════════════════════════════════════════
+  // Exponential backoff per stream
+  // Starts at 2s, doubles each failure, caps at 30s.
+  // Resets to 2s on successful connection.
+  // ═══════════════════════════════════════════════════════
+  const retryDelay  = {};  // current delay per stream index
+  const RETRY_MIN   = 2000;
+  const RETRY_MAX   = 30000;
+
+  function scheduleRetry(index) {
+    if (!retryDelay[index]) retryDelay[index] = RETRY_MIN;
+    const delay = retryDelay[index];
+    retryDelay[index] = Math.min(delay * 2, RETRY_MAX);
+    console.log(`Stream ${index}: retry in ${delay / 1000}s`);
+    setTimeout(() => startWhep(index), delay);
+  }
+
+  function resetRetry(index) {
+    retryDelay[index] = RETRY_MIN;
+  }
+
+  // ═══════════════════════════════════════════════════════
   // WebRTC / WHEP
   // ═══════════════════════════════════════════════════════
   async function startWhep(index) {
@@ -427,6 +448,7 @@
       errEl.classList.remove('show');
       dot.classList.remove('err');
       lbl.textContent = 'LIVE';
+      resetRetry(index);
     };
     const setError = () => {
       loading.classList.add('gone');
@@ -443,13 +465,13 @@
 
       pc.ontrack = e => {
         video.srcObject = e.streams[0];
-        video.play().then(setLive).catch(setError);
+        video.play().then(setLive).catch(() => { setError(); scheduleRetry(index); });
       };
 
       pc.oniceconnectionstatechange = () => {
         if (['failed','disconnected','closed'].includes(pc.iceConnectionState)) {
           setError();
-          setTimeout(() => startWhep(index), 5000);
+          scheduleRetry(index);
         }
       };
 
@@ -478,7 +500,7 @@
     } catch(e) {
       console.error(`Stream ${index}:`, e);
       setError();
-      setTimeout(() => startWhep(index), 5000);
+      scheduleRetry(index);
     }
   }
 

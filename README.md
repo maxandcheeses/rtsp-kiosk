@@ -1,6 +1,6 @@
-# Video Wall
+# rtsp-kiosk
 
-Fullscreen multi-camera WebRTC video wall. Supports 1–8 streams with selectable layouts.
+A self-hosted, fullscreen video wall for IP cameras and live streams. Drop in your RTSP, MJPEG, or HLS sources, pick a layout, and deploy with a single `docker compose up`.
 
 ```
 ┌─────────────────┬──────────┐
@@ -125,18 +125,99 @@ Navigate to `http://<your-server-ip>` in any modern browser.
 
 The UI supports 10 layouts selectable from a picker on load. Press **`L`** at any time to reopen the picker.
 
-| Value | Streams | Description |
-|-------|---------|-------------|
-| `single` | 1 | Single fullscreen stream |
-| `two-col` | 2 | Side by side |
-| `two-row` | 2 | Stacked vertically |
-| `primary-right` | 3 | Large left + 2 stacked right |
-| `primary-left` | 3 | 2 stacked left + large right |
-| `primary-bottom` | 3 | Large top + 2 bottom |
-| `primary-top` | 3 | 2 top + large bottom |
-| `quad` | 4 | 2×2 grid |
-| `six` | 6 | 3×2 grid |
-| `eight` | 8 | 4×2 grid |
+#### `single` — 1 stream
+```
+┌──────────────────────┐
+│                      │
+│         CAM 01       │
+│                      │
+└──────────────────────┘
+```
+
+#### `two-col` — 2 streams, side by side
+```
+┌───────────┬───────────┐
+│           │           │
+│  CAM 01   │  CAM 02   │
+│           │           │
+└───────────┴───────────┘
+```
+
+#### `two-row` — 2 streams, stacked
+```
+┌──────────────────────┐
+│       CAM 01         │
+├──────────────────────┤
+│       CAM 02         │
+└──────────────────────┘
+```
+
+#### `primary-right` — 3 streams, large left
+```
+┌─────────────┬─────────┐
+│             │  CAM 02 │
+│   CAM 01    ├─────────┤
+│             │  CAM 03 │
+└─────────────┴─────────┘
+```
+
+#### `primary-left` — 3 streams, large right
+```
+┌─────────┬─────────────┐
+│  CAM 02 │             │
+├─────────┤   CAM 01    │
+│  CAM 03 │             │
+└─────────┴─────────────┘
+```
+
+#### `primary-bottom` — 3 streams, large top
+```
+┌──────────────────────┐
+│                      │
+│       CAM 01         │
+│                      │
+├──────────┬───────────┤
+│  CAM 02  │  CAM 03   │
+└──────────┴───────────┘
+```
+
+#### `primary-top` — 3 streams, large bottom
+```
+┌──────────┬───────────┐
+│  CAM 02  │  CAM 03   │
+├──────────┴───────────┤
+│                      │
+│       CAM 01         │
+│                      │
+└──────────────────────┘
+```
+
+#### `quad` — 4 streams, 2×2 grid
+```
+┌───────────┬───────────┐
+│  CAM 01   │  CAM 02   │
+├───────────┼───────────┤
+│  CAM 03   │  CAM 04   │
+└───────────┴───────────┘
+```
+
+#### `six` — 6 streams, 3×2 grid
+```
+┌────────┬────────┬────────┐
+│ CAM 01 │ CAM 02 │ CAM 03 │
+├────────┼────────┼────────┤
+│ CAM 04 │ CAM 05 │ CAM 06 │
+└────────┴────────┴────────┘
+```
+
+#### `eight` — 8 streams, 4×2 grid
+```
+┌──────┬──────┬──────┬──────┐
+│CAM 01│CAM 02│CAM 03│CAM 04│
+├──────┼──────┼──────┼──────┤
+│CAM 05│CAM 06│CAM 07│CAM 08│
+└──────┴──────┴──────┴──────┘
+```
 
 ### Forcing a layout via environment variable
 
