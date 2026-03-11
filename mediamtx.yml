@@ -1,0 +1,108 @@
+###############################################
+# mediamtx.yml
+# MediaMTX — Universal source config
+# Supports: RTSP, RTSPS, MJPEG/HTTP, HLS, MP4
+###############################################
+
+logLevel: info
+logDestinations: [stdout]
+
+rtmp: no
+hls: no
+srt: no
+
+rtsp: yes
+rtspAddress: :8554
+
+webrtc: yes
+webrtcAddress: :8889
+
+api: yes
+apiAddress: :9997
+
+webrtcICEServers2:
+  - url: stun:stun.l.google.com:19302
+# Auto-discover IPs from all network interfaces (works on Docker Desktop)
+webrtcIPsFromInterfaces: yes
+# If auto-discovery fails, manually set your host IP:
+webrtcAdditionalHosts: [192.168.2.170]
+
+###############################################
+# SOURCE TYPE REFERENCE
+#
+#   RTSP camera (native, no FFmpeg):
+#     source: rtsp://user:pass@192.168.1.10:554/stream
+#
+#   RTSPS / encrypted RTSP:
+#     source: rtsps://user:pass@192.168.1.10:322/stream
+#
+#   MJPEG over HTTP:
+#     runOnInit: ffmpeg -re -i "http://..." -c:v libx264 ... -f rtsp rtsp://localhost:8554/camN
+#
+#   HLS (.m3u8):
+#     runOnInit: ffmpeg -re -i "http://.../stream.m3u8" ... -f rtsp rtsp://localhost:8554/camN
+#
+#   MP4 / HTTP video (loops):
+#     runOnInit: ffmpeg -re -stream_loop -1 -i "http://..." ... -f rtsp rtsp://localhost:8554/camN
+#
+#   USB / local webcam (Linux):
+#     runOnInit: ffmpeg -re -f v4l2 -i /dev/video0 ... -f rtsp rtsp://localhost:8554/camN
+#
+# NOTE: Each cam's runOnInit MUST publish to its own path:
+#   cam1 → rtsp://localhost:8554/cam1
+#   cam2 → rtsp://localhost:8554/cam2  (etc.)
+###############################################
+
+paths:
+
+  # ── CAM 1 ─────────────────────────────────────────────────────
+  cam1:
+    runOnInit: >-
+      ffmpeg -re -stream_loop -1
+      -i "http://47.51.131.147/-wvhttp-01-/GetOneShot?image_size=1280x720&frame_count=1000000000"
+      -c:v libx264 -preset ultrafast -tune zerolatency
+      -pix_fmt yuv420p -r 15 -g 30
+      -f rtsp rtsp://localhost:8554/cam1
+    runOnInitRestart: yes
+
+  # ── CAM 2 ─────────────────────────────────────────────────────
+  cam2:
+    runOnInit: >-
+      ffmpeg -re
+      -i "http://61.211.241.239/nphMotionJpeg?Resolution=320x240&Quality=Standard"
+      -c:v libx264 -preset ultrafast -tune zerolatency
+      -pix_fmt yuv420p -r 15 -g 30
+      -f rtsp rtsp://localhost:8554/cam2
+    runOnInitRestart: yes
+
+  # ── CAM 3 ─────────────────────────────────────────────────────
+  cam3:
+    runOnInit: >-
+      ffmpeg -re -stream_loop -1
+      -i "http://47.51.131.147/-wvhttp-01-/GetOneShot?image_size=1280x720&frame_count=1000000000"
+      -c:v libx264 -preset ultrafast -tune zerolatency
+      -pix_fmt yuv420p -r 15 -g 30
+      -f rtsp rtsp://localhost:8554/cam3
+    runOnInitRestart: yes
+
+  # ── TEMPLATE: RTSP camera (native) ────────────────────────────
+  # cam4:
+  #   source: rtsp://admin:password@192.168.1.104:554/stream1
+  #   sourceOnDemand: yes
+  #   sourceOnDemandStartTimeout: 10s
+  #   sourceOnDemandCloseAfter: 10s
+
+  # ── TEMPLATE: RTSPS (encrypted) ───────────────────────────────
+  # cam5:
+  #   source: rtsps://admin:password@192.168.1.105:322/stream
+  #   sourceOnDemand: yes
+
+  # ── TEMPLATE: USB / local webcam ──────────────────────────────
+  # cam6:
+  #   runOnInit: >-
+  #     ffmpeg -re
+  #     -f v4l2 -i /dev/video0
+  #     -c:v libx264 -preset ultrafast -tune zerolatency
+  #     -pix_fmt yuv420p -r 30 -g 60
+  #     -f rtsp rtsp://localhost:8554/cam6
+  #   runOnInitRestart: yes

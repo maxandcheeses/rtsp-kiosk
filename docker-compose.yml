@@ -1,0 +1,55 @@
+services:
+
+  # ── MediaMTX + FFmpeg ─────────────────────────────────────────
+  mediamtx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mediamtx
+    restart: unless-stopped
+    ports:
+      - "8554:8554"         # RTSP TCP
+      - "8000:8000/udp"     # RTSP UDP/RTP
+      - "8001:8001/udp"     # RTSP UDP/RTCP
+      - "8889:8889"         # WebRTC / WHEP (HTTP signaling)
+      - "8189:8189/udp"     # WebRTC ICE / UDP media
+      - "9997:9997"         # MediaMTX API
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+
+  # ── Nginx: serves the video wall UI ──────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: video-wall-ui
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      # ── FORCE_LAYOUT ─────────────────────────────────────────
+      # Forces all new browser sessions to a specific layout,
+      # skipping the picker entirely. The L key is also disabled.
+      #
+      # Leave empty "" to show the layout picker on load.
+      # Users' last-chosen layout is saved in localStorage.
+      #
+      # Valid values:
+      #   single          1 stream, fullscreen
+      #   two-col         2 streams, side by side
+      #   two-row         2 streams, stacked
+      #   primary-right   3 streams, large left + 2 stacked right
+      #   primary-left    3 streams, 2 stacked left + large right
+      #   primary-bottom  3 streams, large top + 2 bottom
+      #   primary-top     3 streams, 2 top + large bottom
+      #   quad            4 streams, 2x2 grid
+      #   six             6 streams, 3x2 grid
+      #   eight           8 streams, 4x2 grid
+      FORCE_LAYOUT: ""
+    # envsubst injects FORCE_LAYOUT into index.html at container startup
+    entrypoint: >
+      /bin/sh -c "envsubst '$$FORCE_LAYOUT' < /templates/index.html > /usr/share/nginx/html/index.html
+      && nginx -g 'daemon off;'"
+    volumes:
+      - ./www/index.html:/templates/index.html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - mediamtx

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Wall</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #000;
+      overflow: hidden;
+      cursor: none;
+    }
+
+    #wall {
+      display: grid;
+      width: 100vw;
+      height: 100vh;
+      gap: 2px;
+      background: #111;
+    }
+
+    .cell {
+      position: relative;
+      background: #000;
+      overflow: hidden;
+    }
+
+    .cell video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Hover chrome */
+    .cell .chrome {
+      position: absolute; inset: 0;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .cell:hover .chrome { opacity: 1; pointer-events: auto; }
+    .cell:hover::after {
+      content: '';
+      position: absolute; inset: 0;
+      border: 1px solid rgba(255,255,255,0.15);
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .chrome .lbl {
+      position: absolute;
+      top: 14px; left: 14px;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      user-select: none;
+    }
+
+    .chrome .live {
+      position: absolute;
+      top: 14px; right: 14px;
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: rgba(255,255,255,0.4);
+    }
+    .chrome .live .dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 6px #4ade80;
+      animation: blink 2.5s ease-in-out infinite;
+    }
+    .chrome .live .dot.err { background: #f87171; box-shadow: 0 0 6px #f87171; animation: none; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .chrome .btn-fs {
+      position: absolute;
+      bottom: 14px; right: 14px;
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 3px;
+      cursor: pointer;
+      color: rgba(255,255,255,0.4);
+      transition: background .15s, color .15s, border-color .15s;
+      pointer-events: auto;
+    }
+    .chrome .btn-fs:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.3);
+      color: rgba(255,255,255,0.9);
+    }
+
+    /* Loading */
+    .cell .loading {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: #000;
+      z-index: 5;
+      transition: opacity 0.6s ease;
+    }
+    .cell .loading.gone { opacity: 0; pointer-events: none; }
+    .ring {
+      width: 28px; height: 28px;
+      border: 1.5px solid rgba(255,255,255,0.08);
+      border-top-color: rgba(255,255,255,0.35);
+      border-radius: 50%;
+      animation: spin 1.1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Error */
+    .cell .err-overlay {
+      position: absolute; inset: 0;
+      display: none; align-items: center; justify-content: center;
+      background: #000;
+      z-index: 6;
+    }
+    .cell .err-overlay.show { display: flex; }
+    .err-inner { text-align: center; font-family: 'Courier New', monospace; }
+    .err-inner .err-code {
+      font-size: 11px; letter-spacing: 0.25em;
+      color: rgba(248,113,113,0.6); text-transform: uppercase;
+    }
+    .err-inner .err-sub {
+      margin-top: 6px; font-size: 9px; letter-spacing: 0.15em;
+      color: rgba(255,255,255,0.15);
+    }
+
+    /* ── Layout picker overlay ── */
+    #picker {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.92);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 32px;
+      z-index: 1000;
+      font-family: 'Courier New', monospace;
+    }
+    #picker h1 {
+      font-size: 11px; letter-spacing: 0.4em;
+      color: rgba(255,255,255,0.3); text-transform: uppercase;
+    }
+    .layout-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .layout-btn {
+      width: 120px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 4px;
+      padding: 12px 8px 10px;
+      cursor: pointer;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 10px;
+      transition: background .15s, border-color .15s;
+      color: rgba(255,255,255,0.35);
+    }
+    .layout-btn:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.7);
+    }
+    .layout-btn svg { display: block; }
+    .layout-btn span { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; }
+    .divider {
+      width: 1px; height: 60px;
+      background: rgba(255,255,255,0.08);
+      align-self: center;
+    }
+  </style>
+</head>
+<body>
+
+<div id="picker">
+  <h1>Select Layout</h1>
+  <div class="layout-grid">
+
+    <!-- 1 stream -->
+    <button class="layout-btn" onclick="applyLayout('single')">
+      <svg width="80" height="50" viewBox="0 0 80 50"><rect x="2" y="2" width="76" height="46" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/></svg>
+      <span>1 · Single</span>
+    </button>
+
+    <!-- 2 streams side by side -->
+    <button class="layout-btn" onclick="applyLayout('two-col')">
+      <svg width="80" height="50" viewBox="0 0 80 50">
+        <rect x="2" y="2" width="36" height="46" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="42" y="2" width="36" height="46" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+      </svg>
+      <span>2 · Side by side</span>
+    </button>
+
+    <!-- 2 streams stacked -->
+    <button class="layout-btn" onclick="applyLayout('two-row')">
+      <svg width="80" height="50" viewBox="0 0 80 50">
+        <rect x="2" y="2" width="76" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="2" y="27" width="76" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+      </svg>
+      <span>2 · Stacked</span>
+    </button>
+
+    <!-- 3 streams: 1 large left, 2 right -->
+    <button class="layout-btn" onclick="applyLayout('primary-right')">
+      <svg width="80" height="50" viewBox="0 0 80 50">
+        <rect x="2" y="2" width="46" height="46" rx="2" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+        <rect x="52" y="2" width="26" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="52" y="27" width="26" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+      </svg>
+      <span>3 · Primary left</span>
+    </button>
+
+    <!-- 3 streams: 1 large right, 2 left -->
+    <button class="layout-btn" onclick="applyLayout('primary-left')">
+      <svg width="80" height="50" viewBox="0 0 80 50">
+        <rect x="2" y="2" width="26" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="2" y="27" width="26" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="32" y="2" width="46" height="46" rx="2" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      </svg>
+      <span>3 · Primary right</span>
+    </button>
+
+    <!-- 3 streams: 1 large top, 2 bottom -->
+    <button class="layout-btn" onclick="applyLayout('primary-bottom')">
+      <svg width="80" height="50" viewBox="0 0 80 50">
+        <rect x="2" y="2" width="76" height="28" rx="2" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+        <rect x="2" y="34" width="36" height="14" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="42" y="34" width="36" height="14" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+      </svg>
+      <span>3 · Primary top</span>
+    </button>
+
+    <!-- 3 streams: 2 small top, 1 large bottom -->
+    <button class="layout-btn" onclick="applyLayout('primary-top')">
+      <svg width="80" height="50" viewBox="0 0 80 50">
+        <rect x="2" y="2" width="36" height="14" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="42" y="2" width="36" height="14" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="2" y="20" width="76" height="28" rx="2" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      </svg>
+      <span>3 · Primary bottom</span>
+    </button>
+
+    <!-- 4 streams: 2x2 grid -->
+    <button class="layout-btn" onclick="applyLayout('quad')">
+      <svg width="80" height="50" viewBox="0 0 80 50">
+        <rect x="2" y="2" width="36" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="42" y="2" width="36" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="2" y="27" width="36" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="42" y="27" width="36" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+      </svg>
+      <span>4 · 2×2 Grid</span>
+    </button>
+
+    <!-- 6 streams: 3x2 grid -->
+    <button class="layout-btn" onclick="applyLayout('six')">
+      <svg width="80" height="50" viewBox="0 0 80 50">
+        <rect x="2" y="2" width="22" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="29" y="2" width="22" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="56" y="2" width="22" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="2" y="27" width="22" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="29" y="27" width="22" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="56" y="27" width="22" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+      </svg>
+      <span>6 · 3×2 Grid</span>
+    </button>
+
+    <!-- 8 streams -->
+    <button class="layout-btn" onclick="applyLayout('eight')">
+      <svg width="80" height="50" viewBox="0 0 80 50">
+        <rect x="2" y="2" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="22" y="2" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="42" y="2" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="62" y="2" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="2" y="27" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="22" y="27" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="42" y="27" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <rect x="62" y="27" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+      </svg>
+      <span>8 · 4×2 Grid</span>
+    </button>
+
+  </div>
+</div>
+
+<div id="wall"></div>
+
+<script>
+  // ═══════════════════════════════════════════════════════
+  // CONFIG — edit these to match your mediamtx.yml paths
+  // ═══════════════════════════════════════════════════════
+  const MEDIAMTX_HOST = window.location.hostname;
+  const MEDIAMTX_PORT = 8889;
+
+  const STREAMS = [
+    { path: 'cam1', label: 'CAM · 01' },
+    { path: 'cam2', label: 'CAM · 02' },
+    { path: 'cam3', label: 'CAM · 03' },
+    { path: 'cam4', label: 'CAM · 04' },
+    { path: 'cam5', label: 'CAM · 05' },
+    { path: 'cam6', label: 'CAM · 06' },
+    { path: 'cam7', label: 'CAM · 07' },
+    { path: 'cam8', label: 'CAM · 08' },
+  ];
+
+  // ═══════════════════════════════════════════════════════
+  // LAYOUTS
+  // Each layout defines:
+  //   streams  — how many streams to show
+  //   css      — grid-template-columns + grid-template-rows
+  //   spans    — optional per-cell {col, row} span overrides
+  // ═══════════════════════════════════════════════════════
+  const LAYOUTS = {
+    'single':         { streams: 1, css: { cols: '1fr',           rows: '1fr' } },
+    'two-col':        { streams: 2, css: { cols: '1fr 1fr',       rows: '1fr' } },
+    'two-row':        { streams: 2, css: { cols: '1fr',           rows: '1fr 1fr' } },
+    'primary-right':  { streams: 3, css: { cols: '2fr 1fr',       rows: '1fr 1fr' },
+                        spans: [{ col: '1', row: '1 / 3' }] },
+    'primary-left':   { streams: 3, css: { cols: '1fr 2fr',       rows: '1fr 1fr' },
+                        spans: [{ col: '2', row: '1 / 3', colStart: 2 }] },
+    'primary-bottom': { streams: 3, css: { cols: '1fr 1fr',       rows: '2fr 1fr' },
+                        spans: [{ col: '1 / 3', row: '1' }] },
+    'primary-top':    { streams: 3, css: { cols: '1fr 1fr',       rows: '1fr 2fr' },
+                        spans: [{ col: '1 / 3', row: '2' }] },
+    'quad':           { streams: 4, css: { cols: '1fr 1fr',       rows: '1fr 1fr' } },
+    'six':            { streams: 6, css: { cols: '1fr 1fr 1fr',   rows: '1fr 1fr' } },
+    'eight':          { streams: 8, css: { cols: '1fr 1fr 1fr 1fr', rows: '1fr 1fr' } },
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // Active peer connections — tracked so we can close them
+  // ═══════════════════════════════════════════════════════
+  let activePCs = [];
+
+  function stopAll() {
+    activePCs.forEach(pc => { try { pc.close(); } catch(e){} });
+    activePCs = [];
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // Build the wall DOM for a given layout
+  // ═══════════════════════════════════════════════════════
+  function applyLayout(name) {
+    const layout = LAYOUTS[name];
+    if (!layout) return;
+
+    stopAll();
+
+    const wall = document.getElementById('wall');
+    wall.style.gridTemplateColumns = layout.css.cols;
+    wall.style.gridTemplateRows    = layout.css.rows;
+    wall.innerHTML = '';
+
+    const count = Math.min(layout.streams, STREAMS.length);
+
+    for (let i = 0; i < count; i++) {
+      const stream = STREAMS[i];
+      const span   = layout.spans?.[i];
+      const num    = String(i + 1).padStart(2, '0');
+
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.id = `cell${i}`;
+
+      if (span) {
+        if (span.col)      cell.style.gridColumn = span.col;
+        if (span.row)      cell.style.gridRow    = span.row;
+        if (span.colStart) cell.style.gridColumnStart = span.colStart;
+      }
+
+      cell.innerHTML = `
+        <div class="loading" id="load${i}"><div class="ring"></div></div>
+        <div class="err-overlay" id="err${i}">
+          <div class="err-inner">
+            <div class="err-code">No Signal</div>
+            <div class="err-sub">${stream.label}</div>
+          </div>
+        </div>
+        <video id="v${i}" autoplay muted playsinline></video>
+        <div class="chrome">
+          <div class="lbl">${stream.label}</div>
+          <div class="live"><span class="dot" id="dot${i}"></span><span id="lbl${i}">LIVE</span></div>
+          <button class="btn-fs" onclick="toggleFS(${i})">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M8 3H5a2 2 0 00-2 2v3M21 8V5a2 2 0 00-2-2h-3M16 21h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+            </svg>
+          </button>
+        </div>`;
+
+      wall.appendChild(cell);
+    }
+
+    // Hide picker, start streams
+    document.getElementById('picker').style.display = 'none';
+    for (let i = 0; i < count; i++) startWhep(i);
+
+    // Save choice
+    try { localStorage.setItem('layout', name); } catch(e) {}
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // WebRTC / WHEP
+  // ═══════════════════════════════════════════════════════
+  async function startWhep(index) {
+    const { path } = STREAMS[index];
+    const video   = document.getElementById(`v${index}`);
+    const loading = document.getElementById(`load${index}`);
+    const errEl   = document.getElementById(`err${index}`);
+    const dot     = document.getElementById(`dot${index}`);
+    const lbl     = document.getElementById(`lbl${index}`);
+    if (!video) return;
+
+    const whepUrl = `http://${MEDIAMTX_HOST}:${MEDIAMTX_PORT}/${path}/whep`;
+
+    const setLive = () => {
+      loading.classList.add('gone');
+      errEl.classList.remove('show');
+      dot.classList.remove('err');
+      lbl.textContent = 'LIVE';
+    };
+    const setError = () => {
+      loading.classList.add('gone');
+      errEl.classList.add('show');
+      dot.classList.add('err');
+      lbl.textContent = 'ERR';
+    };
+
+    try {
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+      activePCs.push(pc);
+
+      pc.ontrack = e => {
+        video.srcObject = e.streams[0];
+        video.play().then(setLive).catch(setError);
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        if (['failed','disconnected','closed'].includes(pc.iceConnectionState)) {
+          setError();
+          setTimeout(() => startWhep(index), 5000);
+        }
+      };
+
+      pc.addTransceiver('video', { direction: 'recvonly' });
+      pc.addTransceiver('audio', { direction: 'recvonly' });
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      await new Promise(resolve => {
+        if (pc.iceGatheringState === 'complete') return resolve();
+        pc.onicegatheringstatechange = () => {
+          if (pc.iceGatheringState === 'complete') resolve();
+        };
+      });
+
+      const res = await fetch(whepUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/sdp' },
+        body: pc.localDescription.sdp,
+      });
+
+      if (!res.ok) throw new Error(`WHEP ${res.status}`);
+      await pc.setRemoteDescription({ type: 'answer', sdp: await res.text() });
+
+    } catch(e) {
+      console.error(`Stream ${index}:`, e);
+      setError();
+      setTimeout(() => startWhep(index), 5000);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // Fullscreen per cell
+  // ═══════════════════════════════════════════════════════
+  function toggleFS(index) {
+    const cell = document.getElementById(`cell${index}`);
+    if (!document.fullscreenElement) {
+      (cell.requestFullscreen || cell.webkitRequestFullscreen).call(cell);
+    } else {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // Press L to re-open layout picker
+  // ═══════════════════════════════════════════════════════
+  document.addEventListener('keydown', e => {
+    if (e.key === 'l' || e.key === 'L') {
+      stopAll();
+      document.getElementById('picker').style.display = 'flex';
+    }
+  });
+
+  // Cursor hide
+  let cursorTimer;
+  document.addEventListener('mousemove', () => {
+    document.body.style.cursor = 'default';
+    clearTimeout(cursorTimer);
+    cursorTimer = setTimeout(() => { document.body.style.cursor = 'none'; }, 3000);
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // FORCE_LAYOUT — injected by nginx from FORCE_LAYOUT env var.
+  // If set, skips the picker and locks the layout (L key disabled).
+  // Set in docker-compose.yml:  FORCE_LAYOUT=primary-right
+  // Nginx template replaces $FORCE_LAYOUT token at startup.
+  // ═══════════════════════════════════════════════════════
+  const FORCE_LAYOUT = '$FORCE_LAYOUT';
+
+  if (FORCE_LAYOUT && FORCE_LAYOUT !== '$FORCE_LAYOUT' && LAYOUTS[FORCE_LAYOUT]) {
+    // Env var is set — lock to this layout, disable picker key
+    applyLayout(FORCE_LAYOUT);
+    document.getElementById('picker').style.pointerEvents = 'none';
+  } else {
+    // No forced layout — restore saved or show picker
+    try {
+      const saved = localStorage.getItem('layout');
+      if (saved && LAYOUTS[saved]) applyLayout(saved);
+    } catch(e) {}
+  }
+</script>
+</body>
+</html>
