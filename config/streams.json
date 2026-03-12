@@ -1,0 +1,35 @@
+[
+  {
+    "path": "cam1",
+    "label": "Front Door",
+    "aspectRatio": "16:9",
+    "objectFit": "contain",
+    "source": "rtsp://username:password@10.0.1.1:7447/your-token",
+    "rtspTransport": "tcp",
+    "sourceOnDemand": true,
+    "sourceOnDemandStartTimeout": "10s",
+    "sourceOnDemandCloseAfter": "10s"
+  },
+  {
+    "path": "cam2",
+    "label": "Backyard",
+    "aspectRatio": "4:3",
+    "objectFit": "contain",
+    "source": "rtsp://username:password@10.0.1.1:7447/your-token",
+    "rtspTransport": "tcp",
+    "sourceOnDemand": true,
+    "sourceOnDemandStartTimeout": "10s",
+    "sourceOnDemandCloseAfter": "10s"
+  },
+  {
+    "path": "cam3",
+    "label": "Side Gate",
+    "aspectRatio": "16:9",
+    "objectFit": "contain",
+    "source": "rtsp://username:password@10.0.1.1:7447/your-token",
+    "rtspTransport": "tcp",
+    "sourceOnDemand": true,
+    "sourceOnDemandStartTimeout": "10s",
+    "sourceOnDemandCloseAfter": "10s"
+  }
+]

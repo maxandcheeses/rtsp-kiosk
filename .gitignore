@@ -1,0 +1,5 @@
+# Runtime config — contains credentials, never commit
+data/
+
+# Environment variables — contains host IP
+.env

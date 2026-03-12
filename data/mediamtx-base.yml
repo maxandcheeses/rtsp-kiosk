@@ -1,0 +1,29 @@
+###############################################
+# mediamtx-base.yml
+# Static MediaMTX config — paths are generated
+# automatically from data/streams.json at startup.
+# Do not add paths here manually.
+###############################################
+
+logLevel: info
+logDestinations: [stdout]
+
+rtmp: no
+hls: no
+srt: no
+
+rtsp: yes
+rtspAddress: :8554
+
+webrtc: yes
+webrtcAddress: :8889
+
+api: yes
+apiAddress: :9997
+
+# Local STUN server — keeps ICE discovery on the LAN.
+# HOST_IP and STUN_PORT are injected from .env via docker-compose.
+webrtcICEServers2:
+  - url: stun:${HOST_IP}:${STUN_PORT}
+webrtcIPsFromInterfaces: yes
+webrtcAdditionalHosts: [${HOST_IP}]

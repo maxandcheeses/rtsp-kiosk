@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Video Wall</title>
+  <title>RTSP Kiosk</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -18,8 +18,8 @@
       display: grid;
       width: 100vw;
       height: 100vh;
-      gap: 2px;
-      background: #111;
+      gap: 0;
+      background: #000;
     }
 
     .cell {
@@ -30,7 +30,7 @@
 
     .cell video {
       width: 100%; height: 100%;
-      object-fit: cover;
+      object-fit: contain; /* default — overridden per stream */
       display: block;
     }
 
@@ -179,6 +179,31 @@
       background: rgba(255,255,255,0.08);
       align-self: center;
     }
+    .picker-footer {
+      display: flex; align-items: center; gap: 12px;
+      font-family: 'Courier New', monospace;
+      color: rgba(255,255,255,0.25);
+      font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+    }
+    .picker-footer input[type=number] {
+      width: 56px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 3px;
+      color: rgba(255,255,255,0.6);
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      padding: 4px 8px;
+      text-align: center;
+      outline: none;
+    }
+    .picker-footer input[type=number]:focus {
+      border-color: rgba(255,255,255,0.3);
+      color: rgba(255,255,255,0.9);
+    }
+    /* hide spinner arrows */
+    .picker-footer input[type=number]::-webkit-inner-spin-button,
+    .picker-footer input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   </style>
 </head>
 <body>
@@ -291,6 +316,11 @@
     </button>
 
   </div>
+  <div class="picker-footer">
+    <span>Fullscreen timeout</span>
+    <input type="number" id="fs-timeout-input" min="0" max="3600" placeholder="sec" />
+    <span>sec · 0 = off</span>
+  </div>
 </div>
 
 <div id="wall"></div>
@@ -302,17 +332,31 @@
   const MEDIAMTX_HOST = window.location.hostname;
   const MEDIAMTX_PORT = 8889;
 
-  const STREAMS = [
-    { path: 'cam1', label: 'CAM · 01' },
-    { path: 'cam2', label: 'CAM · 02' },
-    { path: 'cam3', label: 'CAM · 03' },
-    { path: 'cam4', label: 'CAM · 04' },
-    { path: 'cam5', label: 'CAM · 05' },
-    { path: 'cam6', label: 'CAM · 06' },
-    { path: 'cam7', label: 'CAM · 07' },
-    { path: 'cam8', label: 'CAM · 08' },
-  ];
+  // ═══════════════════════════════════════════════════════
+  // FULLSCREEN AUTO-EXIT
+  // When a cell is fullscreened, automatically exit back to
+  // the wall layout after this many seconds.
+  // Set to 0 or null to disable auto-exit.
+  // ═══════════════════════════════════════════════════════
+  let FULLSCREEN_TIMEOUT = '$FULLSCREEN_TIMEOUT' ? Number('$FULLSCREEN_TIMEOUT') : 30;
 
+  // ═══════════════════════════════════════════════════════
+  // STREAM CONFIG — loaded from /streams.json at startup.
+  // Edit data/streams.json to add, remove, or configure streams.
+  // No container restart needed — just refresh the browser.
+  // ═══════════════════════════════════════════════════════
+  let STREAMS = [];
+
+  async function loadStreams() {
+    try {
+      const res = await fetch('/streams.json');
+      if (!res.ok) throw new Error(`Failed to load streams.json: ${res.status}`);
+      STREAMS = await res.json();
+    } catch(e) {
+      console.error('Could not load streams.json:', e);
+      STREAMS = [];
+    }
+  }
   // ═══════════════════════════════════════════════════════
   // LAYOUTS
   // Each layout defines:
@@ -378,6 +422,18 @@
         if (span.colStart) cell.style.gridColumnStart = span.colStart;
       }
 
+      // Apply per-stream aspect ratio to the cell
+      // Config uses '16:9' notation; CSS requires '16/9'
+      if (stream.aspectRatio) {
+        cell.style.aspectRatio = stream.aspectRatio.replace(':', '/');
+        cell.style.maxWidth    = '100%';
+        cell.style.maxHeight   = '100%';
+        cell.style.margin      = 'auto';
+      }
+
+      // objectFit applied inline on the video element
+      const objectFit = stream.objectFit || 'contain';
+
       cell.innerHTML = `
         <div class="loading" id="load${i}"><div class="ring"></div></div>
         <div class="err-overlay" id="err${i}">
@@ -386,7 +442,7 @@
             <div class="err-sub">${stream.label}</div>
           </div>
         </div>
-        <video id="v${i}" autoplay muted playsinline></video>
+        <video id="v${i}" autoplay muted playsinline style="object-fit:${objectFit}"></video>
         <div class="chrome">
           <div class="lbl">${stream.label}</div>
           <div class="live"><span class="dot" id="dot${i}"></span><span id="lbl${i}">LIVE</span></div>
@@ -440,6 +496,8 @@
   // ═══════════════════════════════════════════════════════
   // WebRTC / WHEP
   // ═══════════════════════════════════════════════════════
+  const streamPCs = {};  // active RTCPeerConnection per stream
+
   async function startWhep(index) {
     const { path } = STREAMS[index];
     const video   = document.getElementById(`v${index}`);
@@ -448,6 +506,12 @@
     const dot     = document.getElementById(`dot${index}`);
     const lbl     = document.getElementById(`lbl${index}`);
     if (!video) return;
+
+    // Close any existing connection cleanly before reconnecting
+    if (streamPCs[index]) {
+      try { streamPCs[index].close(); } catch(e) {}
+      delete streamPCs[index];
+    }
 
     const whepUrl = `http://${MEDIAMTX_HOST}:${MEDIAMTX_PORT}/${path}/whep`;
 
@@ -458,6 +522,7 @@
       lbl.textContent = 'LIVE';
       resetRetry(index);
     };
+
     const setError = () => {
       loading.classList.add('gone');
       errEl.classList.add('show');
@@ -469,15 +534,44 @@
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
       });
+      streamPCs[index] = pc;
       activePCs.push(pc);
 
+      let trackReceived = false;
+
+      // Fallback: if no track arrives in 10s, retry
+      const noTrackTimer = setTimeout(() => {
+        if (!trackReceived) {
+          console.warn(`Stream ${index}: no track received within 10s, retrying`);
+          try { pc.close(); } catch(e) {}
+          setError();
+          scheduleRetry(index);
+        }
+      }, 10000);
+
       pc.ontrack = e => {
+        clearTimeout(noTrackTimer);
+        trackReceived = true;
         video.srcObject = e.streams[0];
-        video.play().then(setLive).catch(() => { setError(); scheduleRetry(index); });
+        video.play()
+          .then(setLive)
+          .catch(err => {
+            // Autoplay blocked — video is still attached, just mark live
+            console.warn(`Stream ${index} autoplay blocked:`, err);
+            setLive();
+          });
       };
 
+      // Only hard 'failed' triggers a retry — 'disconnected' is often transient
       pc.oniceconnectionstatechange = () => {
-        if (['failed','disconnected','closed'].includes(pc.iceConnectionState)) {
+        const state = pc.iceConnectionState;
+        console.log(`Stream ${index} ICE: ${state}`);
+        if (state === 'failed') {
+          clearTimeout(noTrackTimer);
+          setError();
+          scheduleRetry(index);
+        }
+        if (state === 'closed' && trackReceived) {
           setError();
           scheduleRetry(index);
         }
@@ -489,11 +583,14 @@
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
+      // Wait for ICE gathering
       await new Promise(resolve => {
         if (pc.iceGatheringState === 'complete') return resolve();
         pc.onicegatheringstatechange = () => {
           if (pc.iceGatheringState === 'complete') resolve();
         };
+        // Safety timeout on ICE gathering
+        setTimeout(resolve, 5000);
       });
 
       const res = await fetch(whepUrl, {
@@ -511,18 +608,39 @@
       scheduleRetry(index);
     }
   }
-
   // ═══════════════════════════════════════════════════════
   // Fullscreen per cell
+  // Auto-exits after FULLSCREEN_TIMEOUT seconds if set.
   // ═══════════════════════════════════════════════════════
+  let fsTimer = null;
+
+  function clearFsTimer() {
+    if (fsTimer) { clearTimeout(fsTimer); fsTimer = null; }
+  }
+
   function toggleFS(index) {
     const cell = document.getElementById(`cell${index}`);
     if (!document.fullscreenElement) {
       (cell.requestFullscreen || cell.webkitRequestFullscreen).call(cell);
+      // Start auto-exit timer if configured
+      if (FULLSCREEN_TIMEOUT) {
+        clearFsTimer();
+        fsTimer = setTimeout(() => {
+          if (document.fullscreenElement) {
+            (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+          }
+        }, FULLSCREEN_TIMEOUT * 1000);
+      }
     } else {
+      clearFsTimer();
       (document.exitFullscreen || document.webkitExitFullscreen).call(document);
     }
   }
+
+  // Also clear the timer if user exits fullscreen manually (Escape key etc.)
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) clearFsTimer();
+  });
 
   // ═══════════════════════════════════════════════════════
   // Press L to re-open layout picker
@@ -550,6 +668,29 @@
   // ═══════════════════════════════════════════════════════
   const FORCE_LAYOUT = '$FORCE_LAYOUT';
 
+  // ═══════════════════════════════════════════════════════
+  // Boot — load streams.json then initialise
+  // ═══════════════════════════════════════════════════════
+  async function boot() {
+    await loadStreams();
+
+    // Wire up fullscreen timeout input in picker
+  const fsInput = document.getElementById('fs-timeout-input');
+  fsInput.value = FULLSCREEN_TIMEOUT || '';
+  fsInput.addEventListener('change', () => {
+    const val = parseInt(fsInput.value, 10);
+    FULLSCREEN_TIMEOUT = isNaN(val) ? 0 : val;
+    try { localStorage.setItem('fsTimeout', FULLSCREEN_TIMEOUT); } catch(e) {}
+  });
+  // Restore saved value (overrides env default if user has changed it)
+  try {
+    const saved = localStorage.getItem('fsTimeout');
+    if (saved !== null) {
+      FULLSCREEN_TIMEOUT = Number(saved);
+      fsInput.value = FULLSCREEN_TIMEOUT || '';
+    }
+  } catch(e) {}
+
   if (FORCE_LAYOUT && FORCE_LAYOUT !== '$FORCE_LAYOUT' && LAYOUTS[FORCE_LAYOUT]) {
     // Env var is set — lock to this layout, disable picker key
     applyLayout(FORCE_LAYOUT);
@@ -561,6 +702,9 @@
       if (saved && LAYOUTS[saved]) applyLayout(saved);
     } catch(e) {}
   }
+  } // end boot()
+
+  boot();
 </script>
 </body>
 </html>

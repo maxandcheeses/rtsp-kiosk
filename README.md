@@ -1,6 +1,8 @@
 # rtsp-kiosk
 
-A self-hosted, fullscreen video wall for IP cameras and live streams. Drop in your RTSP, MJPEG, or HLS sources, pick a layout, and deploy with a single `docker compose up`.
+A self-hosted, fullscreen video wall for IP cameras and live streams. Drop in your RTSP sources, pick a layout, and deploy with a single `docker compose up`.
+
+Designed to be used with [free-kiosk](https://github.com/RushB-fr/freekiosk) — a browser-based kiosk manager that locks a display to a single URL. Point free-kiosk at `http://<HOST_IP>` and use `FORCE_LAYOUT` to pin the layout, giving you a fully unattended, zero-interaction security monitor.
 
 ```
 ┌─────────────────┬──────────┐
@@ -16,114 +18,272 @@ A self-hosted, fullscreen video wall for IP cameras and live streams. Drop in yo
 
 | Component | Role |
 |-----------|------|
-| **MediaMTX** | Ingests any camera source, exposes WebRTC/WHEP to browsers |
-| **FFmpeg** (bundled in image) | Transcodes MJPEG/HLS/MP4 sources → H.264 RTSP |
-| **Nginx** | Serves the video wall UI on port 80, injects env config |
+| **MediaMTX** | Ingests RTSP streams, exposes WebRTC/WHEP to browsers |
+| **FFmpeg** (bundled) | Transcodes MJPEG/HLS/MP4 sources → H.264 RTSP |
+| **coturn** | Local STUN server — keeps ICE discovery on the LAN |
+| **Nginx** | Serves the UI on port 80, injects env config |
+
+---
+
+## File Structure
+
+```
+rtsp-kiosk/
+├── data/                        ← gitignored — private runtime config
+│   ├── streams.json             ← camera config (single source of truth)
+│   └── mediamtx-base.yml       ← static MediaMTX settings
+├── scripts/
+│   └── generate-config.sh      ← builds mediamtx.yml from streams.json at startup
+├── www/
+│   └── index.html              ← UI (fetches streams.json at load time)
+├── Dockerfile                   ← MediaMTX + FFmpeg + jq + envsubst
+├── docker-compose.yml
+├── nginx.conf
+├── .env                         ← gitignored — HOST_IP, STUN_PORT
+└── .gitignore
+```
 
 ---
 
 ## Quick Start
 
-### 1. Configure camera sources in `mediamtx.yml`
+### 1. Create `.env`
 
-Each camera gets a named path. The path name (`cam1`, `cam2`, etc.) must match the `STREAMS` array in `www/index.html`.
-
-**⚠️ Important:** Each `runOnInit` command must publish to its own path. `cam1` must publish to `rtsp://localhost:8554/cam1`, `cam2` to `cam2`, and so on.
-
-#### RTSP (native — most IP cameras, no FFmpeg needed)
-```yaml
-cam1:
-  source: rtsp://admin:password@192.168.1.101:554/stream1
-  sourceOnDemand: yes
-  sourceOnDemandStartTimeout: 10s
-  sourceOnDemandCloseAfter: 10s
+```env
+HOST_IP=10.0.0.10       # LAN IP of this host
+STUN_PORT=3478
 ```
 
-#### RTSPS — encrypted RTSP over TLS
-```yaml
-cam1:
-  source: rtsps://admin:password@192.168.1.101:322/stream
-  sourceOnDemand: yes
+### 2. Configure cameras in `data/streams.json`
+
+This is the single source of truth for all cameras. It configures both the UI and MediaMTX.
+
+```json
+[
+  {
+    "path": "cam1",
+    "label": "Front Door",
+    "aspectRatio": "16:9",
+    "objectFit": "contain",
+    "source": "rtsp://user:password@10.0.1.1:7447/token",
+    "rtspTransport": "tcp",
+    "sourceOnDemand": true,
+    "sourceOnDemandStartTimeout": "10s",
+    "sourceOnDemandCloseAfter": "10s"
+  },
+  {
+    "path": "cam2",
+    "label": "Backyard",
+    "aspectRatio": "4:3",
+    "objectFit": "contain",
+    "source": "rtsp://user:password@10.0.1.1:7447/token",
+    "rtspTransport": "tcp",
+    "sourceOnDemand": true,
+    "sourceOnDemandStartTimeout": "10s",
+    "sourceOnDemandCloseAfter": "10s"
+  }
+]
 ```
 
-#### MJPEG over HTTP
-```yaml
-cam2:
-  runOnInit: >-
-    ffmpeg -re
-    -i "http://camera-ip/nphMotionJpeg"
-    -c:v libx264 -preset ultrafast -tune zerolatency
-    -pix_fmt yuv420p -r 15 -g 30
-    -f rtsp rtsp://localhost:8554/cam2
-  runOnInitRestart: yes
+#### Stream fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `path` | ✓ | MediaMTX path name — must be unique |
+| `label` | ✓ | Display name shown on hover |
+| `aspectRatio` | ✓ | `16:9`, `4:3`, `1:1` — constrains cell shape |
+| `objectFit` | ✓ | `contain` (no crop) or `cover` (crop to fill) |
+| `source` | ✓ | RTSP/RTSPS URL |
+| `rtspTransport` | | `tcp` or `udp` — use `tcp` for UniFi and flaky networks |
+| `sourceOnDemand` | | `true` — only connect when a browser is watching |
+| `sourceOnDemandStartTimeout` | | How long to wait for stream to start |
+| `sourceOnDemandCloseAfter` | | How long to keep stream alive after last viewer leaves |
+| `runOnInit` | | FFmpeg command for MJPEG/HLS/MP4 sources |
+| `runOnInitRestart` | | `true` — restart FFmpeg on failure |
+
+#### Source type examples
+
+**RTSP (native — most IP cameras)**
+```json
+{
+  "path": "cam1",
+  "source": "rtsp://admin:password@192.168.1.101:554/stream1",
+  "rtspTransport": "tcp",
+  "sourceOnDemand": true
+}
 ```
 
-#### HLS (.m3u8)
-```yaml
-cam3:
-  runOnInit: >-
-    ffmpeg -re
-    -i "http://server/live/stream.m3u8"
-    -c:v libx264 -preset ultrafast -tune zerolatency
-    -pix_fmt yuv420p -r 25 -g 50
-    -f rtsp rtsp://localhost:8554/cam3
-  runOnInitRestart: yes
+**UniFi Protect**
+```json
+{
+  "path": "cam1",
+  "source": "rtsp://username:password@10.0.1.1:7447/your-camera-token",
+  "rtspTransport": "tcp",
+  "sourceOnDemand": true,
+  "sourceOnDemandStartTimeout": "10s",
+  "sourceOnDemandCloseAfter": "10s"
+}
 ```
 
-#### MP4 / HTTP video (loops continuously)
-```yaml
-cam3:
-  runOnInit: >-
-    ffmpeg -re -stream_loop -1
-    -i "http://server/clip.mp4"
-    -c:v libx264 -preset ultrafast -tune zerolatency
-    -pix_fmt yuv420p -r 25 -g 50
-    -f rtsp rtsp://localhost:8554/cam3
-  runOnInitRestart: yes
+**RTSP — 16:9, no crop**
+```json
+{
+  "path": "cam1",
+  "label": "Front Door",
+  "aspectRatio": "16:9",
+  "objectFit": "contain",
+  "source": "rtsp://admin:password@192.168.1.101:554/stream1",
+  "rtspTransport": "tcp",
+  "sourceOnDemand": true,
+  "sourceOnDemandStartTimeout": "10s",
+  "sourceOnDemandCloseAfter": "10s"
+}
 ```
 
-#### USB / local webcam (Linux)
-```yaml
-cam1:
-  runOnInit: >-
-    ffmpeg -re
-    -f v4l2 -i /dev/video0
-    -c:v libx264 -preset ultrafast -tune zerolatency
-    -pix_fmt yuv420p -r 30 -g 60
-    -f rtsp rtsp://localhost:8554/cam1
-  runOnInitRestart: yes
+**RTSP — 4:3, no crop (fisheye / older cameras)**
+```json
+{
+  "path": "cam2",
+  "label": "Backyard",
+  "aspectRatio": "4:3",
+  "objectFit": "contain",
+  "source": "rtsp://admin:password@192.168.1.102:554/stream1",
+  "rtspTransport": "tcp",
+  "sourceOnDemand": true,
+  "sourceOnDemandStartTimeout": "10s",
+  "sourceOnDemandCloseAfter": "10s"
+}
 ```
+
+**RTSP — 16:9, crop to fill cell**
+```json
+{
+  "path": "cam3",
+  "label": "Garage",
+  "aspectRatio": "16:9",
+  "objectFit": "cover",
+  "source": "rtsp://admin:password@192.168.1.103:554/stream1",
+  "rtspTransport": "tcp",
+  "sourceOnDemand": true,
+  "sourceOnDemandStartTimeout": "10s",
+  "sourceOnDemandCloseAfter": "10s"
+}
+```
+
+**UniFi Protect — 16:9**
+```json
+{
+  "path": "cam4",
+  "label": "Side Gate",
+  "aspectRatio": "16:9",
+  "objectFit": "contain",
+  "source": "rtsp://username:password@10.0.1.1:7447/your-camera-token",
+  "rtspTransport": "tcp",
+  "sourceOnDemand": true,
+  "sourceOnDemandStartTimeout": "10s",
+  "sourceOnDemandCloseAfter": "10s"
+}
+```
+
+**MJPEG over HTTP — 4:3**
+```json
+{
+  "path": "cam5",
+  "label": "Workshop",
+  "aspectRatio": "4:3",
+  "objectFit": "contain",
+  "source": "publisher",
+  "runOnInit": "ffmpeg -re -i http://camera-ip/nphMotionJpeg -an -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -r 15 -g 30 -f rtsp rtsp://localhost:8554/cam5",
+  "runOnInitRestart": true
+}
+```
+
+**HLS (.m3u8) — 16:9**
+```json
+{
+  "path": "cam6",
+  "label": "Driveway",
+  "aspectRatio": "16:9",
+  "objectFit": "contain",
+  "source": "publisher",
+  "runOnInit": "ffmpeg -re -i http://server/live/stream.m3u8 -an -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -r 25 -g 50 -f rtsp rtsp://localhost:8554/cam6",
+  "runOnInitRestart": true
+}
+```
+
+### 3. Create `data/mediamtx-base.yml`
+
+Static MediaMTX settings — `paths:` is generated automatically from `streams.json`.
+
+```yaml
+logLevel: info
+logDestinations: [stdout]
+
+rtmp: no
+hls: no
+srt: no
+
+rtsp: yes
+rtspAddress: :8554
+
+webrtc: yes
+webrtcAddress: :8889
+
+api: yes
+apiAddress: :9997
+
+webrtcICEServers2:
+  - url: stun:${HOST_IP}:${STUN_PORT}
+webrtcIPsFromInterfaces: yes
+webrtcAdditionalHosts: [${HOST_IP}]
+```
+
+### 4. Deploy
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+### 5. Open
+
+Navigate to `http://<HOST_IP>` in any modern browser.
 
 ---
 
-### 2. (Optional) Force a layout
+## Configuration
 
-By default the UI shows a layout picker on load. To lock all sessions to a specific layout, set `FORCE_LAYOUT` in `docker-compose.yml`:
+### Changing cameras
 
+Edit `data/streams.json`, then:
+```bash
+docker compose restart mediamtx
+```
+The browser only needs a refresh — no rebuild required.
+
+### Force a layout
+
+Set `FORCE_LAYOUT` in `docker-compose.yml` to skip the picker:
 ```yaml
 environment:
   FORCE_LAYOUT: "primary-right"
 ```
+Then `docker compose up -d`. Set to `""` to show the picker.
 
-See the [Layouts](#layouts) section below for all valid values.
+### Fullscreen auto-exit
 
----
-
-### 3. Deploy
-
-```bash
-docker compose up -d
+Set `FULLSCREEN_TIMEOUT` in `docker-compose.yml`:
+```yaml
+environment:
+  FULLSCREEN_TIMEOUT: "30"   # seconds — set to 0 to disable
 ```
-
-### 4. Open
-
-Navigate to `http://<your-server-ip>` in any modern browser.
+Users can also override this in the layout picker UI. Their preference is saved in `localStorage`.
 
 ---
 
 ## Layouts
 
-The UI supports 10 layouts selectable from a picker on load. Press **`L`** at any time to reopen the picker.
+Press **`L`** at any time to open the layout picker.
 
 #### `single` — 1 stream
 ```
@@ -219,38 +379,13 @@ The UI supports 10 layouts selectable from a picker on load. Press **`L`** at an
 └──────┴──────┴──────┴──────┘
 ```
 
-### Forcing a layout via environment variable
-
-Set `FORCE_LAYOUT` in `docker-compose.yml` to skip the picker and lock all new browser sessions to a specific layout:
-
-```yaml
-# docker-compose.yml
-services:
-  nginx:
-    environment:
-      FORCE_LAYOUT: "quad"
-```
-
-- The layout picker is hidden and the `L` key is disabled when a layout is forced.
-- Each user's last-chosen layout is saved in `localStorage` when no layout is forced.
-- To revert to showing the picker, set `FORCE_LAYOUT: ""`.
-- Changes take effect after `docker compose up -d` (no rebuild needed).
-
 ---
 
-## Changing layouts at runtime
-
-| Method | How |
-|--------|-----|
-| Keyboard | Press **`L`** to open/close the layout picker |
-| Force via env | Set `FORCE_LAYOUT` in `docker-compose.yml` and run `docker compose up -d` |
-
----
-
-## Common RTSP URL formats
+## Common RTSP URL Formats
 
 | Brand | URL |
 |-------|-----|
+| UniFi Protect | `rtsp://user:pass@ip:7447/token` |
 | Hikvision | `rtsp://user:pass@ip:554/Streaming/Channels/101` |
 | Dahua | `rtsp://user:pass@ip:554/cam/realmonitor?channel=1&subtype=0` |
 | Reolink | `rtsp://user:pass@ip:554/h264Preview_01_main` |
@@ -260,69 +395,46 @@ services:
 
 ---
 
-## File Structure
+## Ports
 
-```
-video-wall/
-├── Dockerfile                # Builds MediaMTX + FFmpeg image
-├── docker-compose.yml        # Service orchestration + FORCE_LAYOUT config
-├── mediamtx.yml              # Camera sources, WebRTC, ICE config
-├── nginx.conf                # Nginx vhost
-├── README.md
-└── www/
-    └── index.html            # Video wall UI (layout picker + WebRTC player)
-```
-
----
-
-## Docker Desktop (Mac/Windows)
-
-`network_mode: host` does not work on Docker Desktop. The project already uses bridge networking with explicit port mapping. If WebRTC streams connect but no video appears, set your machine's LAN IP in `mediamtx.yml`:
-
-```yaml
-webrtcAdditionalHosts: [192.168.x.x]   # your LAN IP
-```
-
-Find your IP: `ipconfig getifaddr en0` (Mac) or `ipconfig` (Windows).
-
----
-
-## Accessing Over the Internet
-
-Set your server's public IP in `mediamtx.yml`:
-```yaml
-webrtcAdditionalHosts: [YOUR_PUBLIC_IP]
-```
-
-Open these ports on your firewall/router:
-- `80` — UI
-- `8889` — WebRTC/WHEP signaling
-- `8189/udp` — WebRTC ICE media
-
-For strict NAT, add a TURN server:
-```yaml
-webrtcICEServers2:
-  - url: turn:your-turn-server:3478
-    username: user
-    password: pass
-```
+| Port | Protocol | Service |
+|------|----------|---------|
+| 80 | TCP | UI (Nginx) |
+| 3478 | UDP/TCP | STUN (coturn) |
+| 8554 | TCP | RTSP |
+| 8889 | TCP | WebRTC/WHEP signaling |
+| 8189 | UDP | WebRTC ICE media |
+| 9997 | TCP | MediaMTX API |
 
 ---
 
 ## Troubleshooting
 
 ```bash
-docker compose logs -f mediamtx        # Stream and FFmpeg errors
-docker compose logs -f video-wall-ui   # Nginx / UI errors
-docker compose restart mediamtx        # Restart streams only
-docker compose down && docker compose up -d  # Full restart
+docker compose logs -f mediamtx       # stream and config errors
+docker compose logs -f rtsp-kiosk-ui  # nginx / UI errors
+docker compose restart mediamtx       # restart streams only
+docker compose down && docker compose up -d  # full restart
 ```
 
-**"No Signal" in browser** — check that:
-1. MediaMTX logs show the stream as `available and online`
-2. Port `8889` is reachable from the browser (`curl http://<ip>:8889`)
-3. `webrtcAdditionalHosts` is set to your LAN/public IP
+**"No Signal" in browser**
+1. Check MediaMTX logs show `stream is available and online`
+2. Check port `8889` is reachable: `curl http://<HOST_IP>:8889`
+3. Check `HOST_IP` in `.env` matches the IP the browser is connecting from
 
-**cam path conflict** — if you see `closing existing publisher`, two FFmpeg processes are publishing to the same path. Check each `runOnInit` command ends with the correct `rtsp://localhost:8554/camN` for its own path.
+**`deadline exceeded while waiting connection`**
+ICE negotiation failed — UDP port `8189` is likely blocked. Verify:
+```bash
+nc -vzu <HOST_IP> 8189
+```
 
-**H.265 cameras** — the custom Docker image includes FFmpeg which transcodes H.265 → H.264 for browser compatibility.
+**`jq: error: Is a directory`**
+`data/streams.json` was created as a directory by Docker before the file existed. Fix:
+```bash
+rm -rf data/streams.json
+# recreate the file, then:
+docker compose restart mediamtx
+```
+
+**H.265 cameras**
+FFmpeg is bundled in the image and will transcode H.265 → H.264 automatically via a `runOnInit` command in `streams.json`.
