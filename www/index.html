@@ -412,21 +412,29 @@
   // Exponential backoff per stream
   // Starts at 2s, doubles each failure, caps at 30s.
   // Resets to 2s on successful connection.
+  // Guard flag prevents multiple overlapping retry loops.
   // ═══════════════════════════════════════════════════════
-  const retryDelay  = {};  // current delay per stream index
-  const RETRY_MIN   = 2000;
-  const RETRY_MAX   = 30000;
+  const retryDelay   = {};   // current delay per stream index
+  const retryPending = {};   // true if a retry is already scheduled
+  const RETRY_MIN    = 2000;
+  const RETRY_MAX    = 30000;
 
   function scheduleRetry(index) {
+    if (retryPending[index]) return;   // already queued, don't stack
+    retryPending[index] = true;
     if (!retryDelay[index]) retryDelay[index] = RETRY_MIN;
     const delay = retryDelay[index];
     retryDelay[index] = Math.min(delay * 2, RETRY_MAX);
     console.log(`Stream ${index}: retry in ${delay / 1000}s`);
-    setTimeout(() => startWhep(index), delay);
+    setTimeout(() => {
+      retryPending[index] = false;
+      startWhep(index);
+    }, delay);
   }
 
   function resetRetry(index) {
-    retryDelay[index] = RETRY_MIN;
+    retryDelay[index]   = RETRY_MIN;
+    retryPending[index] = false;
   }
 
   // ═══════════════════════════════════════════════════════

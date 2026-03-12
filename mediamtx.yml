@@ -60,7 +60,7 @@ paths:
     runOnInit: >-
       ffmpeg -re -stream_loop -1
       -i "http://47.51.131.147/-wvhttp-01-/GetOneShot?image_size=1280x720&frame_count=1000000000"
-      -c:v libx264 -preset ultrafast -tune zerolatency
+      -an -c:v libx264 -preset ultrafast -tune zerolatency
       -pix_fmt yuv420p -r 15 -g 30
       -f rtsp rtsp://localhost:8554/cam1
     runOnInitRestart: yes
@@ -70,7 +70,7 @@ paths:
     runOnInit: >-
       ffmpeg -re
       -i "http://61.211.241.239/nphMotionJpeg?Resolution=320x240&Quality=Standard"
-      -c:v libx264 -preset ultrafast -tune zerolatency
+      -an -c:v libx264 -preset ultrafast -tune zerolatency
       -pix_fmt yuv420p -r 15 -g 30
       -f rtsp rtsp://localhost:8554/cam2
     runOnInitRestart: yes
@@ -80,7 +80,7 @@ paths:
     runOnInit: >-
       ffmpeg -re -stream_loop -1
       -i "http://47.51.131.147/-wvhttp-01-/GetOneShot?image_size=1280x720&frame_count=1000000000"
-      -c:v libx264 -preset ultrafast -tune zerolatency
+      -an -c:v libx264 -preset ultrafast -tune zerolatency
       -pix_fmt yuv420p -r 15 -g 30
       -f rtsp rtsp://localhost:8554/cam3
     runOnInitRestart: yes
