@@ -578,7 +578,8 @@
       };
 
       pc.addTransceiver('video', { direction: 'recvonly' });
-      pc.addTransceiver('audio', { direction: 'inactive' });
+      // Only request audio if this stream has audio: true
+      pc.addTransceiver('audio', { direction: STREAMS[index]?.audio ? 'recvonly' : 'inactive' });
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);

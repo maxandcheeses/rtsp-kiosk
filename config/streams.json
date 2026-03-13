@@ -8,7 +8,8 @@
     "rtspTransport": "tcp",
     "sourceOnDemand": true,
     "sourceOnDemandStartTimeout": "10s",
-    "sourceOnDemandCloseAfter": "10s"
+    "sourceOnDemandCloseAfter": "10s",
+    "audio": false
   },
   {
     "path": "cam2",
@@ -19,7 +20,8 @@
     "rtspTransport": "tcp",
     "sourceOnDemand": true,
     "sourceOnDemandStartTimeout": "10s",
-    "sourceOnDemandCloseAfter": "10s"
+    "sourceOnDemandCloseAfter": "10s",
+    "audio": false
   },
   {
     "path": "cam3",
@@ -30,6 +32,7 @@
     "rtspTransport": "tcp",
     "sourceOnDemand": true,
     "sourceOnDemandStartTimeout": "10s",
-    "sourceOnDemandCloseAfter": "10s"
+    "sourceOnDemandCloseAfter": "10s",
+    "audio": false
   }
 ]

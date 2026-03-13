@@ -100,6 +100,9 @@ This is the single source of truth for all cameras. It configures both the UI an
 | `sourceOnDemandCloseAfter` | | How long to keep stream alive after last viewer leaves |
 | `runOnInit` | | FFmpeg command for MJPEG/HLS/MP4 sources |
 | `runOnInitRestart` | | `true` — restart FFmpeg on failure |
+| `audio` | | `true` to receive audio — omit or `false` for no audio (default) |
+
+> ⚠️ **Android + free-kiosk crash:** A fatal crash in the `AudioTrack` thread (`SIGABRT`) has been observed on Android when audio is enabled on one or more streams. The crash kills the free-kiosk process and triggers a restart. If you are running rtsp-kiosk on an Android device via free-kiosk, leave `audio` unset or set to `false` on all streams.
 
 #### Source type examples
 
