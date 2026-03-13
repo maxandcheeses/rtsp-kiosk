@@ -12,6 +12,8 @@ Designed to be used with [free-kiosk](https://github.com/RushB-fr/freekiosk) —
 └─────────────────┴──────────┘
 ```
 
+![Live Streams](docs/streams.png)
+
 ---
 
 ## Stack
@@ -287,6 +289,8 @@ Users can also override this in the layout picker UI. Their preference is saved 
 ## Layouts
 
 Press **`L`** at any time to open the layout picker.
+
+![Layout Picker](docs/webpage.png)
 
 #### `single` — 1 stream
 ```
