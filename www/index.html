@@ -578,7 +578,7 @@
       };
 
       pc.addTransceiver('video', { direction: 'recvonly' });
-      pc.addTransceiver('audio', { direction: 'recvonly' });
+      pc.addTransceiver('audio', { direction: 'inactive' });
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
