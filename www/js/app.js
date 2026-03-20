@@ -1151,7 +1151,8 @@ Retry delay: ${retryDelay[i] || 0}ms`;
     if (e.key === 'ArrowLeft' && VIEWS.length > 1 && !anyOpen) {
       navigateView(-1); return;
     }
-    if ((e.key === 'p' || e.key === 'P') && !anyOpen) {
+    if ((e.key === 'o' || e.key === 'O') && !anyOpen) {
+      // O = pause/resume cycling
       if (VIEWS_CYCLE) { cyclePaused ? resumeCycle() : pauseCycle(); }
       return;
     }
@@ -1182,18 +1183,26 @@ Retry delay: ${retryDelay[i] || 0}ms`;
     }
 
     if (e.key === 'd' || e.key === 'D') {
-      if (streamsOpen) { closeAllModals(); return; }
-      returnToSettings = false;
-      closeAllModals();
-      openStreamsModal();
+      // D toggles debug overlay directly — no modal
+      PERF.debugOverlay = !PERF.debugOverlay;
+      try { localStorage.setItem('perfSettings', JSON.stringify(PERF)); } catch(e) {}
+      applyPerfSettings();
       return;
     }
 
-    if (e.key === 'f' || e.key === 'F') {
+    if (e.key === 'p' || e.key === 'P') {
       if (perfOpen) { closeAllModals(); return; }
       returnToSettings = false;
       closeAllModals();
       document.getElementById('performance-modal').classList.add('open');
+      return;
+    }
+
+    if (e.key === 's' || e.key === 'S') {
+      if (streamsOpen) { closeAllModals(); return; }
+      returnToSettings = false;
+      closeAllModals();
+      openStreamsModal();
       return;
     }
   });
