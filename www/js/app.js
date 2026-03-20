@@ -1097,11 +1097,16 @@
     'eight':         [{x:2,y:2,w:16,h:21,r:1,p:0.12},{x:22,y:2,w:16,h:21,r:1,p:0.12},{x:42,y:2,w:16,h:21,r:1,p:0.12},{x:62,y:2,w:16,h:21,r:1,p:0.12},{x:2,y:27,w:16,h:21,r:1,p:0.12},{x:22,y:27,w:16,h:21,r:1,p:0.12},{x:42,y:27,w:16,h:21,r:1,p:0.12},{x:62,y:27,w:16,h:21,r:1,p:0.12}],
   };
 
-  // Generate layout SVG with stream index numbers inside each cell
+  // Generate layout SVG with stream names inside each cell
+  // Each cell gets a clipPath so text never overflows its bounds
   function layoutSvgWithNumbers(layoutName, streams) {
     const rects = LAYOUT_RECTS[layoutName];
     const cells = LAYOUT_CELLS[layoutName];
     if (!rects) return layoutName;
+
+    const clipDefs = rects.map((r, i) =>
+      `<clipPath id="lc${i}"><rect x="${r.x+1}" y="${r.y+1}" width="${r.w-2}" height="${r.h-2}"/></clipPath>`
+    ).join('');
 
     const rectsSvg = rects.map((r, i) => {
       const fill   = `rgba(255,255,255,${r.p})`;
@@ -1109,16 +1114,16 @@
       return `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="${r.r}" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`;
     }).join('');
 
-    // streams array maps cell index → stream path (e.g. cell 2 → "cam1")
-    // We render the actual path name inside each cell
     const labelsSvg = (cells || []).map((c, i) => {
       const path = streams?.[i];
       if (!path) return '';
-      const fs = path.length > 4 ? 5 : path.length > 3 ? 6 : 7;
-      return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="${fs}" fill="rgba(255,255,255,0.8)">${path}</text>`;
+      // Scale font to fit — smaller cells get smaller text
+      const cellW = rects[i]?.w || 20;
+      const fs    = cellW >= 46 ? 7 : cellW >= 26 ? 6 : 5;
+      return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="${fs}" fill="rgba(255,255,255,0.85)" clip-path="url(#lc${i})">${path}</text>`;
     }).join('');
 
-    return `<svg width="64" height="40" viewBox="0 0 80 50">${rectsSvg}${labelsSvg}</svg>`;
+    return `<svg width="64" height="40" viewBox="0 0 80 50"><defs>${clipDefs}</defs>${rectsSvg}${labelsSvg}</svg>`;
   }
 
   function openViewsModal() {
