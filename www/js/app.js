@@ -815,9 +815,15 @@
       lbl.textContent = 'LIVE';
       resetRetry(index);
       scheduleRefresh(index);
-      // Apply global mute state to newly live video
-      if (video) video.muted = globalMuted;
-      applyMute();
+      // Video must start muted for autoplay — apply unmute after if needed
+      video.muted = true;
+      if (!globalMuted) {
+        // Attempt to unmute after a short delay to let playback stabilise
+        setTimeout(() => {
+          video.muted = false;
+          if (video.paused) video.play().catch(() => { video.muted = true; });
+        }, 500);
+      }
     };
 
     const setError = () => {
@@ -1420,7 +1426,20 @@ Retry delay: ${retryDelay[i] || 0}ms`;
   let globalMuted = false;
 
   function applyMute() {
-    document.querySelectorAll('.cell video').forEach(v => { v.muted = globalMuted; });
+    document.querySelectorAll('.cell video').forEach(v => {
+      if (!globalMuted) {
+        // Unmuting requires user interaction — attempt and handle gracefully
+        v.muted = false;
+        if (v.paused) {
+          v.play().catch(() => {
+            // Browser blocked unmuted playback — keep muted
+            v.muted = true;
+          });
+        }
+      } else {
+        v.muted = true;
+      }
+    });
     // Sync settings modal toggle
     const toggle = document.getElementById('settings-mute');
     if (toggle) toggle.checked = globalMuted;
