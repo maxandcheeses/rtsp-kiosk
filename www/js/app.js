@@ -1050,18 +1050,52 @@
   // ═══════════════════════════════════════════════════════
   // Layout SVG icons — same as layout picker, scaled down
   // ═══════════════════════════════════════════════════════
-  const LAYOUT_SVGS = {
-    'single':        `<svg width="48" height="30" viewBox="0 0 80 50"><rect x="2" y="2" width="76" height="46" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/></svg>`,
-    'two-col':       `<svg width="48" height="30" viewBox="0 0 80 50"><rect x="2" y="2" width="36" height="46" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="42" y="2" width="36" height="46" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/></svg>`,
-    'two-row':       `<svg width="48" height="30" viewBox="0 0 80 50"><rect x="2" y="2" width="76" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="2" y="27" width="76" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/></svg>`,
-    'primary-right': `<svg width="48" height="30" viewBox="0 0 80 50"><rect x="2" y="2" width="46" height="46" rx="2" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/><rect x="52" y="2" width="26" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="52" y="27" width="26" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/></svg>`,
-    'primary-left':  `<svg width="48" height="30" viewBox="0 0 80 50"><rect x="2" y="2" width="26" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="2" y="27" width="26" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="32" y="2" width="46" height="46" rx="2" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/></svg>`,
-    'primary-bottom':`<svg width="48" height="30" viewBox="0 0 80 50"><rect x="2" y="2" width="76" height="28" rx="2" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/><rect x="2" y="34" width="36" height="14" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="42" y="34" width="36" height="14" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/></svg>`,
-    'primary-top':   `<svg width="48" height="30" viewBox="0 0 80 50"><rect x="2" y="2" width="36" height="14" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="42" y="2" width="36" height="14" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="2" y="20" width="76" height="28" rx="2" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/></svg>`,
-    'quad':          `<svg width="48" height="30" viewBox="0 0 80 50"><rect x="2" y="2" width="36" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="42" y="2" width="36" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="2" y="27" width="36" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="42" y="27" width="36" height="21" rx="2" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/></svg>`,
-    'six':           `<svg width="48" height="30" viewBox="0 0 80 50"><rect x="2" y="2" width="22" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="29" y="2" width="22" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="56" y="2" width="22" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="2" y="27" width="22" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="29" y="27" width="22" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="56" y="27" width="22" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/></svg>`,
-    'eight':         `<svg width="48" height="30" viewBox="0 0 80 50"><rect x="2" y="2" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="22" y="2" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="42" y="2" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="62" y="2" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="2" y="27" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="22" y="27" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="42" y="27" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><rect x="62" y="27" width="16" height="21" rx="1" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/></svg>`,
+  // Cell centre points per layout (x, y) for number labels — matches rect positions
+  const LAYOUT_CELLS = {
+    'single':        [[41,25]],
+    'two-col':       [[20,25],[61,25]],
+    'two-row':       [[41,12],[41,37]],
+    'primary-right': [[25,25],[65,12],[65,37]],
+    'primary-left':  [[14,12],[14,37],[55,25]],
+    'primary-bottom':[[41,14],[20,41],[61,41]],
+    'primary-top':   [[20,9],[61,9],[41,35]],
+    'quad':          [[20,12],[61,12],[20,37],[61,37]],
+    'six':           [[13,12],[40,12],[67,12],[13,37],[40,37],[67,37]],
+    'eight':         [[10,12],[30,12],[50,12],[70,12],[10,37],[30,37],[50,37],[70,37]],
   };
+
+  const LAYOUT_RECTS = {
+    'single':        [{x:2,y:2,w:76,h:46,r:2,p:0.12}],
+    'two-col':       [{x:2,y:2,w:36,h:46,r:2,p:0.12},{x:42,y:2,w:36,h:46,r:2,p:0.12}],
+    'two-row':       [{x:2,y:2,w:76,h:21,r:2,p:0.12},{x:2,y:27,w:76,h:21,r:2,p:0.12}],
+    'primary-right': [{x:2,y:2,w:46,h:46,r:2,p:0.18},{x:52,y:2,w:26,h:21,r:2,p:0.12},{x:52,y:27,w:26,h:21,r:2,p:0.12}],
+    'primary-left':  [{x:2,y:2,w:26,h:21,r:2,p:0.12},{x:2,y:27,w:26,h:21,r:2,p:0.12},{x:32,y:2,w:46,h:46,r:2,p:0.18}],
+    'primary-bottom':[{x:2,y:2,w:76,h:28,r:2,p:0.18},{x:2,y:34,w:36,h:14,r:2,p:0.12},{x:42,y:34,w:36,h:14,r:2,p:0.12}],
+    'primary-top':   [{x:2,y:2,w:36,h:14,r:2,p:0.12},{x:42,y:2,w:36,h:14,r:2,p:0.12},{x:2,y:20,w:76,h:28,r:2,p:0.18}],
+    'quad':          [{x:2,y:2,w:36,h:21,r:2,p:0.12},{x:42,y:2,w:36,h:21,r:2,p:0.12},{x:2,y:27,w:36,h:21,r:2,p:0.12},{x:42,y:27,w:36,h:21,r:2,p:0.12}],
+    'six':           [{x:2,y:2,w:22,h:21,r:1,p:0.12},{x:29,y:2,w:22,h:21,r:1,p:0.12},{x:56,y:2,w:22,h:21,r:1,p:0.12},{x:2,y:27,w:22,h:21,r:1,p:0.12},{x:29,y:27,w:22,h:21,r:1,p:0.12},{x:56,y:27,w:22,h:21,r:1,p:0.12}],
+    'eight':         [{x:2,y:2,w:16,h:21,r:1,p:0.12},{x:22,y:2,w:16,h:21,r:1,p:0.12},{x:42,y:2,w:16,h:21,r:1,p:0.12},{x:62,y:2,w:16,h:21,r:1,p:0.12},{x:2,y:27,w:16,h:21,r:1,p:0.12},{x:22,y:27,w:16,h:21,r:1,p:0.12},{x:42,y:27,w:16,h:21,r:1,p:0.12},{x:62,y:27,w:16,h:21,r:1,p:0.12}],
+  };
+
+  // Generate layout SVG with stream index numbers inside each cell
+  function layoutSvgWithNumbers(layoutName, streams) {
+    const rects = LAYOUT_RECTS[layoutName];
+    const cells = LAYOUT_CELLS[layoutName];
+    if (!rects) return layoutName;
+
+    const rectsSvg = rects.map((r, i) => {
+      const fill   = `rgba(255,255,255,${r.p})`;
+      const stroke = r.p > 0.15 ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.2)';
+      return `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="${r.r}" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`;
+    }).join('');
+
+    const labelsSvg = (cells || []).map((c, i) => {
+      const num = streams?.[i] ? String(i + 1) : String(i + 1);
+      return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="8" fill="rgba(255,255,255,0.6)">${num}</text>`;
+    }).join('');
+
+    return `<svg width="64" height="40" viewBox="0 0 80 50">${rectsSvg}${labelsSvg}</svg>`;
+  }
 
   function openViewsModal() {
     const tbody = document.getElementById('views-tbody');
@@ -1071,7 +1105,7 @@
     tbody.innerHTML = VIEWS.map(v => {
       const isActive = v.name === activeView;
       const duration = v.duration < 0 ? 'forever' : v.duration ? `${v.duration}s` : '—';
-      const layoutSvg = LAYOUT_SVGS[v.layout] || v.layout || '—';
+      const layoutSvg = layoutSvgWithNumbers(v.layout, v.streams);
       return `<tr class="${isActive ? 'active-view' : ''}"
                   style="cursor:pointer"
                   title="Click to activate view: ${v.label || v.name}"
