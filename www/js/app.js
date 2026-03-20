@@ -649,14 +649,8 @@
         if (span.row) cell.style.gridRow    = span.row;
       }
 
-      // Apply per-stream aspect ratio to the cell
-      // Config uses '16:9' notation; CSS requires '16/9'
-      if (stream.aspectRatio) {
-        cell.style.aspectRatio = stream.aspectRatio.replace(':', '/');
-        cell.style.maxWidth    = '100%';
-        cell.style.maxHeight   = '100%';
-        cell.style.margin      = 'auto';
-      }
+      // Note: aspectRatio is handled by object-fit on the video element.
+      // Setting it on the cell fights with grid sizing and causes cut-off.
 
       // objectFit applied inline on the video element
       const objectFit = stream.objectFit || 'contain';
