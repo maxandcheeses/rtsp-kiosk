@@ -23,7 +23,8 @@ services:
   mediamtx:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.mediamtx
+    image: rtsp-kiosk-mediamtx:latest
     container_name: mediamtx
     restart: unless-stopped
     ports:
@@ -41,22 +42,49 @@ services:
     volumes:
       - ./data:/data
 
-  # ── Nginx: serves the RTSP Kiosk UI + streams.json ───────────────────────
+  # ── Nginx UI ─────────────────────────────────────────────────────────────
   nginx:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    image: rtsp-kiosk-ui:latest
     container_name: rtsp-kiosk-ui
     restart: unless-stopped
     ports:
       - "80:80"
     environment:
+      # ── FORCE_LAYOUT ─────────────────────────────────────────────────
+      # Forces all sessions to a specific layout, skipping the picker.
+      # Leave empty "" to show the layout picker on load.
+      #
+      # Valid values:
+      #   single          1 stream, fullscreen
+      #   two-col         2 streams, side by side
+      #   two-row         2 streams, stacked
+      #   primary-right   3 streams, large left + 2 stacked right
+      #   primary-left    3 streams, 2 stacked left + large right
+      #   primary-bottom  3 streams, large top + 2 bottom
+      #   primary-top     3 streams, 2 top + large bottom
+      #   quad            4 streams, 2x2 grid
+      #   six             6 streams, 3x2 grid
+      #   eight           8 streams, 4x2 grid
       FORCE_LAYOUT: ""
+      # Auto-exit fullscreen after N seconds. Set to 0 to disable.
       FULLSCREEN_TIMEOUT: "30"
+      # Global stream refresh interval in seconds.
+      #   ""   (empty) — disabled globally, honours per-stream refreshInterval if set
+      #   "0"          — disabled globally, ignores per-stream refreshInterval too
+      #   "30"         — refresh all streams every 30s (per-stream can override)
+      STREAM_REFRESH: ""
+      # Enable L (layout picker) and D (streams info) keyboard shortcuts.
+      # Set to false to restrict modal access on kiosk displays.
+      ENABLE_MODALS: "true"
     entrypoint: >
-      /bin/sh -c "envsubst '$$FORCE_LAYOUT $$FULLSCREEN_TIMEOUT' < /templates/index.html > /usr/share/nginx/html/index.html
+      /bin/sh -c "envsubst '$$FORCE_LAYOUT $$FULLSCREEN_TIMEOUT $$STREAM_REFRESH $$ENABLE_MODALS' < /usr/share/nginx/html/index.html > /tmp/index.html
+      && mv /tmp/index.html /usr/share/nginx/html/index.html
       && nginx -g 'daemon off;'"
     volumes:
-      - ./www/index.html:/templates/index.html:ro
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./data/streams.json:/usr/share/nginx/html/streams.json:ro
+      - ./data/streams-public.json:/usr/share/nginx/html/streams.json:ro
+      - ./data/views-public.json:/usr/share/nginx/html/views.json:ro
     depends_on:
       - mediamtx

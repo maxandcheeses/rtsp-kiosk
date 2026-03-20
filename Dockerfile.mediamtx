@@ -1,0 +1,9 @@
+# MediaMTX + config generator
+# Adds jq + envsubst so generate-config.sh can build mediamtx.yml
+# from data/streams.json at container startup.
+FROM bluenviron/mediamtx:1.16.3-ffmpeg
+
+RUN apk add --no-cache jq gettext
+COPY scripts/generate-config.sh /generate-config.sh
+RUN chmod +x /generate-config.sh
+ENTRYPOINT ["/generate-config.sh"]

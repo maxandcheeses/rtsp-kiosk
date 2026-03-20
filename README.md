@@ -103,6 +103,7 @@ This is the single source of truth for all cameras. It configures both the UI an
 | `runOnInit` | | FFmpeg command for MJPEG/HLS/MP4 sources |
 | `runOnInitRestart` | | `true` — restart FFmpeg on failure |
 | `audio` | | `true` to receive audio — omit or `false` for no audio (default) |
+| `refreshInterval` | | Reconnect this stream every N seconds — overrides global `STREAM_REFRESH` |
 
 > ⚠️ **Android + free-kiosk crash:** A fatal crash in the `AudioTrack` thread (`SIGABRT`) has been observed on Android when audio is enabled on one or more streams. The crash kills the free-kiosk process and triggers a restart. If you are running rtsp-kiosk on an Android device via free-kiosk, leave `audio` unset or set to `false` on all streams.
 
@@ -412,6 +413,88 @@ Press **`L`** at any time to open the layout picker.
 | 8889 | TCP | WebRTC/WHEP signaling |
 | 8189 | UDP | WebRTC ICE media |
 | 9997 | TCP | MediaMTX API |
+
+---
+
+## MQTT
+
+Stream config can be pushed dynamically from an MQTT broker. The browser subscribes via WebSocket — no page reload needed.
+
+### Enable in `data/streams.json`
+
+Add an `mqtt` block alongside the `streams` array:
+
+```json
+{
+  "mqtt": {
+    "enabled": true,
+    "host": "10.0.0.10",
+    "port": 9001,
+    "tls": false,
+    "username": "",
+    "password": "",
+    "topicBase": "kiosk/streams"
+  },
+  "streams": [...]
+}
+```
+
+#### MQTT fields
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `enabled` | `false` | Enable MQTT client |
+| `host` | page hostname | MQTT broker IP or hostname |
+| `port` | `9001` | WebSocket port — EMQX default is `8083`, Mosquitto is `9001` |
+| `tls` | `false` | `true` for `wss://` (TLS), `false` for `ws://` |
+| `username` | `""` | Leave empty for no-auth |
+| `password` | `""` | Leave empty for no-auth |
+| `topicBase` | `kiosk/streams` | Per-stream topic prefix |
+
+### Topic structure
+
+Each stream is updated via its own topic:
+
+```
+kiosk/streams/cam1  →  { "label": "Front Door", "source": "rtsp://...", "aspectRatio": "16:9" }
+kiosk/streams/cam2  →  { "source": "rtsp://..." }
+```
+
+The topic suffix (e.g. `cam1`) is used as the stream `path` if not included in the payload.
+
+### Priority — streams.json wins
+
+Fields explicitly set in `streams.json` are **locked** and cannot be overridden by MQTT. Only fields absent from `streams.json` can be updated via MQTT.
+
+For example — if `streams.json` has `"aspectRatio": "16:9"` for cam1, an MQTT message with `"aspectRatio": "4:3"` will be silently ignored for that field. The `source` field however can be pushed via MQTT if not set in `streams.json`.
+
+### Example — source-only in streams.json, rest from MQTT
+
+`data/streams.json`:
+```json
+{
+  "mqtt": { "enabled": true, "host": "10.0.0.10" },
+  "streams": [
+    { "path": "cam1", "label": "Front Door", "aspectRatio": "16:9", "objectFit": "contain" }
+  ]
+}
+```
+
+MQTT message on `kiosk/streams/cam1`:
+```json
+{ "source": "rtsp://user:pass@10.0.1.1:7447/new-token", "audio": false }
+```
+
+Result — `label` and `aspectRatio` stay locked from `streams.json`, `source` is applied from MQTT and the stream reconnects automatically.
+
+### EMQX WebSocket port
+
+EMQX exposes MQTT over WebSocket on port `8083` by default (not `9001`). Update the port in your `streams.json` mqtt block accordingly:
+
+```json
+"port": 8083
+```
+
 
 ---
 

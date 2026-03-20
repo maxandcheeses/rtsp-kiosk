@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RTSP Kiosk</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -136,20 +137,28 @@
       color: rgba(255,255,255,0.15);
     }
 
-    /* ── Layout picker overlay ── */
-    #picker {
+    /* ── Shared modal styles ── */
+    .modal {
       position: fixed; inset: 0;
-      background: rgba(0,0,0,0.92);
-      display: flex; flex-direction: column;
+      background: rgba(15,15,15,0.96);
+      display: none; flex-direction: column;
       align-items: center; justify-content: center;
       gap: 32px;
       z-index: 1000;
       font-family: 'Courier New', monospace;
     }
-    #picker h1 {
+    .modal.open { display: flex; }
+    .modal h1 {
       font-size: 11px; letter-spacing: 0.4em;
-      color: rgba(255,255,255,0.3); text-transform: uppercase;
+      color: rgba(255,255,255,0.7); text-transform: uppercase;
     }
+    .modal-hint {
+      font-size: 9px; letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.35); text-transform: uppercase;
+    }
+
+    /* ── Layout picker ── */
+    #picker { }
     .layout-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -157,40 +166,40 @@
     }
     .layout-btn {
       width: 120px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.18);
       border-radius: 4px;
       padding: 12px 8px 10px;
       cursor: pointer;
       display: flex; flex-direction: column;
       align-items: center; gap: 10px;
       transition: background .15s, border-color .15s;
-      color: rgba(255,255,255,0.35);
+      color: rgba(255,255,255,0.6);
     }
     .layout-btn:hover {
-      background: rgba(255,255,255,0.07);
-      border-color: rgba(255,255,255,0.25);
-      color: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.4);
+      color: rgba(255,255,255,0.95);
     }
     .layout-btn svg { display: block; }
     .layout-btn span { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; }
     .divider {
       width: 1px; height: 60px;
-      background: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.15);
       align-self: center;
     }
     .picker-footer {
       display: flex; align-items: center; gap: 12px;
       font-family: 'Courier New', monospace;
-      color: rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.5);
       font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
     }
     .picker-footer input[type=number] {
       width: 56px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.25);
       border-radius: 3px;
-      color: rgba(255,255,255,0.6);
+      color: rgba(255,255,255,0.85);
       font-family: 'Courier New', monospace;
       font-size: 11px;
       padding: 4px 8px;
@@ -198,17 +207,289 @@
       outline: none;
     }
     .picker-footer input[type=number]:focus {
-      border-color: rgba(255,255,255,0.3);
-      color: rgba(255,255,255,0.9);
+      border-color: rgba(255,255,255,0.6);
+      color: #fff;
     }
     /* hide spinner arrows */
     .picker-footer input[type=number]::-webkit-inner-spin-button,
     .picker-footer input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    /* ── Streams debug modal (D key) ── */
+    #streams-modal {
+      justify-content: flex-start;
+      padding: 48px;
+      overflow-y: auto;
+    }
+    #streams-modal h1 { margin-bottom: 8px; }
+    .streams-table {
+      width: 100%;
+      max-width: 900px;
+      border-collapse: collapse;
+      font-size: 11px;
+      color: rgba(255,255,255,0.75);
+    }
+    .streams-table th {
+      text-align: left;
+      padding: 8px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.4);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    .streams-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      vertical-align: middle;
+    }
+    .streams-table tr:hover td { background: rgba(255,255,255,0.04); }
+    .streams-table tr[onclick]:hover td { background: rgba(255,255,255,0.08); cursor: pointer; }
+    .stream-status {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .stream-status.live { background: #4ade80; }
+    .stream-status.err  { background: #f87171; }
+    .stream-status.idle { background: rgba(255,255,255,0.2); }
+
+    /* ── Settings button ── */
+    #settings-btn {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      z-index: 900;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      color: rgba(255,255,255,0.7);
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      padding: 8px 14px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    #settings-btn.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #settings-btn:hover {
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+    }
+
+    /* ── Shortcut hints in settings modal ── */
+    .shortcut-list {
+      display: flex; flex-direction: column; gap: 10px;
+      font-family: 'Courier New', monospace;
+      color: rgba(255,255,255,0.7);
+      font-size: 11px;
+    }
+    .shortcut-row {
+      display: flex; align-items: center; gap: 16px;
+    }
+    .shortcut-key {
+      display: inline-block;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 4px;
+      padding: 3px 10px;
+      font-size: 12px;
+      min-width: 32px;
+      text-align: center;
+      color: rgba(255,255,255,0.9);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      font-family: 'Courier New', monospace;
+    }
+    .shortcut-key:hover {
+      background: rgba(255,255,255,0.22);
+      border-color: rgba(255,255,255,0.5);
+      color: #fff;
+    }
+    /* ── Active view highlight ── */
+    .streams-table tr.active-view td {
+      background: rgba(74,222,128,0.08);
+    }
+
+    /* ── Performance modal ── */
+    .perf-section {
+      width: 100%;
+      max-width: 480px;
+      font-family: 'Courier New', monospace;
+    }
+    .perf-section-title {
+      font-size: 9px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .perf-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .perf-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .perf-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.75);
+      flex: 1;
+    }
+    .perf-label small {
+      display: block;
+      font-size: 9px;
+      color: rgba(255,255,255,0.35);
+      margin-top: 2px;
+    }
+    /* Toggle switch */
+    .toggle {
+      position: relative;
+      width: 36px; height: 20px;
+      flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      top: 2px; left: 2px;
+      background: rgba(255,255,255,0.5);
+      border-radius: 50%;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .toggle input:checked + .toggle-track {
+      background: rgba(74,222,128,0.4);
+      border-color: rgba(74,222,128,0.6);
+    }
+    .toggle input:checked + .toggle-track::after {
+      transform: translateX(16px);
+      background: #4ade80;
+    }
+    /* Number input */
+    .perf-input {
+      width: 64px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 3px;
+      color: rgba(255,255,255,0.85);
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      padding: 4px 8px;
+      text-align: center;
+      outline: none;
+      flex-shrink: 0;
+    }
+    .perf-input:focus {
+      border-color: rgba(255,255,255,0.5);
+      color: #fff;
+    }
+    .perf-input::-webkit-inner-spin-button,
+    .perf-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .perf-reset {
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      background: none;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 3px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .perf-reset:hover {
+      color: rgba(255,255,255,0.7);
+      border-color: rgba(255,255,255,0.35);
+    }
+    /* ── Cycle control indicator ── */
+    #cycle-indicator {
+      position: fixed;
+      bottom: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 850;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.9);
+      background: rgba(0,0,0,0.75);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 6px 18px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      display: flex; align-items: center; gap: 10px;
+    }
+    #cycle-indicator.visible { opacity: 1; pointer-events: auto; }
+    #cycle-indicator .ci-icon { font-size: 14px; }
+    #cycle-indicator.paused { border-color: rgba(250,204,21,0.4); color: #facc15; }
+    #cycle-indicator.playing { border-color: rgba(74,222,128,0.4); color: #4ade80; }
+    #cycle-indicator.manual { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.8); }
+
+    /* ── Debug overlay ── */
+    #debug-overlay {
+      position: fixed;
+      top: 12px; left: 12px;
+      z-index: 800;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      color: rgba(255,255,255,0.85);
+      background: rgba(0,0,0,0.72);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      padding: 10px 14px;
+      min-width: 220px;
+      max-width: 380px;
+      pointer-events: none;
+      display: none;
+      line-height: 1.7;
+    }
+    #debug-overlay.visible { display: block; }
+    .dbg-section {
+      font-size: 8px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      margin: 6px 0 3px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 5px;
+    }
+    .dbg-section:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+    .dbg-row { display: flex; justify-content: space-between; gap: 12px; }
+    .dbg-key { color: rgba(255,255,255,0.4); }
+    .dbg-val { color: rgba(255,255,255,0.9); text-align: right; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dbg-live { color: #4ade80; }
+    .dbg-err  { color: #f87171; }
+    .dbg-countdown { font-size: 13px; color: #facc15; font-weight: bold; }
   </style>
+  <!-- MQTT.js — WebSocket MQTT client -->
+  <!-- mqtt.js bundled locally for offline/LAN support -->
+  <script src="/mqtt.min.js"></script>
 </head>
 <body>
 
-<div id="picker">
+<div id="picker" class="modal">
   <h1>Select Layout</h1>
   <div class="layout-grid">
 
@@ -323,389 +604,172 @@
   </div>
 </div>
 
+<div id="settings-modal" class="modal">
+  <h1>Settings</h1>
+  <div class="shortcut-list">
+    <div class="shortcut-row"><span class="shortcut-key" title="Close any open modal">Esc</span><span>Open settings / close modal</span></div>
+    <div class="shortcut-row"><span class="shortcut-key">←</span><span class="shortcut-key">→</span><span>Previous / next view</span></div>
+    <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Audio</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="settings-mute" onchange="toggleMute()"><span class="toggle-track"></span></label></div></div>
+    <div class="shortcut-row"><span class="shortcut-key" title="Pause / resume view cycling">P</span><span>Pause / resume cycling</span></div>
+    <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('picker')" title="Open layout picker">L</button><span>Layout picker</span></div>
+    <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('views')" title="Open views">V</button><span>Views</span></div>
+    <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('streams')" title="Open stream debug info">D</button><span>Stream debug info</span></div>
+    <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('performance')" title="Open performance settings">F</button><span>Performance</span></div>
+  </div>
+</div>
+
+<div id="performance-modal" class="modal" style="justify-content:flex-start;padding:48px;overflow-y:auto;">
+  <h1>Performance</h1>
+
+  <div class="perf-section">
+    <div class="perf-section-title">WebRTC</div>
+    <div class="perf-rows">
+      <div class="perf-row">
+        <div class="perf-label">
+          Low power mode
+          <small>Hints browser to use less CPU/GPU for decoding</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="perf-low-power" onchange="savePerfSettings()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="perf-section-title">Preloading</div>
+    <div class="perf-rows">
+      <div class="perf-row">
+        <div class="perf-label">
+          Disable preloading
+          <small>Stops hidden connections — saves memory on low-end devices</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="perf-no-preload" onchange="savePerfSettings()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="perf-section-title">Streams</div>
+    <div class="perf-rows">
+      <div class="perf-row">
+        <div class="perf-label">
+          Destroy off-screen streams
+          <small>Closes WebRTC connections for streams not in current view</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="perf-destroy-offscreen" onchange="savePerfSettings()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="perf-row">
+        <div class="perf-label">
+          Max visible streams
+          <small>Cap number of simultaneous streams (0 = no limit)</small>
+        </div>
+        <input type="number" class="perf-input" id="perf-max-streams" min="0" max="8" value="0" onchange="savePerfSettings()">
+      </div>
+      <div class="perf-row">
+        <div class="perf-label">
+          Max keep-alive connections
+          <small>When destroy off-screen is on — keep streams alive for next view if total connections ≤ this. 0 = use lead time logic instead</small>
+        </div>
+        <input type="number" class="perf-input" id="perf-max-keepalive" min="0" max="8" value="0" onchange="savePerfSettings()">
+      </div>
+    </div>
+
+    <div class="perf-section-title">Retry</div>
+    <div class="perf-rows">
+      <div class="perf-row">
+        <div class="perf-label">
+          Max retry delay (seconds)
+          <small>Caps exponential backoff — lower saves reconnect attempts</small>
+        </div>
+        <input type="number" class="perf-input" id="perf-max-retry" min="2" max="300" value="30" onchange="savePerfSettings()">
+      </div>
+    </div>
+
+    <div class="perf-section-title">Debug</div>
+    <div class="perf-rows">
+      <div class="perf-row">
+        <div class="perf-label">
+          Debug overlay
+          <small>Shows stream info, source, refresh and view countdown on screen</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="perf-debug-overlay" onchange="savePerfSettings()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <button class="perf-reset" onclick="clearAllStorage()" style="color:rgba(248,113,113,0.7);border-color:rgba(248,113,113,0.3);" title="Clears all saved settings, layout, and preferences from this browser">Clear all saved data</button>
+      <button class="perf-reset" onclick="resetPerfSettings()">Reset to defaults</button>
+    </div>
+  </div>
+</div>
+
+<button id="settings-btn" onclick="openSettingsModal()">⚙ Settings</button>
+
+<div id="views-modal" class="modal">
+  <h1>Views</h1>
+  <table class="streams-table">
+    <thead>
+      <tr>
+        <th>Active</th>
+        <th>Name</th>
+        <th>Label</th>
+        <th>Layout</th>
+        <th>Streams</th>
+        <th>Duration</th>
+      </tr>
+    </thead>
+    <tbody id="views-tbody"></tbody>
+  </table>
+  <div class="modal-hint">Press V to close · Cycling: <span id="cycle-status">—</span></div>
+</div>
+
+<div id="streams-modal" class="modal">
+  <h1>Configured Streams</h1>
+  <table class="streams-table">
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Path</th>
+        <th>Label</th>
+        <th>Aspect Ratio</th>
+        <th>Fit</th>
+        <th>Audio</th>
+        <th>Refresh</th>
+        <th>Source</th>
+      </tr>
+    </thead>
+    <tbody id="streams-tbody"></tbody>
+  </table>
+  <div class="modal-hint">Press D to close</div>
+</div>
+
+<div id="cycle-indicator"><span class="ci-icon"></span><span id="ci-text"></span></div>
+<div id="debug-overlay"></div>
 <div id="wall"></div>
 
 <script>
   // ═══════════════════════════════════════════════════════
-  // CONFIG — edit these to match your mediamtx.yml paths
+  // ENV — injected by nginx/envsubst at container startup.
+  // These must remain inline in index.html.
   // ═══════════════════════════════════════════════════════
-  const MEDIAMTX_HOST = window.location.hostname;
-  const MEDIAMTX_PORT = 8889;
-
-  // ═══════════════════════════════════════════════════════
-  // FULLSCREEN AUTO-EXIT
-  // When a cell is fullscreened, automatically exit back to
-  // the wall layout after this many seconds.
-  // Set to 0 or null to disable auto-exit.
-  // ═══════════════════════════════════════════════════════
-  let FULLSCREEN_TIMEOUT = '$FULLSCREEN_TIMEOUT' ? Number('$FULLSCREEN_TIMEOUT') : 30;
-
-  // ═══════════════════════════════════════════════════════
-  // STREAM CONFIG — loaded from /streams.json at startup.
-  // Edit data/streams.json to add, remove, or configure streams.
-  // No container restart needed — just refresh the browser.
-  // ═══════════════════════════════════════════════════════
-  let STREAMS = [];
-
-  async function loadStreams() {
-    try {
-      const res = await fetch('/streams.json');
-      if (!res.ok) throw new Error(`Failed to load streams.json: ${res.status}`);
-      STREAMS = await res.json();
-    } catch(e) {
-      console.error('Could not load streams.json:', e);
-      STREAMS = [];
-    }
-  }
-  // ═══════════════════════════════════════════════════════
-  // LAYOUTS
-  // Each layout defines:
-  //   streams  — how many streams to show
-  //   css      — grid-template-columns + grid-template-rows
-  //   spans    — optional per-cell {col, row} span overrides
-  // ═══════════════════════════════════════════════════════
-  const LAYOUTS = {
-    'single':         { streams: 1, css: { cols: '1fr',           rows: '1fr' } },
-    'two-col':        { streams: 2, css: { cols: '1fr 1fr',       rows: '1fr' } },
-    'two-row':        { streams: 2, css: { cols: '1fr',           rows: '1fr 1fr' } },
-    'primary-right':  { streams: 3, css: { cols: '2fr 1fr',       rows: '1fr 1fr' },
-                        spans: [{ col: '1', row: '1 / 3' }] },
-    'primary-left':   { streams: 3, css: { cols: '1fr 2fr',       rows: '1fr 1fr' },
-                        spans: [{ col: '2', row: '1 / 3', colStart: 2 }] },
-    'primary-bottom': { streams: 3, css: { cols: '1fr 1fr',       rows: '2fr 1fr' },
-                        spans: [{ col: '1 / 3', row: '1' }] },
-    'primary-top':    { streams: 3, css: { cols: '1fr 1fr',       rows: '1fr 2fr' },
-                        spans: [{ col: '1 / 3', row: '2' }] },
-    'quad':           { streams: 4, css: { cols: '1fr 1fr',       rows: '1fr 1fr' } },
-    'six':            { streams: 6, css: { cols: '1fr 1fr 1fr',   rows: '1fr 1fr' } },
-    'eight':          { streams: 8, css: { cols: '1fr 1fr 1fr 1fr', rows: '1fr 1fr' } },
-  };
-
-  // ═══════════════════════════════════════════════════════
-  // Active peer connections — tracked so we can close them
-  // ═══════════════════════════════════════════════════════
-  let activePCs = [];
-
-  function stopAll() {
-    activePCs.forEach(pc => { try { pc.close(); } catch(e){} });
-    activePCs = [];
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // Build the wall DOM for a given layout
-  // ═══════════════════════════════════════════════════════
-  function applyLayout(name) {
-    const layout = LAYOUTS[name];
-    if (!layout) return;
-
-    stopAll();
-
-    const wall = document.getElementById('wall');
-    wall.style.gridTemplateColumns = layout.css.cols;
-    wall.style.gridTemplateRows    = layout.css.rows;
-    wall.innerHTML = '';
-
-    const count = Math.min(layout.streams, STREAMS.length);
-
-    for (let i = 0; i < count; i++) {
-      const stream = STREAMS[i];
-      const span   = layout.spans?.[i];
-      const num    = String(i + 1).padStart(2, '0');
-
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      cell.id = `cell${i}`;
-
-      if (span) {
-        if (span.col)      cell.style.gridColumn = span.col;
-        if (span.row)      cell.style.gridRow    = span.row;
-        if (span.colStart) cell.style.gridColumnStart = span.colStart;
-      }
-
-      // Apply per-stream aspect ratio to the cell
-      // Config uses '16:9' notation; CSS requires '16/9'
-      if (stream.aspectRatio) {
-        cell.style.aspectRatio = stream.aspectRatio.replace(':', '/');
-        cell.style.maxWidth    = '100%';
-        cell.style.maxHeight   = '100%';
-        cell.style.margin      = 'auto';
-      }
-
-      // objectFit applied inline on the video element
-      const objectFit = stream.objectFit || 'contain';
-
-      cell.innerHTML = `
-        <div class="loading" id="load${i}"><div class="ring"></div></div>
-        <div class="err-overlay" id="err${i}">
-          <div class="err-inner">
-            <div class="err-code">No Signal</div>
-            <div class="err-sub">${stream.label}</div>
-          </div>
-        </div>
-        <video id="v${i}" autoplay muted playsinline style="object-fit:${objectFit}"></video>
-        <div class="chrome">
-          <div class="lbl">${stream.label}</div>
-          <div class="live"><span class="dot" id="dot${i}"></span><span id="lbl${i}">LIVE</span></div>
-          <button class="btn-fs" onclick="toggleFS(${i})">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path d="M8 3H5a2 2 0 00-2 2v3M21 8V5a2 2 0 00-2-2h-3M16 21h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
-            </svg>
-          </button>
-        </div>`;
-
-      wall.appendChild(cell);
-    }
-
-    // Hide picker, start streams
-    document.getElementById('picker').style.display = 'none';
-    for (let i = 0; i < count; i++) startWhep(i);
-
-    // Save choice
-    try { localStorage.setItem('layout', name); } catch(e) {}
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // Exponential backoff per stream
-  // Starts at 2s, doubles each failure, caps at 30s.
-  // Resets to 2s on successful connection.
-  // Guard flag prevents multiple overlapping retry loops.
-  // ═══════════════════════════════════════════════════════
-  const retryDelay   = {};   // current delay per stream index
-  const retryPending = {};   // true if a retry is already scheduled
-  const RETRY_MIN    = 2000;
-  const RETRY_MAX    = 30000;
-
-  function scheduleRetry(index) {
-    if (retryPending[index]) return;   // already queued, don't stack
-    retryPending[index] = true;
-    if (!retryDelay[index]) retryDelay[index] = RETRY_MIN;
-    const delay = retryDelay[index];
-    retryDelay[index] = Math.min(delay * 2, RETRY_MAX);
-    console.log(`Stream ${index}: retry in ${delay / 1000}s`);
-    setTimeout(() => {
-      retryPending[index] = false;
-      startWhep(index);
-    }, delay);
-  }
-
-  function resetRetry(index) {
-    retryDelay[index]   = RETRY_MIN;
-    retryPending[index] = false;
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // WebRTC / WHEP
-  // ═══════════════════════════════════════════════════════
-  const streamPCs = {};  // active RTCPeerConnection per stream
-
-  async function startWhep(index) {
-    const { path } = STREAMS[index];
-    const video   = document.getElementById(`v${index}`);
-    const loading = document.getElementById(`load${index}`);
-    const errEl   = document.getElementById(`err${index}`);
-    const dot     = document.getElementById(`dot${index}`);
-    const lbl     = document.getElementById(`lbl${index}`);
-    if (!video) return;
-
-    // Close any existing connection cleanly before reconnecting
-    if (streamPCs[index]) {
-      try { streamPCs[index].close(); } catch(e) {}
-      delete streamPCs[index];
-    }
-
-    const whepUrl = `http://${MEDIAMTX_HOST}:${MEDIAMTX_PORT}/${path}/whep`;
-
-    const setLive = () => {
-      loading.classList.add('gone');
-      errEl.classList.remove('show');
-      dot.classList.remove('err');
-      lbl.textContent = 'LIVE';
-      resetRetry(index);
-    };
-
-    const setError = () => {
-      loading.classList.add('gone');
-      errEl.classList.add('show');
-      dot.classList.add('err');
-      lbl.textContent = 'ERR';
-    };
-
-    try {
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      });
-      streamPCs[index] = pc;
-      activePCs.push(pc);
-
-      let trackReceived = false;
-
-      // Fallback: if no track arrives in 10s, retry
-      const noTrackTimer = setTimeout(() => {
-        if (!trackReceived) {
-          console.warn(`Stream ${index}: no track received within 10s, retrying`);
-          try { pc.close(); } catch(e) {}
-          setError();
-          scheduleRetry(index);
-        }
-      }, 10000);
-
-      pc.ontrack = e => {
-        clearTimeout(noTrackTimer);
-        trackReceived = true;
-        video.srcObject = e.streams[0];
-        video.play()
-          .then(setLive)
-          .catch(err => {
-            // Autoplay blocked — video is still attached, just mark live
-            console.warn(`Stream ${index} autoplay blocked:`, err);
-            setLive();
-          });
-      };
-
-      // Only hard 'failed' triggers a retry — 'disconnected' is often transient
-      pc.oniceconnectionstatechange = () => {
-        const state = pc.iceConnectionState;
-        console.log(`Stream ${index} ICE: ${state}`);
-        if (state === 'failed') {
-          clearTimeout(noTrackTimer);
-          setError();
-          scheduleRetry(index);
-        }
-        if (state === 'closed' && trackReceived) {
-          setError();
-          scheduleRetry(index);
-        }
-      };
-
-      pc.addTransceiver('video', { direction: 'recvonly' });
-      // Only request audio if this stream has audio: true
-      pc.addTransceiver('audio', { direction: STREAMS[index]?.audio ? 'recvonly' : 'inactive' });
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      // Wait for ICE gathering
-      await new Promise(resolve => {
-        if (pc.iceGatheringState === 'complete') return resolve();
-        pc.onicegatheringstatechange = () => {
-          if (pc.iceGatheringState === 'complete') resolve();
-        };
-        // Safety timeout on ICE gathering
-        setTimeout(resolve, 5000);
-      });
-
-      const res = await fetch(whepUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/sdp' },
-        body: pc.localDescription.sdp,
-      });
-
-      if (!res.ok) throw new Error(`WHEP ${res.status}`);
-      await pc.setRemoteDescription({ type: 'answer', sdp: await res.text() });
-
-    } catch(e) {
-      console.error(`Stream ${index}:`, e);
-      setError();
-      scheduleRetry(index);
-    }
-  }
-  // ═══════════════════════════════════════════════════════
-  // Fullscreen per cell
-  // Auto-exits after FULLSCREEN_TIMEOUT seconds if set.
-  // ═══════════════════════════════════════════════════════
-  let fsTimer = null;
-
-  function clearFsTimer() {
-    if (fsTimer) { clearTimeout(fsTimer); fsTimer = null; }
-  }
-
-  function toggleFS(index) {
-    const cell = document.getElementById(`cell${index}`);
-    if (!document.fullscreenElement) {
-      (cell.requestFullscreen || cell.webkitRequestFullscreen).call(cell);
-      // Start auto-exit timer if configured
-      if (FULLSCREEN_TIMEOUT) {
-        clearFsTimer();
-        fsTimer = setTimeout(() => {
-          if (document.fullscreenElement) {
-            (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-          }
-        }, FULLSCREEN_TIMEOUT * 1000);
-      }
-    } else {
-      clearFsTimer();
-      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-    }
-  }
-
-  // Also clear the timer if user exits fullscreen manually (Escape key etc.)
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement) clearFsTimer();
-  });
-
-  // ═══════════════════════════════════════════════════════
-  // Press L to re-open layout picker
-  // ═══════════════════════════════════════════════════════
-  document.addEventListener('keydown', e => {
-    if (e.key === 'l' || e.key === 'L') {
-      stopAll();
-      document.getElementById('picker').style.display = 'flex';
-    }
-  });
-
-  // Cursor hide
-  let cursorTimer;
-  document.addEventListener('mousemove', () => {
-    document.body.style.cursor = 'default';
-    clearTimeout(cursorTimer);
-    cursorTimer = setTimeout(() => { document.body.style.cursor = 'none'; }, 3000);
-  });
-
-  // ═══════════════════════════════════════════════════════
-  // FORCE_LAYOUT — injected by nginx from FORCE_LAYOUT env var.
-  // If set, skips the picker and locks the layout (L key disabled).
-  // Set in docker-compose.yml:  FORCE_LAYOUT=primary-right
-  // Nginx template replaces $FORCE_LAYOUT token at startup.
-  // ═══════════════════════════════════════════════════════
-  const FORCE_LAYOUT = '$FORCE_LAYOUT';
-
-  // ═══════════════════════════════════════════════════════
-  // Boot — load streams.json then initialise
-  // ═══════════════════════════════════════════════════════
-  async function boot() {
-    await loadStreams();
-
-    // Wire up fullscreen timeout input in picker
-  const fsInput = document.getElementById('fs-timeout-input');
-  fsInput.value = FULLSCREEN_TIMEOUT || '';
-  fsInput.addEventListener('change', () => {
-    const val = parseInt(fsInput.value, 10);
-    FULLSCREEN_TIMEOUT = isNaN(val) ? 0 : val;
-    try { localStorage.setItem('fsTimeout', FULLSCREEN_TIMEOUT); } catch(e) {}
-  });
-  // Restore saved value (overrides env default if user has changed it)
-  try {
-    const saved = localStorage.getItem('fsTimeout');
-    if (saved !== null) {
-      FULLSCREEN_TIMEOUT = Number(saved);
-      fsInput.value = FULLSCREEN_TIMEOUT || '';
-    }
-  } catch(e) {}
-
-  if (FORCE_LAYOUT && FORCE_LAYOUT !== '$FORCE_LAYOUT' && LAYOUTS[FORCE_LAYOUT]) {
-    // Env var is set — lock to this layout, disable picker key
-    applyLayout(FORCE_LAYOUT);
-    document.getElementById('picker').style.pointerEvents = 'none';
-  } else {
-    // No forced layout — restore saved or show picker
-    try {
-      const saved = localStorage.getItem('layout');
-      if (saved && LAYOUTS[saved]) applyLayout(saved);
-    } catch(e) {}
-  }
-  } // end boot()
-
-  boot();
+  const FORCE_LAYOUT          = '$FORCE_LAYOUT';
+  let   FULLSCREEN_TIMEOUT    = '$FULLSCREEN_TIMEOUT' ? Number('$FULLSCREEN_TIMEOUT') : 30;
+  // STREAM_REFRESH_GLOBAL:
+  //   ""       (empty) → null  — honour per-stream refreshInterval only
+  //   "0"              → 0     — disabled globally, per-stream config ignored
+  //   "30"             → 30    — global interval in seconds
+  const STREAM_REFRESH_GLOBAL = '$STREAM_REFRESH' === ''
+    ? null
+    : Number('$STREAM_REFRESH');
+  // ENABLE_MODALS — set to false to disable L/D shortcuts and modal access
+  const ENABLE_MODALS         = '$ENABLE_MODALS' !== 'false';
 </script>
-</body>
+<script src="/js/app.js?v=2"></script></body>
 </html>

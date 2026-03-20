@@ -1,0 +1,12 @@
+{
+  "name": "rtsp-kiosk",
+  "version": "1.0.0",
+  "description": "Self-hosted fullscreen video wall for IP cameras",
+  "scripts": {
+    "build": "mkdir -p www && cp node_modules/mqtt/dist/mqtt.min.js www/mqtt.min.js",
+    "postinstall": "npm run build"
+  },
+  "dependencies": {
+    "mqtt": "5.10.1"
+  }
+}
