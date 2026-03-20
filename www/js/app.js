@@ -815,15 +815,10 @@
       lbl.textContent = 'LIVE';
       resetRetry(index);
       scheduleRefresh(index);
-      // Video must start muted for autoplay — apply unmute after if needed
+      // Always start muted — browser requires this for autoplay.
+      // Unmuting happens via applyMute() only after user interaction.
       video.muted = true;
-      if (!globalMuted) {
-        // Attempt to unmute after a short delay to let playback stabilise
-        setTimeout(() => {
-          video.muted = false;
-          if (video.paused) video.play().catch(() => { video.muted = true; });
-        }, 500);
-      }
+      if (!globalMuted && userInteracted) applyMute();
     };
 
     const setError = () => {
@@ -1203,7 +1198,9 @@ Retry delay: ${retryDelay[i] || 0}ms`;
     showSettingsBtn();
   });
 
-  document.addEventListener('touchstart', showSettingsBtn);
+  document.addEventListener('click',      markInteracted, { once: false });
+  document.addEventListener('keydown',    markInteracted, { once: false });
+  document.addEventListener('touchstart', () => { markInteracted(); showSettingsBtn(); });
 
 
 
@@ -1423,27 +1420,28 @@ Retry delay: ${retryDelay[i] || 0}ms`;
   // Global mute — mutes all video elements and persists to localStorage
   // Independent of per-stream audio config.
   // ═══════════════════════════════════════════════════════
-  let globalMuted = false;
+  let globalMuted      = false;
+  let userInteracted   = false;  // true after first click/key/touch
+
+  function markInteracted() {
+    if (userInteracted) return;
+    userInteracted = true;
+    // If audio was requested but blocked, try again now
+    if (!globalMuted) applyMute();
+  }
 
   function applyMute() {
     document.querySelectorAll('.cell video').forEach(v => {
-      if (!globalMuted) {
-        // Unmuting requires user interaction — attempt and handle gracefully
+      if (!globalMuted && userInteracted) {
         v.muted = false;
-        if (v.paused) {
-          v.play().catch(() => {
-            // Browser blocked unmuted playback — keep muted
-            v.muted = true;
-          });
-        }
+        if (v.paused) v.play().catch(() => { v.muted = true; });
       } else {
         v.muted = true;
       }
     });
-    // Sync settings modal toggle
     const toggle = document.getElementById('settings-mute');
     if (toggle) toggle.checked = globalMuted;
-    console.log(`[Audio] ${globalMuted ? 'muted' : 'unmuted'}`);
+    console.log(`[Audio] ${globalMuted ? 'muted' : (userInteracted ? 'unmuted' : 'unmuted (pending interaction)')}`);
   }
 
   function toggleMute() {
