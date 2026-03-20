@@ -856,10 +856,10 @@
         scheduleRetry(index);
       }
 
-      // Fallback: if no track arrives within 10s, retry
+      // Fallback: if no track arrives within 20s, retry
       const noTrackTimer = setTimeout(() => {
-        if (!trackReceived) doRetry('no track received within 10s');
-      }, 10000);
+        if (!trackReceived) doRetry('no track received within 20s');
+      }, 20000);
 
       pc.ontrack = e => {
         clearTimeout(noTrackTimer);
