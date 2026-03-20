@@ -1,5 +1,8 @@
 # Runtime config — contains credentials, never commit
-data/
+data/streams.json
+data/streams-public.json
+data/views-public.json
+data/mediamtx.yml
 
 # Environment variables — contains host IP
 .env
