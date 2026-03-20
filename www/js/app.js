@@ -1098,14 +1098,16 @@
   };
 
   // Generate layout SVG with stream names inside each cell
-  // Each cell gets a clipPath so text never overflows its bounds
+  // Uses unique clip IDs per SVG to avoid conflicts when multiple rows shown
+  let _svgUid = 0;
   function layoutSvgWithNumbers(layoutName, streams) {
     const rects = LAYOUT_RECTS[layoutName];
     const cells = LAYOUT_CELLS[layoutName];
     if (!rects) return layoutName;
 
+    const uid = _svgUid++;
     const clipDefs = rects.map((r, i) =>
-      `<clipPath id="lc${i}"><rect x="${r.x+1}" y="${r.y+1}" width="${r.w-2}" height="${r.h-2}"/></clipPath>`
+      `<clipPath id="lc${uid}_${i}"><rect x="${r.x+1}" y="${r.y+1}" width="${r.w-2}" height="${r.h-2}"/></clipPath>`
     ).join('');
 
     const rectsSvg = rects.map((r, i) => {
@@ -1117,10 +1119,9 @@
     const labelsSvg = (cells || []).map((c, i) => {
       const path = streams?.[i];
       if (!path) return '';
-      // Scale font to fit — smaller cells get smaller text
       const cellW = rects[i]?.w || 20;
       const fs    = cellW >= 46 ? 7 : cellW >= 26 ? 6 : 5;
-      return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="${fs}" fill="rgba(255,255,255,0.85)" clip-path="url(#lc${i})">${path}</text>`;
+      return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="${fs}" fill="rgba(255,255,255,0.85)" clip-path="url(#lc${uid}_${i})">${path}</text>`;
     }).join('');
 
     return `<svg width="64" height="40" viewBox="0 0 80 50"><defs>${clipDefs}</defs>${rectsSvg}${labelsSvg}</svg>`;
