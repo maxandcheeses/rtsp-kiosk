@@ -828,23 +828,37 @@
       clearRefresh(index);
     };
 
+    let pc;
     try {
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        ...(PERF.lowPower ? { rtcpMuxPolicy: 'require', iceCandidatePoolSize: 0 } : {}),
       });
+      if (PERF.lowPower && pc.setConfiguration) {
+        try { pc.setConfiguration({ ...pc.getConfiguration(), powerPreference: 'low-power' }); } catch(e) {}
+      }
       streamPCs[path] = pc;
       activePCs.push(pc);
 
-      let trackReceived = false;
+      let trackReceived  = false;
+      let disconnectTimer = null;
+      let stallTimer      = null;
+      let lastVideoTime   = -1;
 
-      // Fallback: if no track arrives in 10s, retry
+      function doRetry(reason) {
+        clearTimeout(noTrackTimer);
+        clearTimeout(disconnectTimer);
+        clearInterval(stallTimer);
+        if (streamPCs[path] === pc) streamPCs[path] = null;
+        try { pc.close(); } catch(e) {}
+        setError();
+        console.warn(`[Connection] ${path} retrying — ${reason}`);
+        scheduleRetry(index);
+      }
+
+      // Fallback: if no track arrives within 10s, retry
       const noTrackTimer = setTimeout(() => {
-        if (!trackReceived) {
-          console.warn(`Stream ${index}: no track received within 10s, retrying`);
-          try { pc.close(); } catch(e) {}
-          setError();
-          scheduleRetry(index);
-        }
+        if (!trackReceived) doRetry('no track received within 10s');
       }, 10000);
 
       pc.ontrack = e => {
@@ -854,41 +868,59 @@
         video.play()
           .then(setLive)
           .catch(err => {
-            // Autoplay blocked — video is still attached, just mark live
             console.warn(`Stream ${index} autoplay blocked:`, err);
             setLive();
           });
+
+        // ── Video stall watchdog ──
+        // Detects frozen streams where ICE stays open but frames stop arriving.
+        // Checks every 6s — if currentTime hasn't advanced, the stream has stalled.
+        stallTimer = setInterval(() => {
+          if (!document.getElementById(`v${index}`)) {
+            clearInterval(stallTimer); return;
+          }
+          if (video.readyState >= 2 && !video.paused) {
+            if (video.currentTime === lastVideoTime) {
+              doRetry('video stalled — currentTime not advancing');
+            }
+            lastVideoTime = video.currentTime;
+          }
+        }, 6000);
       };
 
-      // Only hard 'failed' triggers a retry — 'disconnected' is often transient
+      // ICE state handler
       pc.oniceconnectionstatechange = () => {
         const state = pc.iceConnectionState;
-        console.log(`Stream ${index} ICE: ${state}`);
+        console.log(`[Connection] ${path} ICE: ${state}`);
         if (state === 'failed') {
-          clearTimeout(noTrackTimer);
-          setError();
-          scheduleRetry(index);
-        }
-        if (state === 'closed' && trackReceived) {
-          setError();
-          scheduleRetry(index);
+          doRetry('ICE failed');
+        } else if (state === 'disconnected') {
+          // Disconnected can be transient — wait 8s before retrying
+          clearTimeout(disconnectTimer);
+          disconnectTimer = setTimeout(() => {
+            if (pc.iceConnectionState === 'disconnected') {
+              doRetry('ICE disconnected for 8s');
+            }
+          }, 8000);
+        } else if (state === 'connected' || state === 'completed') {
+          // Recovered from disconnected — cancel the retry timer
+          clearTimeout(disconnectTimer);
+        } else if (state === 'closed' && trackReceived) {
+          doRetry('ICE closed');
         }
       };
 
       pc.addTransceiver('video', { direction: 'recvonly' });
-      // Only request audio if this stream has audio: true
       pc.addTransceiver('audio', { direction: STREAMS[index]?.audio ? 'recvonly' : 'inactive' });
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      // Wait for ICE gathering
       await new Promise(resolve => {
         if (pc.iceGatheringState === 'complete') return resolve();
         pc.onicegatheringstatechange = () => {
           if (pc.iceGatheringState === 'complete') resolve();
         };
-        // Safety timeout on ICE gathering
         setTimeout(resolve, 5000);
       });
 
@@ -900,10 +932,11 @@
 
       if (!res.ok) throw new Error(`WHEP ${res.status}`);
       await pc.setRemoteDescription({ type: 'answer', sdp: await res.text() });
-      console.log(`[Preload] connection established for ${path}`);
+      console.log(`[Connection] ${path} WHEP established`);
 
     } catch(e) {
       console.error(`Stream ${index}:`, e);
+      if (streamPCs[path] === pc) streamPCs[path] = null;
       setError();
       scheduleRetry(index);
     }
