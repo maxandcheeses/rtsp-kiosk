@@ -1070,37 +1070,64 @@
   // ═══════════════════════════════════════════════════════
   // Layout SVG icons — same as layout picker, scaled down
   // ═══════════════════════════════════════════════════════
-  // Cell centre points and rects per layout — ORDER MATCHES DOM/span order
-  // The spanned (primary/large) cell always has its span applied at index 0
-  // primary-right:  [0]=large-left, [1]=top-right,    [2]=bottom-right
-  // primary-left:   [0]=large-right,[1]=top-left,     [2]=bottom-left
-  // primary-bottom: [0]=large-top,  [1]=bottom-left,  [2]=bottom-right
-  // primary-top:    [0]=large-bottom,[1]=top-left,    [2]=top-right
-  const LAYOUT_CELLS = {
-    'single':        [[41,25]],
-    'two-col':       [[20,25],[61,25]],
-    'two-row':       [[41,12],[41,37]],
-    'primary-right': [[25,25],[65,12],[65,37]],
-    'primary-left':  [[55,25],[14,12],[14,37]],
-    'primary-bottom':[[41,14],[20,41],[61,41]],
-    'primary-top':   [[41,35],[20,9],[61,9]],
-    'quad':          [[20,12],[61,12],[20,37],[61,37]],
-    'six':           [[13,12],[40,12],[67,12],[13,37],[40,37],[67,37]],
-    'eight':         [[10,12],[30,12],[50,12],[70,12],[10,37],[30,37],[50,37],[70,37]],
+  // LAYOUT_RECTS + LAYOUT_CELLS indexed by stream index (0=first stream).
+  // Index 0 is always the primary/large cell (span applied at i=0 in applyLayout).
+  // Remaining indices fill left→right, top→bottom in the grid.
+  //
+  //  single:         0=full
+  //  two-col:        0=left       1=right
+  //  two-row:        0=top        1=bottom
+  //  primary-right:  0=large-left 1=top-right  2=bottom-right
+  //  primary-left:   0=large-right 1=top-left  2=bottom-left
+  //  primary-bottom: 0=large-top  1=bot-left   2=bot-right
+  //  primary-top:    0=large-bot  1=top-left   2=top-right
+  //  quad:           0=TL  1=TR  2=BL  3=BR
+  //  six:            0=R0C0 1=R0C1 2=R0C2 3=R1C0 4=R1C1 5=R1C2
+  //  eight:          0..3=top row L→R, 4..7=bottom row L→R
+  const LAYOUT_RECTS = {
+    'single':        [
+      {x:2, y:2,  w:76,h:46,r:2,p:0.18}],
+    'two-col':       [
+      {x:2, y:2,  w:36,h:46,r:2,p:0.12},
+      {x:42,y:2,  w:36,h:46,r:2,p:0.12}],
+    'two-row':       [
+      {x:2, y:2,  w:76,h:21,r:2,p:0.12},
+      {x:2, y:27, w:76,h:21,r:2,p:0.12}],
+    'primary-right': [
+      {x:2, y:2,  w:46,h:46,r:2,p:0.18}, // 0=large left
+      {x:52,y:2,  w:26,h:21,r:2,p:0.12}, // 1=top right
+      {x:52,y:27, w:26,h:21,r:2,p:0.12}],// 2=bottom right
+    'primary-left':  [
+      {x:32,y:2,  w:46,h:46,r:2,p:0.18}, // 0=large right
+      {x:2, y:2,  w:26,h:21,r:2,p:0.12}, // 1=top left
+      {x:2, y:27, w:26,h:21,r:2,p:0.12}],// 2=bottom left
+    'primary-bottom':[
+      {x:2, y:2,  w:76,h:28,r:2,p:0.18}, // 0=large top
+      {x:2, y:34, w:36,h:14,r:2,p:0.12}, // 1=bottom left
+      {x:42,y:34, w:36,h:14,r:2,p:0.12}],// 2=bottom right
+    'primary-top':   [
+      {x:2, y:20, w:76,h:28,r:2,p:0.18}, // 0=large bottom
+      {x:2, y:2,  w:36,h:14,r:2,p:0.12}, // 1=top left
+      {x:42,y:2,  w:36,h:14,r:2,p:0.12}],// 2=top right
+    'quad':          [
+      {x:2, y:2,  w:36,h:21,r:2,p:0.12},
+      {x:42,y:2,  w:36,h:21,r:2,p:0.12},
+      {x:2, y:27, w:36,h:21,r:2,p:0.12},
+      {x:42,y:27, w:36,h:21,r:2,p:0.12}],
+    'six':           [
+      {x:2, y:2,  w:22,h:21,r:1,p:0.12},{x:29,y:2,  w:22,h:21,r:1,p:0.12},{x:56,y:2,  w:22,h:21,r:1,p:0.12},
+      {x:2, y:27, w:22,h:21,r:1,p:0.12},{x:29,y:27, w:22,h:21,r:1,p:0.12},{x:56,y:27, w:22,h:21,r:1,p:0.12}],
+    'eight':         [
+      {x:2, y:2,  w:16,h:21,r:1,p:0.12},{x:22,y:2,  w:16,h:21,r:1,p:0.12},{x:42,y:2,  w:16,h:21,r:1,p:0.12},{x:62,y:2,  w:16,h:21,r:1,p:0.12},
+      {x:2, y:27, w:16,h:21,r:1,p:0.12},{x:22,y:27, w:16,h:21,r:1,p:0.12},{x:42,y:27, w:16,h:21,r:1,p:0.12},{x:62,y:27, w:16,h:21,r:1,p:0.12}],
   };
 
-  const LAYOUT_RECTS = {
-    'single':        [{x:2,y:2,w:76,h:46,r:2,p:0.12}],
-    'two-col':       [{x:2,y:2,w:36,h:46,r:2,p:0.12},{x:42,y:2,w:36,h:46,r:2,p:0.12}],
-    'two-row':       [{x:2,y:2,w:76,h:21,r:2,p:0.12},{x:2,y:27,w:76,h:21,r:2,p:0.12}],
-    'primary-right': [{x:2,y:2,w:46,h:46,r:2,p:0.18},{x:52,y:2,w:26,h:21,r:2,p:0.12},{x:52,y:27,w:26,h:21,r:2,p:0.12}],
-    'primary-left':  [{x:32,y:2,w:46,h:46,r:2,p:0.18},{x:2,y:2,w:26,h:21,r:2,p:0.12},{x:2,y:27,w:26,h:21,r:2,p:0.12}],
-    'primary-bottom':[{x:2,y:2,w:76,h:28,r:2,p:0.18},{x:2,y:34,w:36,h:14,r:2,p:0.12},{x:42,y:34,w:36,h:14,r:2,p:0.12}],
-    'primary-top':   [{x:2,y:20,w:76,h:28,r:2,p:0.18},{x:2,y:2,w:36,h:14,r:2,p:0.12},{x:42,y:2,w:36,h:14,r:2,p:0.12}],
-    'quad':          [{x:2,y:2,w:36,h:21,r:2,p:0.12},{x:42,y:2,w:36,h:21,r:2,p:0.12},{x:2,y:27,w:36,h:21,r:2,p:0.12},{x:42,y:27,w:36,h:21,r:2,p:0.12}],
-    'six':           [{x:2,y:2,w:22,h:21,r:1,p:0.12},{x:29,y:2,w:22,h:21,r:1,p:0.12},{x:56,y:2,w:22,h:21,r:1,p:0.12},{x:2,y:27,w:22,h:21,r:1,p:0.12},{x:29,y:27,w:22,h:21,r:1,p:0.12},{x:56,y:27,w:22,h:21,r:1,p:0.12}],
-    'eight':         [{x:2,y:2,w:16,h:21,r:1,p:0.12},{x:22,y:2,w:16,h:21,r:1,p:0.12},{x:42,y:2,w:16,h:21,r:1,p:0.12},{x:62,y:2,w:16,h:21,r:1,p:0.12},{x:2,y:27,w:16,h:21,r:1,p:0.12},{x:22,y:27,w:16,h:21,r:1,p:0.12},{x:42,y:27,w:16,h:21,r:1,p:0.12},{x:62,y:27,w:16,h:21,r:1,p:0.12}],
-  };
+  // Centre points derived from rects (cx = x + w/2, cy = y + h/2)
+  const LAYOUT_CELLS = Object.fromEntries(
+    Object.entries(LAYOUT_RECTS).map(([k,rects]) => [
+      k, rects.map(r => [Math.round(r.x + r.w/2), Math.round(r.y + r.h/2)])
+    ])
+  );
 
   // Generate layout SVG with stream names inside each cell
   // Uses unique clip IDs per SVG to avoid conflicts when multiple rows shown
@@ -1149,7 +1176,7 @@
         <td title="${v.name}">${v.name}</td>
         <td title="${v.label || ''}">${v.label || '—'}</td>
         <td title="${v.layout || '—'}" style="padding:6px 16px">${layoutSvg}</td>
-        <td title="${(v.streams || []).join(', ')}">${(v.streams || []).join(', ')}</td>
+        <td title="${(v.streams || []).map((s,i) => i+':'+s).join(', ')}">${(v.streams || []).map((s,i) => `<span style="color:rgba(255,255,255,0.4)">${i}</span>:${s}`).join('  ')}</td>
         <td>${duration}</td>
       </tr>`;
     }).join('') || '<tr><td colspan="6" style="opacity:0.4;padding:16px">No views configured</td></tr>';
