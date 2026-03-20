@@ -653,8 +653,10 @@
         </div>
         <video id="v${i}" autoplay muted playsinline style="object-fit:${objectFit}"></video>
         <div class="chrome">
-          <div class="lbl">${stream.label}</div>
-          <div class="live"><span class="dot" id="dot${i}"></span><span id="lbl${i}">LIVE</span></div>
+          <div class="live">
+            <div class="live-row"><span class="dot" id="dot${i}"></span><span id="lbl${i}">LIVE</span></div>
+            <div class="lbl">${stream.label}</div>
+          </div>
           <button class="btn-fs" onclick="toggleFS(${i})">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M8 3H5a2 2 0 00-2 2v3M21 8V5a2 2 0 00-2-2h-3M16 21h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
@@ -844,7 +846,7 @@
       let trackReceived  = false;
       let disconnectTimer = null;
       let stallTimer      = null;
-      let lastVideoTime   = -1;
+      let lastFrameCount  = -1;
 
       function doRetry(reason) {
         clearTimeout(noTrackTimer);
@@ -874,19 +876,38 @@
           });
 
         // ── Video stall watchdog ──
-        // Detects frozen streams where ICE stays open but frames stop arriving.
-        // Checks every 6s — if currentTime hasn't advanced, the stream has stalled.
+        // Live WebRTC streams don't advance currentTime reliably.
+        // Instead track decoded frame count via getVideoPlaybackQuality().
+        // If frame count hasn't increased in 8s, the stream has stalled.
         stallTimer = setInterval(() => {
           if (!document.getElementById(`v${index}`)) {
             clearInterval(stallTimer); return;
           }
-          if (video.readyState >= 2 && !video.paused) {
-            if (video.currentTime === lastVideoTime) {
-              doRetry('video stalled — currentTime not advancing');
-            }
-            lastVideoTime = video.currentTime;
+
+          // Detect paused-but-should-be-playing — happens when camera restarts
+          // and MediaMTX sends a new stream interrupting the play() promise
+          if (video.paused && video.readyState >= 2) {
+            // Try to resume first
+            video.play().catch(() => {});
+            // Give it 2s — if still paused, reconnect
+            setTimeout(() => {
+              if (video.paused) doRetry('video paused unexpectedly — camera may have restarted');
+            }, 2000);
+            return;
           }
-        }, 6000);
+
+          // Detect frozen frame — playing but no new frames arriving
+          if (video.readyState >= 2 && !video.paused) {
+            const quality = video.getVideoPlaybackQuality?.();
+            const frames  = quality?.totalVideoFrames ?? -1;
+            if (frames !== -1) {
+              if (lastFrameCount !== -1 && frames === lastFrameCount) {
+                doRetry('video stalled — no new frames decoded');
+              }
+              lastFrameCount = frames;
+            }
+          }
+        }, 8000);
       };
 
       // ICE state handler
