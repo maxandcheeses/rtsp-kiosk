@@ -573,13 +573,13 @@
                         spans: [{ col: '1', row: '1 / 3' }] },
     // primary-left:  0=top-left, 1=bottom-left, 2=large-right
     'primary-left':   { streams: 3, css: { cols: '1fr 2fr',       rows: '1fr 1fr' },
-                        spans: [null, null, { col: '2', row: '1 / 3', colStart: 2 }] },
+                        spans: [null, null, { col: '2 / 3', row: '1 / 3' }] },
     // primary-bottom: 0=large-top, 1=bottom-left, 2=bottom-right
     'primary-bottom': { streams: 3, css: { cols: '1fr 1fr',       rows: '2fr 1fr' },
-                        spans: [{ col: '1 / 3', row: '1' }] },
+                        spans: [{ col: '1 / 3', row: '1 / 2' }] },
     // primary-top:   0=top-left, 1=top-right, 2=large-bottom
     'primary-top':    { streams: 3, css: { cols: '1fr 1fr',       rows: '1fr 2fr' },
-                        spans: [null, null, { col: '1 / 3', row: '2' }] },
+                        spans: [null, null, { col: '1 / 3', row: '2 / 3' }] },
     'quad':           { streams: 4, css: { cols: '1fr 1fr',       rows: '1fr 1fr' } },
     'six':            { streams: 6, css: { cols: '1fr 1fr 1fr',   rows: '1fr 1fr' } },
     'eight':          { streams: 8, css: { cols: '1fr 1fr 1fr 1fr', rows: '1fr 1fr' } },
@@ -645,9 +645,8 @@
       cell.id = `cell${i}`;
 
       if (span) {
-        if (span.col)      cell.style.gridColumn = span.col;
-        if (span.row)      cell.style.gridRow    = span.row;
-        if (span.colStart) cell.style.gridColumnStart = span.colStart;
+        if (span.col) cell.style.gridColumn = span.col;
+        if (span.row) cell.style.gridRow    = span.row;
       }
 
       // Apply per-stream aspect ratio to the cell
