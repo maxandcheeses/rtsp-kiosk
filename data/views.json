@@ -15,29 +15,8 @@
       "preloadLeadTime": 20
     },
     {
-      "name": "front",
-      "label": "Front of House",
-      "layout": "single",
-      "streams": [
-        "cam1"
-      ],
-      "duration": 15,
-      "preloadLeadTime": 15
-    },
-    {
-      "name": "back",
-      "label": "Back of House",
-      "layout": "two-col",
-      "streams": [
-        "cam2",
-        "cam3"
-      ],
-      "duration": 20,
-      "preloadLeadTime": 20
-    },
-    {
-      "name": "all-preload",
-      "label": "all preload",
+      "name": "all-cams-mirror",
+      "label": "All Cameras",
       "layout": "primary-left",
       "streams": [
         "cam3",

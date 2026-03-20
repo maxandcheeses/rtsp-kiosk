@@ -402,15 +402,30 @@
     console.log('Performance settings reset to defaults');
   }
 
+  function promptClearStorage() {
+    document.getElementById('clear-storage-btn').style.display = 'none';
+    const confirm = document.getElementById('clear-storage-confirm');
+    confirm.style.display = 'flex';
+  }
+
+  function cancelClearStorage() {
+    document.getElementById('clear-storage-confirm').style.display = 'none';
+    document.getElementById('clear-storage-btn').style.display = '';
+  }
+
+  function confirmClearStorage() {
+    clearAllStorage();
+    cancelClearStorage();
+    closeAllModals();
+  }
+
   function clearAllStorage() {
     try {
       localStorage.clear();
       console.log('localStorage cleared');
     } catch(e) {}
-    // Reset in-memory perf settings too
     PERF = Object.assign({}, PERF_DEFAULTS);
     applyPerfSettings();
-    // Reset fullscreen timeout to env default
     FULLSCREEN_TIMEOUT = typeof FULLSCREEN_TIMEOUT !== 'undefined' ? FULLSCREEN_TIMEOUT : 30;
     const fsInput = document.getElementById('fs-timeout-input');
     if (fsInput) fsInput.value = FULLSCREEN_TIMEOUT || '';
@@ -1011,6 +1026,11 @@
     document.getElementById('views-modal').classList.remove('open');
     document.getElementById('settings-modal').classList.remove('open');
     document.getElementById('performance-modal').classList.remove('open');
+    // Reset clear storage confirmation state
+    const confirmEl = document.getElementById('clear-storage-confirm');
+    const btnEl = document.getElementById('clear-storage-btn');
+    if (confirmEl) confirmEl.style.display = 'none';
+    if (btnEl) btnEl.style.display = '';
 
     // Return to settings if we navigated here from it
     if (returnToSettings) {
@@ -1090,7 +1110,11 @@
     }).join('');
 
     const labelsSvg = (cells || []).map((c, i) => {
-      const num = streams?.[i] ? String(i + 1) : String(i + 1);
+      const path = streams?.[i];
+      // Extract trailing number from path (e.g. "cam1" → "1", "camera-3" → "3")
+      // Fall back to array position + 1 if no number found
+      const match = path ? path.match(/\d+$/) : null;
+      const num   = match ? match[0] : String(i + 1);
       return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="8" fill="rgba(255,255,255,0.6)">${num}</text>`;
     }).join('');
 
