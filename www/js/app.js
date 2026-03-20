@@ -654,7 +654,7 @@
         <video id="v${i}" autoplay muted playsinline style="object-fit:${objectFit}"></video>
         <div class="chrome">
           <div class="live">
-            <div class="live-row"><span class="dot" id="dot${i}"></span><span id="lbl${i}">LIVE</span></div>
+            <div class="live-row"><span id="lbl${i}">LIVE</span><span class="dot" id="dot${i}"></span></div>
             <div class="lbl">${stream.label}</div>
           </div>
           <button class="btn-fs" onclick="toggleFS(${i})">
