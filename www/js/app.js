@@ -1209,7 +1209,6 @@ Retry delay: ${retryDelay[i] || 0}ms`;
     await loadViews();
     loadPerfSettings();
     loadMuteState();
-    startAutoReload();
 
     // Wire up fullscreen timeout input in picker
   const fsInput = document.getElementById('fs-timeout-input');
@@ -1444,42 +1443,7 @@ Retry delay: ${retryDelay[i] || 0}ms`;
     applyMute();
   }
 
-  // ═══════════════════════════════════════════════════════
-  // Auto-reload via polling
-  // Browser polls /reload-check every 2s. If the timestamp
-  // changes (written by reload-watcher.sh when files change),
-  // the page reloads automatically.
-  // Only active in dev — no-ops if endpoint returns 404.
-  // ═══════════════════════════════════════════════════════
-  function startAutoReload() {
-    let lastTimestamp = null;
-    let failed = 0;
 
-    async function checkReload() {
-      try {
-        const res = await fetch('/reload-check?t=' + Date.now());
-        if (!res.ok) { failed++; if (failed > 3) return; } // stop after 3 failures
-        else failed = 0;
-        const ts = await res.text();
-        if (lastTimestamp === null) { lastTimestamp = ts; return; }
-        if (ts !== lastTimestamp) {
-          console.log('[AutoReload] file change detected — reloading');
-          window.location.reload();
-        }
-      } catch(e) {
-        failed++;
-      }
-    }
-
-    // Only start if endpoint exists
-    fetch('/reload-check').then(r => {
-      if (r.ok) {
-        console.log('[AutoReload] watching for file changes');
-        checkReload();
-        setInterval(checkReload, 2000);
-      }
-    }).catch(() => {});
-  }
 
   // ═══════════════════════════════════════════════════════
   // Debug overlay
