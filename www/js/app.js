@@ -1110,12 +1110,10 @@
     }).join('');
 
     const labelsSvg = (cells || []).map((c, i) => {
-      const path = streams?.[i];
-      // Extract trailing number from path (e.g. "cam1" → "1", "camera-3" → "3")
-      // Fall back to array position + 1 if no number found
-      const match = path ? path.match(/\d+$/) : null;
-      const num   = match ? match[0] : String(i + 1);
-      return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="8" fill="rgba(255,255,255,0.6)">${num}</text>`;
+      const label = streams?.[i] || String(i + 1);
+      // Scale font size based on label length
+      const fs = label.length > 4 ? 5 : label.length > 3 ? 6 : 7;
+      return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="${fs}" fill="rgba(255,255,255,0.7)">${label}</text>`;
     }).join('');
 
     return `<svg width="64" height="40" viewBox="0 0 80 50">${rectsSvg}${labelsSvg}</svg>`;
