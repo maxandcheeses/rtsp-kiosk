@@ -1151,8 +1151,8 @@ Retry delay: ${retryDelay[i] || 0}ms`;
     if (e.key === 'ArrowLeft' && VIEWS.length > 1 && !anyOpen) {
       navigateView(-1); return;
     }
-    if ((e.key === 'o' || e.key === 'O') && !anyOpen) {
-      // O = pause/resume cycling
+    if ((e.key === 'c' || e.key === 'C') && !anyOpen) {
+      // C = pause/resume cycling
       if (VIEWS_CYCLE) { cyclePaused ? resumeCycle() : pauseCycle(); }
       return;
     }
