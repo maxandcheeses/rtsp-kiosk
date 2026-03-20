@@ -53,24 +53,27 @@
     }
 
     .chrome .lbl {
-      position: absolute;
-      top: 14px; left: 14px;
       font-family: 'Courier New', monospace;
-      font-size: 10px;
+      font-size: 9px;
       letter-spacing: 0.2em;
-      color: rgba(255,255,255,0.5);
+      color: rgba(255,255,255,0.35);
       text-transform: uppercase;
       user-select: none;
+      text-align: right;
+      margin-top: 4px;
     }
 
     .chrome .live {
       position: absolute;
       top: 14px; right: 14px;
-      display: flex; align-items: center; gap: 6px;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 0;
       font-family: 'Courier New', monospace;
       font-size: 10px;
       letter-spacing: 0.15em;
       color: rgba(255,255,255,0.4);
+    }
+    .chrome .live .live-row {
+      display: flex; align-items: center; gap: 6px;
     }
     .chrome .live .dot {
       width: 5px; height: 5px;
