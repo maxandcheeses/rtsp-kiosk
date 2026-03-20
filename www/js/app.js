@@ -568,14 +568,18 @@
     'single':         { streams: 1, css: { cols: '1fr',           rows: '1fr' } },
     'two-col':        { streams: 2, css: { cols: '1fr 1fr',       rows: '1fr' } },
     'two-row':        { streams: 2, css: { cols: '1fr',           rows: '1fr 1fr' } },
+    // primary-right: 0=large-left, 1=top-right, 2=bottom-right
     'primary-right':  { streams: 3, css: { cols: '2fr 1fr',       rows: '1fr 1fr' },
                         spans: [{ col: '1', row: '1 / 3' }] },
+    // primary-left:  0=top-left, 1=bottom-left, 2=large-right
     'primary-left':   { streams: 3, css: { cols: '1fr 2fr',       rows: '1fr 1fr' },
-                        spans: [{ col: '2', row: '1 / 3', colStart: 2 }] },
+                        spans: [null, null, { col: '2', row: '1 / 3', colStart: 2 }] },
+    // primary-bottom: 0=large-top, 1=bottom-left, 2=bottom-right
     'primary-bottom': { streams: 3, css: { cols: '1fr 1fr',       rows: '2fr 1fr' },
                         spans: [{ col: '1 / 3', row: '1' }] },
+    // primary-top:   0=top-left, 1=top-right, 2=large-bottom
     'primary-top':    { streams: 3, css: { cols: '1fr 1fr',       rows: '1fr 2fr' },
-                        spans: [{ col: '1 / 3', row: '2' }] },
+                        spans: [null, null, { col: '1 / 3', row: '2' }] },
     'quad':           { streams: 4, css: { cols: '1fr 1fr',       rows: '1fr 1fr' } },
     'six':            { streams: 6, css: { cols: '1fr 1fr 1fr',   rows: '1fr 1fr' } },
     'eight':          { streams: 8, css: { cols: '1fr 1fr 1fr 1fr', rows: '1fr 1fr' } },
@@ -1088,32 +1092,32 @@
     'single':        [
       {x:2, y:2,  w:76,h:46,r:2,p:0.18}],
     'two-col':       [
-      {x:2, y:2,  w:36,h:46,r:2,p:0.12},
-      {x:42,y:2,  w:36,h:46,r:2,p:0.12}],
+      {x:2, y:2,  w:36,h:46,r:2,p:0.12},  // 0=left
+      {x:42,y:2,  w:36,h:46,r:2,p:0.12}], // 1=right
     'two-row':       [
-      {x:2, y:2,  w:76,h:21,r:2,p:0.12},
-      {x:2, y:27, w:76,h:21,r:2,p:0.12}],
+      {x:2, y:2,  w:76,h:21,r:2,p:0.12},  // 0=top
+      {x:2, y:27, w:76,h:21,r:2,p:0.12}], // 1=bottom
     'primary-right': [
-      {x:2, y:2,  w:46,h:46,r:2,p:0.18}, // 0=large left
-      {x:52,y:2,  w:26,h:21,r:2,p:0.12}, // 1=top right
-      {x:52,y:27, w:26,h:21,r:2,p:0.12}],// 2=bottom right
+      {x:2, y:2,  w:46,h:46,r:2,p:0.18},  // 0=large left
+      {x:52,y:2,  w:26,h:21,r:2,p:0.12},  // 1=top right
+      {x:52,y:27, w:26,h:21,r:2,p:0.12}], // 2=bottom right
     'primary-left':  [
-      {x:32,y:2,  w:46,h:46,r:2,p:0.18}, // 0=large right
-      {x:2, y:2,  w:26,h:21,r:2,p:0.12}, // 1=top left
-      {x:2, y:27, w:26,h:21,r:2,p:0.12}],// 2=bottom left
+      {x:2, y:2,  w:26,h:21,r:2,p:0.12},  // 0=top left
+      {x:2, y:27, w:26,h:21,r:2,p:0.12},  // 1=bottom left
+      {x:32,y:2,  w:46,h:46,r:2,p:0.18}], // 2=large right
     'primary-bottom':[
-      {x:2, y:2,  w:76,h:28,r:2,p:0.18}, // 0=large top
-      {x:2, y:34, w:36,h:14,r:2,p:0.12}, // 1=bottom left
-      {x:42,y:34, w:36,h:14,r:2,p:0.12}],// 2=bottom right
+      {x:2, y:2,  w:76,h:28,r:2,p:0.18},  // 0=large top
+      {x:2, y:34, w:36,h:14,r:2,p:0.12},  // 1=bottom left
+      {x:42,y:34, w:36,h:14,r:2,p:0.12}], // 2=bottom right
     'primary-top':   [
-      {x:2, y:20, w:76,h:28,r:2,p:0.18}, // 0=large bottom
-      {x:2, y:2,  w:36,h:14,r:2,p:0.12}, // 1=top left
-      {x:42,y:2,  w:36,h:14,r:2,p:0.12}],// 2=top right
+      {x:2, y:2,  w:36,h:14,r:2,p:0.12},  // 0=top left
+      {x:42,y:2,  w:36,h:14,r:2,p:0.12},  // 1=top right
+      {x:2, y:20, w:76,h:28,r:2,p:0.18}], // 2=large bottom
     'quad':          [
-      {x:2, y:2,  w:36,h:21,r:2,p:0.12},
-      {x:42,y:2,  w:36,h:21,r:2,p:0.12},
-      {x:2, y:27, w:36,h:21,r:2,p:0.12},
-      {x:42,y:27, w:36,h:21,r:2,p:0.12}],
+      {x:2, y:2,  w:36,h:21,r:2,p:0.12},  // 0=TL
+      {x:42,y:2,  w:36,h:21,r:2,p:0.12},  // 1=TR
+      {x:2, y:27, w:36,h:21,r:2,p:0.12},  // 2=BL
+      {x:42,y:27, w:36,h:21,r:2,p:0.12}], // 3=BR
     'six':           [
       {x:2, y:2,  w:22,h:21,r:1,p:0.12},{x:29,y:2,  w:22,h:21,r:1,p:0.12},{x:56,y:2,  w:22,h:21,r:1,p:0.12},
       {x:2, y:27, w:22,h:21,r:1,p:0.12},{x:29,y:27, w:22,h:21,r:1,p:0.12},{x:56,y:27, w:22,h:21,r:1,p:0.12}],
@@ -1148,12 +1152,12 @@
       return `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="${r.r}" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`;
     }).join('');
 
+    // Show stream index (0,1,2...) in each cell, L→R T→B order
     const labelsSvg = (cells || []).map((c, i) => {
-      const path = streams?.[i];
-      if (!path) return '';
+      if (i >= (streams?.length || 0)) return '';
       const cellW = rects[i]?.w || 20;
-      const fs    = cellW >= 46 ? 7 : cellW >= 26 ? 6 : 5;
-      return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="${fs}" fill="rgba(255,255,255,0.85)" clip-path="url(#lc${uid}_${i})">${path}</text>`;
+      const fs    = cellW >= 46 ? 10 : cellW >= 26 ? 8 : 7;
+      return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="${fs}" font-weight="bold" fill="rgba(255,255,255,0.7)" clip-path="url(#lc${uid}_${i})">${i}</text>`;
     }).join('');
 
     return `<svg width="64" height="40" viewBox="0 0 80 50"><defs>${clipDefs}</defs>${rectsSvg}${labelsSvg}</svg>`;
