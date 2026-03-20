@@ -1109,11 +1109,13 @@
       return `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="${r.r}" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`;
     }).join('');
 
+    // streams array maps cell index → stream path (e.g. cell 2 → "cam1")
+    // We render the actual path name inside each cell
     const labelsSvg = (cells || []).map((c, i) => {
-      const label = streams?.[i] || String(i + 1);
-      // Scale font size based on label length
-      const fs = label.length > 4 ? 5 : label.length > 3 ? 6 : 7;
-      return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="${fs}" fill="rgba(255,255,255,0.7)">${label}</text>`;
+      const path = streams?.[i];
+      if (!path) return '';
+      const fs = path.length > 4 ? 5 : path.length > 3 ? 6 : 7;
+      return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="${fs}" fill="rgba(255,255,255,0.8)">${path}</text>`;
     }).join('');
 
     return `<svg width="64" height="40" viewBox="0 0 80 50">${rectsSvg}${labelsSvg}</svg>`;
