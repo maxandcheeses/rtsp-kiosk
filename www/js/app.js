@@ -694,27 +694,43 @@
   // Resets to 2s on successful connection.
   // Guard flag prevents multiple overlapping retry loops.
   // ═══════════════════════════════════════════════════════
-  const retryDelay   = {};   // current delay per stream index
-  const retryPending = {};   // true if a retry is already scheduled
+  const retryDelay   = {};   // current delay per stream PATH
+  const retryPending = {};   // true if a retry is already scheduled, per PATH
   const RETRY_MIN    = 2000;
   const RETRY_MAX    = 30000;
 
   function scheduleRetry(index) {
-    if (retryPending[index]) return;   // already queued, don't stack
-    retryPending[index] = true;
-    if (!retryDelay[index]) retryDelay[index] = RETRY_MIN;
-    const delay = retryDelay[index];
-    retryDelay[index] = Math.min(delay * 2, (PERF.maxRetryDelay || 30) * 1000);
-    console.log(`Stream ${index}: retry in ${delay / 1000}s`);
+    const path = STREAMS[index]?.path;
+    if (!path) return;
+    if (retryPending[path]) return;   // already queued for this path
+    retryPending[path] = true;
+    if (!retryDelay[path]) retryDelay[path] = RETRY_MIN;
+    const delay = retryDelay[path];
+    retryDelay[path] = Math.min(delay * 2, (PERF.maxRetryDelay || 30) * 1000);
+    console.log(`[Retry] ${path} in ${delay / 1000}s (backoff: ${retryDelay[path] / 1000}s next)`);
     setTimeout(() => {
-      retryPending[index] = false;
-      startWhep(index);
+      retryPending[path] = false;
+      // Re-resolve index at fire time — view may have changed
+      const currentIndex = STREAMS.findIndex(s => s.path === path);
+      if (currentIndex === -1) {
+        console.log(`[Retry] ${path} no longer in active streams — skipping`);
+        return;
+      }
+      const video = document.getElementById(`v${currentIndex}`);
+      if (!video) {
+        console.log(`[Retry] ${path} no DOM element — skipping`);
+        return;
+      }
+      startWhep(currentIndex);
     }, delay);
   }
 
   function resetRetry(index) {
-    retryDelay[index]   = RETRY_MIN;
-    retryPending[index] = false;
+    const path = STREAMS[index]?.path;
+    if (path) {
+      retryDelay[path]   = RETRY_MIN;
+      retryPending[path] = false;
+    }
   }
 
   // ═══════════════════════════════════════════════════════
@@ -855,12 +871,16 @@
       streamPCs[path] = pc;
       activePCs.push(pc);
 
-      let trackReceived  = false;
+      let trackReceived   = false;
       let disconnectTimer = null;
       let stallTimer      = null;
       let lastFrameCount  = -1;
+      let noTrackTimer    = null;
+      let retried         = false;  // guard — only retry once per PC lifecycle
 
       function doRetry(reason) {
+        if (retried) return;  // prevent double-retry from multiple triggers
+        retried = true;
         clearTimeout(noTrackTimer);
         clearTimeout(disconnectTimer);
         clearInterval(stallTimer);
@@ -872,7 +892,7 @@
       }
 
       // Fallback: if no track arrives within 20s, retry
-      const noTrackTimer = setTimeout(() => {
+      noTrackTimer = setTimeout(() => {
         if (!trackReceived) doRetry('no track received within 20s');
       }, 20000);
 
@@ -899,11 +919,13 @@
           // Detect paused-but-should-be-playing — happens when camera restarts
           // and MediaMTX sends a new stream interrupting the play() promise
           if (video.paused && video.readyState >= 2) {
-            // Try to resume first
             video.play().catch(() => {});
-            // Give it 2s — if still paused, reconnect
             setTimeout(() => {
-              if (video.paused) doRetry('video paused unexpectedly — camera may have restarted');
+              // Re-check video still exists and is still this stream
+              const v = document.getElementById(`v${index}`);
+              if (v && v.paused && streamPCs[path] === pc) {
+                doRetry('video paused unexpectedly — camera may have restarted');
+              }
             }, 2000);
             return;
           }
@@ -969,8 +991,9 @@
       console.log(`[Connection] ${path} WHEP established`);
 
     } catch(e) {
-      console.error(`Stream ${index}:`, e);
+      console.error(`[Connection] ${path} error:`, e);
       if (streamPCs[path] === pc) streamPCs[path] = null;
+      if (pc) { try { pc.close(); } catch(_) {} }
       setError();
       scheduleRetry(index);
     }
