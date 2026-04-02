@@ -90,6 +90,18 @@
   let cycleIndex    = 0;      // current position in cycle
 
   async function loadViews() {
+    // Check localStorage first (user-edited views take precedence)
+    try {
+      const saved = localStorage.getItem('viewsConfig');
+      if (saved) {
+        const data = JSON.parse(saved);
+        VIEWS         = data.views   || [];
+        VIEWS_DEFAULT = data.default || (VIEWS[0]?.name ?? null);
+        VIEWS_CYCLE   = data.cycle   || false;
+        return;
+      }
+    } catch(e) {}
+
     try {
       const res = await fetch('/views.json');
       if (!res.ok || res.status === 404) return; // views.json is optional
@@ -1180,28 +1192,50 @@
   }
 
   function openViewsModal() {
-    const tbody = document.getElementById('views-tbody');
-    const cycleEl = document.getElementById('cycle-status');
-    cycleEl.textContent = VIEWS_CYCLE ? 'on' : 'off';
+    // Toolbar state
+    const cycleChk = document.getElementById('views-cycle-chk');
+    if (cycleChk) cycleChk.checked = VIEWS_CYCLE;
 
-    tbody.innerHTML = VIEWS.map(v => {
+    const defaultSel = document.getElementById('views-default-sel');
+    if (defaultSel) {
+      defaultSel.innerHTML = VIEWS.map(v =>
+        `<option value="${v.name}"${v.name === VIEWS_DEFAULT ? ' selected' : ''}>${v.label || v.name}</option>`
+      ).join('');
+    }
+
+    const resetBtn = document.getElementById('views-reset-btn');
+    if (resetBtn) resetBtn.style.display = localStorage.getItem('viewsConfig') ? '' : 'none';
+
+    const cycleEl = document.getElementById('cycle-status');
+    if (cycleEl) cycleEl.textContent = VIEWS_CYCLE ? 'on' : 'off';
+
+    // Show table, hide edit panel
+    document.getElementById('views-table-wrap').style.display = '';
+    document.getElementById('view-edit-panel').style.display = 'none';
+
+    const tbody = document.getElementById('views-tbody');
+    tbody.innerHTML = VIEWS.map((v, idx) => {
       const isActive = v.name === activeView;
       const duration = v.duration < 0 ? 'forever' : v.duration ? `${v.duration}s` : '—';
       const layoutSvg = layoutSvgWithNumbers(v.layout, v.streams);
-      return `<tr class="${isActive ? 'active-view' : ''}"
-                  style="cursor:pointer"
-                  title="Click to activate view: ${v.label || v.name}"
-                  onclick="closeAllModals(); activateView('${v.name}')">
+      return `<tr class="${isActive ? 'active-view' : ''}">
+        <td class="view-drag-handle">≡</td>
         <td>${isActive ? '▶' : ''}</td>
         <td title="${v.name}">${v.name}</td>
         <td title="${v.label || ''}">${v.label || '—'}</td>
         <td title="${v.layout || '—'}" style="padding:6px 16px">${layoutSvg}</td>
         <td title="${(v.streams || []).map((s,i) => i+':'+s).join(', ')}">${(v.streams || []).map((s,i) => `<span style="color:rgba(255,255,255,0.4)">${i}</span>:${s}`).join('  ')}</td>
         <td>${duration}</td>
+        <td style="white-space:nowrap;padding:4px 8px">
+          <button class="sp-btn" title="Activate" onclick="closeAllModals();activateView('${v.name}')">▶</button>
+          <button class="sp-btn" title="Edit" onclick="openViewEditor('${v.name}')">✎</button>
+          <button class="sp-btn" title="Delete" style="color:rgba(248,113,113,0.9)" onclick="deleteView('${v.name}')">✕</button>
+        </td>
       </tr>`;
-    }).join('') || '<tr><td colspan="6" style="opacity:0.4;padding:16px">No views configured</td></tr>';
+    }).join('') || '<tr><td colspan="8" style="opacity:0.4;padding:16px">No views configured — click + Add View</td></tr>';
 
     document.getElementById('views-modal').classList.add('open');
+    _initViewDrag();
   }
 
   function openStreamsModal() {
@@ -1245,6 +1279,317 @@ Retry delay: ${retryDelay[i] || 0}ms`;
       </tr>`;
     }).join('');
     document.getElementById('streams-modal').classList.add('open');
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // VIEWS CRUD — edit, add, delete, reorder via UI
+  // Changes are persisted in localStorage under 'viewsConfig'.
+  // Use "Reset to file" to discard and reload from views.json.
+  // Use "Export JSON" to copy the config for saving to data/views.json.
+  // ═══════════════════════════════════════════════════════
+
+  function _persistViews() {
+    try {
+      localStorage.setItem('viewsConfig', JSON.stringify({
+        default: VIEWS_DEFAULT,
+        cycle:   VIEWS_CYCLE,
+        views:   VIEWS,
+      }));
+    } catch(e) {}
+  }
+
+  function onViewsCycleToggle() {
+    VIEWS_CYCLE = document.getElementById('views-cycle-chk').checked;
+    _persistViews();
+    const cycleEl = document.getElementById('cycle-status');
+    if (cycleEl) cycleEl.textContent = VIEWS_CYCLE ? 'on' : 'off';
+    document.getElementById('views-reset-btn').style.display = '';
+  }
+
+  function onViewsDefaultChange() {
+    VIEWS_DEFAULT = document.getElementById('views-default-sel').value;
+    _persistViews();
+    document.getElementById('views-reset-btn').style.display = '';
+  }
+
+  async function resetViewsConfig() {
+    localStorage.removeItem('viewsConfig');
+    await loadViews();
+    openViewsModal();
+  }
+
+  function exportViewsJson() {
+    const json = JSON.stringify({ default: VIEWS_DEFAULT, cycle: VIEWS_CYCLE, views: VIEWS }, null, 2);
+    const btn = event?.target;
+    try {
+      navigator.clipboard.writeText(json).then(() => {
+        if (btn) { const orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = orig; }, 1500); }
+      });
+    } catch(e) {
+      // Fallback: select-all in a temporary textarea
+      const ta = document.createElement('textarea');
+      ta.value = json;
+      ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (btn) { const orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = orig; }, 1500); }
+    }
+  }
+
+  function moveView(name, dir) {
+    const idx = VIEWS.findIndex(v => v.name === name);
+    if (idx < 0) return;
+    const next = idx + dir;
+    if (next < 0 || next >= VIEWS.length) return;
+    [VIEWS[idx], VIEWS[next]] = [VIEWS[next], VIEWS[idx]];
+    _persistViews();
+    openViewsModal();
+  }
+
+  function deleteView(name) {
+    const idx = VIEWS.findIndex(v => v.name === name);
+    if (idx < 0) return;
+    VIEWS.splice(idx, 1);
+    if (VIEWS_DEFAULT === name) VIEWS_DEFAULT = VIEWS[0]?.name ?? null;
+    _persistViews();
+    openViewsModal();
+  }
+
+  // ── Drag-to-reorder ───────────────────────────────────────
+
+  let _drag = null;
+
+  function _initViewDrag() {
+    document.querySelectorAll('.view-drag-handle').forEach(handle => {
+      handle.addEventListener('pointerdown', _onDragHandleDown, { passive: false });
+    });
+  }
+
+  function _onDragHandleDown(e) {
+    e.preventDefault();
+    const handle = e.currentTarget;
+    const row    = handle.closest('tr');
+    const tbody  = row.closest('tbody');
+    const rows   = [...tbody.querySelectorAll('tr')];
+    const idx    = rows.indexOf(row);
+    if (idx < 0) return;
+
+    const rect = row.getBoundingClientRect();
+
+    const ghost = document.createElement('div');
+    ghost.id = 'view-drag-ghost';
+    ghost.style.left   = rect.left + 'px';
+    ghost.style.top    = rect.top  + 'px';
+    ghost.style.width  = rect.width  + 'px';
+    ghost.style.height = rect.height + 'px';
+    ghost.textContent  = VIEWS[idx]?.label || VIEWS[idx]?.name || '';
+    document.body.appendChild(ghost);
+
+    row.classList.add('view-row-dragging');
+    handle.setPointerCapture(e.pointerId);
+
+    _drag = { idx, dropIdx: idx, ghost, tbody, rows, offsetY: e.clientY - rect.top };
+
+    handle.addEventListener('pointermove',   _onDragMove);
+    handle.addEventListener('pointerup',     _onDragEnd);
+    handle.addEventListener('pointercancel', _onDragEnd);
+  }
+
+  function _onDragMove(e) {
+    if (!_drag) return;
+    const { ghost, rows, offsetY } = _drag;
+
+    ghost.style.top = (e.clientY - offsetY) + 'px';
+
+    let dropIdx = rows.length;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i].getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) { dropIdx = i; break; }
+    }
+    _drag.dropIdx = dropIdx;
+
+    rows.forEach(r => r.classList.remove('view-drop-before', 'view-drop-after'));
+    if (dropIdx < rows.length) {
+      rows[dropIdx].classList.add('view-drop-before');
+    } else {
+      rows[rows.length - 1].classList.add('view-drop-after');
+    }
+  }
+
+  function _onDragEnd(e) {
+    if (!_drag) return;
+    const { idx, dropIdx, ghost, rows } = _drag;
+    const handle = e.currentTarget;
+
+    handle.removeEventListener('pointermove',   _onDragMove);
+    handle.removeEventListener('pointerup',     _onDragEnd);
+    handle.removeEventListener('pointercancel', _onDragEnd);
+
+    ghost.remove();
+    rows.forEach(r => r.classList.remove('view-row-dragging', 'view-drop-before', 'view-drop-after'));
+    _drag = null;
+
+    const newIdx = dropIdx <= idx ? dropIdx : dropIdx - 1;
+    if (newIdx === idx) return;
+
+    const [moved] = VIEWS.splice(idx, 1);
+    VIEWS.splice(newIdx, 0, moved);
+    _persistViews();
+    openViewsModal();
+  }
+
+  // ── View edit form ────────────────────────────────────
+
+  let _editingViewName = null; // null = new view
+  let _editLayoutSel   = null;
+  let _editStreams      = [];
+
+  function openNewViewEditor() {
+    _editingViewName = null;
+    _editLayoutSel   = Object.keys(LAYOUTS)[0];
+    _editStreams      = [];
+    _showViewForm({ name: '', label: '', duration: 20, preloadLeadTime: 5 });
+  }
+
+  function openViewEditor(name) {
+    const view = getView(name);
+    if (!view) return;
+    _editingViewName = name;
+    _editLayoutSel   = view.layout;
+    _editStreams      = [...(view.streams || [])];
+    _showViewForm(view);
+  }
+
+  function _showViewForm(view) {
+    document.getElementById('views-table-wrap').style.display = 'none';
+    document.getElementById('view-edit-panel').style.display  = '';
+    document.getElementById('view-edit-title').textContent = _editingViewName ? `Edit: ${_editingViewName}` : 'New View';
+
+    const nameEl = document.getElementById('ve-name');
+    nameEl.value    = view.name || '';
+    nameEl.disabled = !!_editingViewName;
+    nameEl.style.opacity = _editingViewName ? '0.45' : '';
+
+    document.getElementById('ve-label').value    = view.label  ?? '';
+    document.getElementById('ve-duration').value = view.duration    !== undefined ? view.duration    : 20;
+    document.getElementById('ve-leadtime').value = view.preloadLeadTime !== undefined ? view.preloadLeadTime : 5;
+
+    _renderVeLayoutGrid();
+    _renderVeStreamPicker();
+  }
+
+  function _renderVeLayoutGrid() {
+    document.getElementById('ve-layout-grid').innerHTML = Object.keys(LAYOUTS).map(k => {
+      const sel = k === _editLayoutSel ? ' selected' : '';
+      const svg = layoutSvgWithNumbers(k, _editStreams);
+      return `<button class="ve-layout-btn${sel}" onclick="_veSelectLayout('${k}')">${svg}<span>${k}</span></button>`;
+    }).join('');
+  }
+
+  function _veSelectLayout(key) {
+    _editLayoutSel = key;
+    _renderVeLayoutGrid();
+  }
+
+  function _renderVeStreamPicker() {
+    const available = STREAMS.map(s => s.path).filter(p => !_editStreams.includes(p));
+    let html = '<div class="sp-list">';
+
+    if (_editStreams.length > 0) {
+      html += '<div class="sp-section-label">In view (ordered)</div>';
+      _editStreams.forEach((path, i) => {
+        const s = STREAMS.find(s => s.path === path);
+        html += `<div class="sp-item sp-selected">
+          <span class="sp-num">${i}</span>
+          <span class="sp-label">${s?.label || path}</span>
+          <span class="sp-path">${path}</span>
+          <button class="sp-btn" onclick="_veStreamUp(${i})"${i === 0 ? ' disabled' : ''}>↑</button>
+          <button class="sp-btn" onclick="_veStreamDown(${i})"${i === _editStreams.length - 1 ? ' disabled' : ''}>↓</button>
+          <button class="sp-btn" style="color:rgba(248,113,113,0.6)" onclick="_veStreamRemove(${i})">✕</button>
+        </div>`;
+      });
+    }
+
+    if (available.length > 0) {
+      html += '<div class="sp-section-label">Available</div>';
+      available.forEach(path => {
+        const s = STREAMS.find(s => s.path === path);
+        html += `<div class="sp-item">
+          <span class="sp-label">${s?.label || path}</span>
+          <span class="sp-path">${path}</span>
+          <button class="sp-btn" onclick="_veStreamAdd('${path}')">+</button>
+        </div>`;
+      });
+    }
+
+    html += '</div>';
+    document.getElementById('ve-stream-picker').innerHTML = html;
+  }
+
+  function _veStreamAdd(path) {
+    _editStreams.push(path);
+    _renderVeStreamPicker();
+    _renderVeLayoutGrid();
+  }
+
+  function _veStreamRemove(idx) {
+    _editStreams.splice(idx, 1);
+    _renderVeStreamPicker();
+    _renderVeLayoutGrid();
+  }
+
+  function _veStreamUp(idx) {
+    if (idx === 0) return;
+    [_editStreams[idx - 1], _editStreams[idx]] = [_editStreams[idx], _editStreams[idx - 1]];
+    _renderVeStreamPicker();
+    _renderVeLayoutGrid();
+  }
+
+  function _veStreamDown(idx) {
+    if (idx >= _editStreams.length - 1) return;
+    [_editStreams[idx], _editStreams[idx + 1]] = [_editStreams[idx + 1], _editStreams[idx]];
+    _renderVeStreamPicker();
+    _renderVeLayoutGrid();
+  }
+
+  function cancelViewEdit() {
+    _editingViewName = null;
+    _editStreams      = [];
+    openViewsModal();
+  }
+
+  function saveViewForm() {
+    const name  = _editingViewName || document.getElementById('ve-name').value.trim();
+    const label = document.getElementById('ve-label').value.trim();
+    const dur   = parseInt(document.getElementById('ve-duration').value, 10);
+    const lead  = parseInt(document.getElementById('ve-leadtime').value, 10);
+
+    if (!name)           { alert('View name is required'); return; }
+    if (!_editLayoutSel) { alert('Select a layout'); return; }
+    if (_editStreams.length === 0) { alert('Add at least one stream'); return; }
+
+    const view = {
+      name,
+      label:           label || name,
+      layout:          _editLayoutSel,
+      streams:         [..._editStreams],
+      duration:        isNaN(dur) ? 20 : dur,
+      preloadLeadTime: isNaN(lead) ? 5  : lead,
+    };
+
+    if (_editingViewName) {
+      const idx = VIEWS.findIndex(v => v.name === _editingViewName);
+      if (idx >= 0) VIEWS[idx] = view;
+    } else {
+      if (VIEWS.find(v => v.name === name)) { alert(`View "${name}" already exists`); return; }
+      VIEWS.push(view);
+      if (!VIEWS_DEFAULT) VIEWS_DEFAULT = name;
+    }
+
+    _persistViews();
+    cancelViewEdit();
   }
 
   document.addEventListener('keydown', e => {

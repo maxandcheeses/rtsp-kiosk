@@ -19,8 +19,8 @@
       "label": "All Cameras",
       "layout": "primary-left",
       "streams": [
-        "cam3",
         "cam2",
+        "cam3",
         "cam1"
       ],
       "duration": 20,
