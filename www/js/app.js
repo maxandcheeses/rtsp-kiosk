@@ -1502,12 +1502,11 @@ Retry delay: ${retryDelay[i] || 0}ms`;
       _editStreams.forEach((path, i) => {
         const s = STREAMS.find(s => s.path === path);
         html += `<div class="sp-item sp-selected">
+          <span class="sp-drag-handle">≡</span>
           <span class="sp-num">${i}</span>
           <span class="sp-label">${s?.label || path}</span>
           <span class="sp-path">${path}</span>
-          <button class="sp-btn" onclick="_veStreamUp(${i})"${i === 0 ? ' disabled' : ''}>↑</button>
-          <button class="sp-btn" onclick="_veStreamDown(${i})"${i === _editStreams.length - 1 ? ' disabled' : ''}>↓</button>
-          <button class="sp-btn" style="color:rgba(248,113,113,0.6)" onclick="_veStreamRemove(${i})">✕</button>
+          <button class="sp-btn" style="color:rgba(248,113,113,0.9)" onclick="_veStreamRemove(${i})">✕</button>
         </div>`;
       });
     }
@@ -1526,6 +1525,7 @@ Retry delay: ${retryDelay[i] || 0}ms`;
 
     html += '</div>';
     document.getElementById('ve-stream-picker').innerHTML = html;
+    _initStreamDrag();
   }
 
   function _veStreamAdd(path) {
@@ -1540,16 +1540,85 @@ Retry delay: ${retryDelay[i] || 0}ms`;
     _renderVeLayoutGrid();
   }
 
-  function _veStreamUp(idx) {
-    if (idx === 0) return;
-    [_editStreams[idx - 1], _editStreams[idx]] = [_editStreams[idx], _editStreams[idx - 1]];
-    _renderVeStreamPicker();
-    _renderVeLayoutGrid();
+  // ── Stream picker drag-to-reorder ────────────────────────
+
+  let _streamDrag = null;
+
+  function _initStreamDrag() {
+    document.querySelectorAll('#ve-stream-picker .sp-drag-handle').forEach(handle => {
+      handle.addEventListener('pointerdown', _onStreamDragDown, { passive: false });
+    });
   }
 
-  function _veStreamDown(idx) {
-    if (idx >= _editStreams.length - 1) return;
-    [_editStreams[idx], _editStreams[idx + 1]] = [_editStreams[idx + 1], _editStreams[idx]];
+  function _onStreamDragDown(e) {
+    e.preventDefault();
+    const handle = e.currentTarget;
+    const item   = handle.closest('.sp-item');
+    const items  = [...document.querySelectorAll('#ve-stream-picker .sp-item.sp-selected')];
+    const idx    = items.indexOf(item);
+    if (idx < 0) return;
+
+    const rect = item.getBoundingClientRect();
+
+    const ghost = document.createElement('div');
+    ghost.id = 'sp-drag-ghost';
+    ghost.style.left   = rect.left   + 'px';
+    ghost.style.top    = rect.top    + 'px';
+    ghost.style.width  = rect.width  + 'px';
+    ghost.style.height = rect.height + 'px';
+    const s = STREAMS.find(s => s.path === _editStreams[idx]);
+    ghost.textContent = s?.label || _editStreams[idx] || '';
+    document.body.appendChild(ghost);
+
+    item.classList.add('sp-item-dragging');
+    handle.setPointerCapture(e.pointerId);
+
+    _streamDrag = { idx, dropIdx: idx, ghost, items, offsetY: e.clientY - rect.top };
+
+    handle.addEventListener('pointermove',   _onStreamDragMove);
+    handle.addEventListener('pointerup',     _onStreamDragEnd);
+    handle.addEventListener('pointercancel', _onStreamDragEnd);
+  }
+
+  function _onStreamDragMove(e) {
+    if (!_streamDrag) return;
+    const { ghost, items, offsetY } = _streamDrag;
+
+    ghost.style.top = (e.clientY - offsetY) + 'px';
+
+    let dropIdx = items.length;
+    for (let i = 0; i < items.length; i++) {
+      const r = items[i].getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) { dropIdx = i; break; }
+    }
+    _streamDrag.dropIdx = dropIdx;
+
+    items.forEach(el => el.classList.remove('sp-drop-before', 'sp-drop-after'));
+    if (dropIdx < items.length) {
+      items[dropIdx].classList.add('sp-drop-before');
+    } else if (items.length > 0) {
+      items[items.length - 1].classList.add('sp-drop-after');
+    }
+  }
+
+  function _onStreamDragEnd(e) {
+    if (!_streamDrag) return;
+    const { idx, dropIdx, ghost, items } = _streamDrag;
+    const handle = e.currentTarget;
+
+    handle.removeEventListener('pointermove',   _onStreamDragMove);
+    handle.removeEventListener('pointerup',     _onStreamDragEnd);
+    handle.removeEventListener('pointercancel', _onStreamDragEnd);
+
+    ghost.remove();
+    items.forEach(el => el.classList.remove('sp-item-dragging', 'sp-drop-before', 'sp-drop-after'));
+    _streamDrag = null;
+
+    const newIdx = dropIdx <= idx ? dropIdx : dropIdx - 1;
+    if (newIdx === idx) return;
+
+    const [moved] = _editStreams.splice(idx, 1);
+    _editStreams.splice(newIdx, 0, moved);
     _renderVeStreamPicker();
     _renderVeLayoutGrid();
   }
