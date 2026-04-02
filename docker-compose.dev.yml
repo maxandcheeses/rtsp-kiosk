@@ -1,0 +1,15 @@
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    ports:
+      - "8080:80"
+    # Skip envsubst — source files are bind-mounted directly.
+    # The JS handles unsubstituted $VAR literals gracefully in dev.
+    entrypoint: ["nginx", "-g", "daemon off;"]
+    volumes:
+      - ./www/index.html:/usr/share/nginx/html/index.html:ro
+      - ./www/js/app.js:/usr/share/nginx/html/js/app.js:ro
+      - ./data/streams-public.json:/usr/share/nginx/html/streams.json:ro
+      - ./data/views-public.json:/usr/share/nginx/html/views.json:ro
