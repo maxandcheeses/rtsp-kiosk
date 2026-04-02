@@ -985,7 +985,7 @@
         </label>
       </div>
       <div class="views-toolbar-group">
-        <span>Default</span>
+        <label for="views-default-sel">Default</label>
         <select id="views-default-sel" onchange="onViewsDefaultChange()"></select>
       </div>
       <div style="margin-left:auto;display:flex;gap:8px;">
@@ -1017,20 +1017,20 @@
     <div id="view-edit-title" style="margin-bottom:16px;font-size:13px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.7)">Edit View</div>
     <div class="views-form-grid">
       <div class="views-form-row">
-        <label>Name</label>
+        <label for="ve-name">Name</label>
         <input type="text" class="views-input" id="ve-name" placeholder="my-view" autocomplete="off" />
       </div>
       <div class="views-form-row">
-        <label>Label</label>
+        <label for="ve-label">Label</label>
         <input type="text" class="views-input" id="ve-label" placeholder="Display name" autocomplete="off" />
       </div>
       <div class="views-form-row">
-        <label>Duration (s)</label>
+        <label for="ve-duration">Duration (s)</label>
         <input type="number" class="perf-input" id="ve-duration" min="-1" placeholder="20" />
         <span style="font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:0.1em">−1 = stay forever</span>
       </div>
       <div class="views-form-row" id="ve-preload-row">
-        <label>Preload lead (s)</label>
+        <label for="ve-preload-enabled">Preload lead (s)</label>
         <label class="toggle" style="flex:0 0 36px;margin-right:10px">
           <input type="checkbox" id="ve-preload-enabled" onchange="toggleVePreload()">
           <span class="toggle-track"></span>
