@@ -1510,11 +1510,14 @@ Retry delay: ${retryDelay[i] || 0}ms`;
 
     document.getElementById('ve-label').value    = view.label ?? '';
     document.getElementById('ve-duration').value = view.duration !== undefined ? view.duration : 20;
-    const hasPreload = view.preloadLeadTime !== undefined && view.preloadLeadTime !== null;
-    document.getElementById('ve-preload-enabled').checked    = hasPreload;
-    document.getElementById('ve-leadtime').value             = hasPreload ? view.preloadLeadTime : 5;
-    document.getElementById('ve-leadtime').style.display     = hasPreload ? '' : 'none';
-    document.getElementById('ve-preload-hint').style.display = hasPreload ? 'none' : '';
+    document.getElementById('ve-preload-row').style.display = ENABLE_PRELOAD ? '' : 'none';
+    if (ENABLE_PRELOAD) {
+      const hasPreload = view.preloadLeadTime !== undefined && view.preloadLeadTime !== null;
+      document.getElementById('ve-preload-enabled').checked    = hasPreload;
+      document.getElementById('ve-leadtime').value             = hasPreload ? view.preloadLeadTime : 5;
+      document.getElementById('ve-leadtime').style.display     = hasPreload ? '' : 'none';
+      document.getElementById('ve-preload-hint').style.display = hasPreload ? 'none' : '';
+    }
 
     _renderVeLayoutGrid();
     _renderVeStreamPicker();

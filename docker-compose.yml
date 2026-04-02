@@ -79,8 +79,11 @@ services:
       # Enable L (layout picker) and D (streams info) keyboard shortcuts.
       # Set to false to restrict modal access on kiosk displays.
       ENABLE_MODALS: "true"
+      # Enable per-view preload lead time setting in the views editor.
+      # Set to 1, on, or true to expose the option.
+      ENABLE_PRELOAD: ""
     entrypoint: >
-      /bin/sh -c "envsubst '$$FORCE_LAYOUT $$FULLSCREEN_TIMEOUT $$STREAM_REFRESH $$ENABLE_MODALS' < /usr/share/nginx/html/index.html > /tmp/index.html
+      /bin/sh -c "envsubst '$$FORCE_LAYOUT $$FULLSCREEN_TIMEOUT $$STREAM_REFRESH $$ENABLE_MODALS $$ENABLE_PRELOAD' < /usr/share/nginx/html/index.html > /tmp/index.html
       && mv /tmp/index.html /usr/share/nginx/html/index.html
       && nginx -g 'daemon off;'"
     volumes:

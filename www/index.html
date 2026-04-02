@@ -1029,9 +1029,9 @@
         <input type="number" class="perf-input" id="ve-duration" min="-1" placeholder="20" />
         <span style="font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:0.1em">−1 = stay forever</span>
       </div>
-      <div class="views-form-row">
-        <label>Preload</label>
-        <label class="toggle" style="margin-right:10px">
+      <div class="views-form-row" id="ve-preload-row">
+        <label>Preload lead (s)</label>
+        <label class="toggle" style="flex:0 0 36px;margin-right:10px">
           <input type="checkbox" id="ve-preload-enabled" onchange="toggleVePreload()">
           <span class="toggle-track"></span>
         </label>
@@ -1090,6 +1090,8 @@
     : Number('$STREAM_REFRESH');
   // ENABLE_MODALS — set to false to disable L/D shortcuts and modal access
   const ENABLE_MODALS         = '$ENABLE_MODALS' !== 'false';
+  // ENABLE_PRELOAD — set to 1/on/true to show per-view preload lead time in the views editor
+  const ENABLE_PRELOAD        = ['1','on','true'].includes('$ENABLE_PRELOAD'.toLowerCase());
 </script>
 <script src="/js/app.js?v=2"></script></body>
 </html>
