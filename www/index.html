@@ -616,7 +616,16 @@
     }
     .view-drag-handle:active { cursor: grabbing; color: rgba(255,255,255,0.9); }
 
-    /* ── Views modal — touch-friendly sizing ── */
+    /* ── Views modal — touch-friendly sizing + legibility ── */
+    #views-modal .streams-table { font-size: 13px; }
+    #views-modal .streams-table th { font-size: 11px; }
+    #views-modal .views-toolbar { font-size: 13px; font-weight: 500; }
+    #views-modal .views-form-row { font-size: 13px; }
+    #views-modal .views-form-row label { font-size: 12px; font-weight: 500; }
+    #views-modal .sp-section-label { font-size: 11px; }
+    #views-modal .sp-item { font-size: 12px; }
+    #views-modal .sp-path { font-size: 11px; }
+    #views-modal .modal-hint { font-size: 11px; }
     #views-modal .sp-btn {
       width: 40px; height: 40px;
       font-size: 16px;
@@ -638,6 +647,11 @@
       color: #fff;
       border-color: rgba(255,255,255,0.65);
     }
+    .view-delete-confirm {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: rgba(255,255,255,0.7);
+    }
+    tr.view-row-confirm td { background: rgba(248,113,113,0.06); }
     .view-row-dragging td { opacity: 0.25; }
     tr.view-drop-before > td { box-shadow: inset 0 2px 0 rgba(74,222,128,0.8); }
     tr.view-drop-after  > td { box-shadow: inset 0 -2px 0 rgba(74,222,128,0.8); }
@@ -1000,7 +1014,7 @@
 
   <!-- Edit / add form (shown instead of table) -->
   <div id="view-edit-panel" style="display:none;width:100%;max-width:640px;">
-    <div class="perf-section-title" id="view-edit-title" style="margin-bottom:16px">Edit View</div>
+    <div id="view-edit-title" style="margin-bottom:16px;font-size:13px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.7)">Edit View</div>
     <div class="views-form-grid">
       <div class="views-form-row">
         <label>Name</label>
@@ -1016,13 +1030,18 @@
         <span style="font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:0.1em">−1 = stay forever</span>
       </div>
       <div class="views-form-row">
-        <label>Preload lead (s)</label>
-        <input type="number" class="perf-input" id="ve-leadtime" min="0" placeholder="5" />
+        <label>Preload</label>
+        <label class="toggle" style="margin-right:10px">
+          <input type="checkbox" id="ve-preload-enabled" onchange="toggleVePreload()">
+          <span class="toggle-track"></span>
+        </label>
+        <input type="number" class="perf-input" id="ve-leadtime" min="0" placeholder="5" style="display:none" />
+        <span id="ve-preload-hint" style="font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:0.05em">off</span>
       </div>
     </div>
-    <div style="font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.35);text-transform:uppercase;margin:0 0 8px">Layout</div>
+    <div style="font-size:11px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);text-transform:uppercase;margin:0 0 8px;font-weight:500">Layout</div>
     <div id="ve-layout-grid" class="ve-layout-grid"></div>
-    <div style="font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.35);text-transform:uppercase;margin:16px 0 8px">Streams</div>
+    <div style="font-size:11px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);text-transform:uppercase;margin:16px 0 8px;font-weight:500">Streams</div>
     <div id="ve-stream-picker"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
       <button class="perf-reset" onclick="cancelViewEdit()">Cancel</button>
