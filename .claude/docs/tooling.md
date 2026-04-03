@@ -89,6 +89,74 @@ Add entries to `data/streams.json` pointing to host port 8555:
 
 ---
 
+## `.claude/hooks/` — Claude Code lifecycle hooks
+
+All hook scripts are Python `uv` inline scripts with `# /// script` headers. They require `uv` on the host. All are registered in `.claude/settings.json` and run automatically by Claude Code.
+
+| Script | Event | What it does |
+|--------|-------|--------------|
+| `pre_tool_use.py` | `PreToolUse` | Blocks dangerous bash commands; logs all events to `.claude/logs/pre_tool_use.json` |
+| `post_tool_use.py` | `PostToolUse` | Logs tool use events to `.claude/logs/post_tool_use.json` |
+| `user_prompt_submit.py` | `UserPromptSubmit` | Logs prompts to `.claude/logs/prompts.json`; writes `.claude/data/last_prompt.txt` |
+| `notification.py` | `Notification` | Logs Claude Code notifications to `.claude/logs/notifications.json` |
+| `subagent_stop.py` | `SubagentStop` | Shows macOS notification on subagent completion |
+| `session_start.py` | `SessionStart` | Creates `.claude/data/sessions/{session_id}.json` |
+| `session_end.py` | `SessionEnd` | Adds `ended_at` timestamp to the session file |
+| `notify-complete.sh` | `Stop` | Reads transcript, shows macOS notification, speaks summary aloud (pre-existing) |
+
+**Blocked commands (PreToolUse):**
+- `rm -rf /` and `rm -rf ~`
+- `git push --force` to `main` or `master`
+- `DROP TABLE`
+- `chmod -R 777 /`
+
+**Exit codes:** `pre_tool_use.py` exits 2 on block; all other hooks exit 0.
+
+**Log files written:**
+
+| File | Written by |
+|------|-----------|
+| `.claude/logs/pre_tool_use.json` | `pre_tool_use.py` |
+| `.claude/logs/post_tool_use.json` | `post_tool_use.py` |
+| `.claude/logs/prompts.json` | `user_prompt_submit.py` |
+| `.claude/logs/notifications.json` | `notification.py` |
+| `.claude/logs/status_line.json` | `status_line.py` |
+| `.claude/data/last_prompt.txt` | `user_prompt_submit.py` |
+| `.claude/data/sessions/{id}.json` | `session_start.py`, `session_end.py` |
+
+**Dependency:** `uv` must be installed on the host (`brew install uv` or `pip install uv`).
+
+---
+
+## `.claude/status_lines/status_line.py` — Status line
+
+A `uv` inline Python script that outputs a single ANSI-coloured line for Claude Code's status bar:
+
+```
+[branch-name] | last-prompt-preview
+```
+
+Branch is shown in cyan; prompt preview (truncated to 60 chars) is shown in dim white. Writes a log entry to `.claude/logs/status_line.json`.
+
+**Invoke:** `uv run .claude/status_lines/status_line.py`
+
+---
+
+## `.claude/commands/` — Slash commands
+
+Custom slash commands available in Claude Code sessions (`/command-name`):
+
+| Command | File | What it does |
+|---------|------|--------------|
+| `/prime` | `prime.md` | Bootstraps session context: lists tracked files, reads README and CLAUDE.md, summarises structure |
+| `/git_status` | `git_status.md` | Reports current branch, uncommitted changes, and last 10 commits |
+| `/question` | `question.md` | Answers a codebase question without modifying files; usage: `/question <your question>` |
+| `/plan` | `plan.md` | Creates a spec file in `specs/` for a task; usage: `/plan <task description>` |
+
+Spec files created by `/plan` are written to `specs/<kebab-case-name>.md` with sections: Task Description, Objective, Problem Statement, Solution Approach, Relevant Files, Step by Step Tasks, Acceptance Criteria.
+
+---
+
 ## Planned / future scripts
 
 The following tooling is defined in the subagent spec and may be added:
