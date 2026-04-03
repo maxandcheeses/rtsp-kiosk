@@ -1,7 +1,7 @@
 ---
 name: docker-ops
 description: Handles Docker Compose operations for the rtsp-kiosk project: building, starting, stopping, restarting services, and tailing logs. Use this agent when the user wants to rebuild the stack, restart a service, check container logs, or verify that services are running. Triggers: "rebuild", "restart", "docker logs", "bring up the stack", "stop containers", "check if mediamtx is running". IMPORTANT: this agent has no conversation history — the primary agent must specify which service(s) and what operation is needed.
-model: claude-sonnet-4-6
+model: claude-haiku-4-5-20251001
 color: blue
 tools: Bash
 ---

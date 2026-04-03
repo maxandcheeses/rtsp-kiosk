@@ -1,7 +1,7 @@
 ---
 name: meta-agent
 description: Builds new Claude Code sub agents for this project. Use this agent when the user asks to create a new agent, sub agent, or specialized assistant. Triggers: "build an agent", "create a sub agent", "make an agent that...", "new agent for..."
-model: claude-opus-4-6
+model: claude-sonnet-4-6
 color: orange
 ---
 
