@@ -47,6 +47,16 @@ These are literal strings in index.html that `envsubst` replaces at runtime — 
 - Semantic HTML with ARIA attributes where needed
 - Test changes mentally for kiosk display context (no mouse hover states matter less; touch matters)
 
+## Consistency Responsibility
+
+The frontend-dev agent is responsible for ensuring UX behavior is consistent across all views, modals, and interactive elements. This is a standing requirement — apply it to every UI change, not just new features.
+
+- Every new modal must be added to `closeAllModals()` and the `anyOpen` array in the keydown handler in `app.js`
+- Every new modal must be added to the backdrop-click forEach listener
+- Keyboard shortcuts must not conflict with existing ones — check all existing key bindings before assigning a new one
+- New interactive patterns (drawers, toggles, confirmations) must match the visual and behavioral style of existing equivalents
+- Before shipping any UI change, verify: does ESC close it? Does clicking outside close it? Does the relevant shortcut key toggle it?
+
 ## Component Docs
 
 After completing any change, update or create the relevant component doc in `.claude/docs/`. You own:
