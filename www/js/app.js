@@ -1203,9 +1203,6 @@
       ).join('');
     }
 
-    const resetBtn = document.getElementById('views-reset-btn');
-    if (resetBtn) resetBtn.style.display = localStorage.getItem('viewsConfig') ? '' : 'none';
-
     const cycleEl = document.getElementById('cycle-status');
     if (cycleEl) cycleEl.textContent = VIEWS_CYCLE ? 'on' : 'off';
 
@@ -1295,8 +1292,6 @@ Retry delay: ${retryDelay[i] || 0}ms`;
   // ═══════════════════════════════════════════════════════
   // VIEWS CRUD — edit, add, delete, reorder via UI
   // Changes are persisted in localStorage under 'viewsConfig'.
-  // Use "Reset to file" to discard and reload from views.json.
-  // Use "Export JSON" to copy the config for saving to data/views.json.
   // ═══════════════════════════════════════════════════════
 
   function _persistViews() {
@@ -1314,39 +1309,11 @@ Retry delay: ${retryDelay[i] || 0}ms`;
     _persistViews();
     const cycleEl = document.getElementById('cycle-status');
     if (cycleEl) cycleEl.textContent = VIEWS_CYCLE ? 'on' : 'off';
-    document.getElementById('views-reset-btn').style.display = '';
   }
 
   function onViewsDefaultChange() {
     VIEWS_DEFAULT = document.getElementById('views-default-sel').value;
     _persistViews();
-    document.getElementById('views-reset-btn').style.display = '';
-  }
-
-  async function resetViewsConfig() {
-    localStorage.removeItem('viewsConfig');
-    await loadViews();
-    openViewsModal();
-  }
-
-  function exportViewsJson() {
-    const json = JSON.stringify({ default: VIEWS_DEFAULT, cycle: VIEWS_CYCLE, views: VIEWS }, null, 2);
-    const btn = event?.target;
-    try {
-      navigator.clipboard.writeText(json).then(() => {
-        if (btn) { const orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = orig; }, 1500); }
-      });
-    } catch(e) {
-      // Fallback: select-all in a temporary textarea
-      const ta = document.createElement('textarea');
-      ta.value = json;
-      ta.style.cssText = 'position:fixed;opacity:0;';
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      if (btn) { const orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = orig; }, 1500); }
-    }
   }
 
   function moveView(name, dir) {
