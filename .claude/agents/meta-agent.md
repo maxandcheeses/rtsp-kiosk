@@ -49,6 +49,8 @@ When asked to build a new agent:
 4. **Choose appropriate tools** — lock down to only what's needed
 5. **Write the file** to `.claude/agents/<name>.md`
 6. **Report back** to the primary agent with: the agent name, its trigger description, and a one-line summary of what it does
+7. End your response with a plain-English summary sentence (no markdown) prefixed with `Summary:` — this is read aloud as a completion notification. Example:
+   `Summary: Created the stream-debugger agent for diagnosing WebRTC connection issues.`
 
 ## Key Principles
 

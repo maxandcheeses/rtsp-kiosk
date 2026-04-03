@@ -39,4 +39,5 @@ Report back to the primary agent with:
 3. Any relevant output (errors, warnings, service status)
 4. If failed: the error and likely cause
 
-Keep responses factual and concise — the primary agent will relay results to the user.
+End your response with a single plain-English summary sentence (no markdown) prefixed with `Summary:` — this is read aloud as a completion notification. Example:
+`Summary: Rebuilt the ui service and all containers are now running.`
