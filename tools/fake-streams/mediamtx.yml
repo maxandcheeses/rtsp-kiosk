@@ -1,0 +1,36 @@
+# Minimal MediaMTX config for fake-streams dev tool.
+# Accepts RTSP publishes on port 8554. Auth disabled. No WebRTC or HLS.
+
+logLevel: info
+logDestinations: [stdout]
+
+# RTSP server
+rtsp: yes
+rtspAddress: :8554
+
+# Disable protocols not needed for this tool
+rtmp: no
+hls: no
+webrtc: no
+srt: no
+
+# Auth disabled — local dev tool only
+authMethod: none
+
+paths:
+  test-1:
+    source: publisher
+  test-2:
+    source: publisher
+  test-3:
+    source: publisher
+  test-4:
+    source: publisher
+  test-5:
+    source: publisher
+  test-6:
+    source: publisher
+  test-7:
+    source: publisher
+  test-8:
+    source: publisher

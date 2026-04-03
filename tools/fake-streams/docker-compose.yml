@@ -1,0 +1,13 @@
+# Port 8555 on the host is mapped to 8554 inside the container to avoid
+# conflict with the main kiosk stack's MediaMTX which uses host port 8554.
+# Consume these test streams in the main kiosk by adding entries like:
+#   source: rtsp://<HOST_IP>:8555/test-N  (N = 1-8)
+
+services:
+  fake-streams:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8555:8554"
+    restart: unless-stopped
