@@ -180,9 +180,7 @@ function _showViewForm(view) {
   document.getElementById('view-edit-title').textContent = _editingViewName ? `Edit: ${_editingViewName}` : 'New View';
 
   const nameEl = document.getElementById('ve-name');
-  nameEl.value    = view.name || '';
-  nameEl.disabled = !!_editingViewName;
-  nameEl.style.opacity = _editingViewName ? '0.45' : '';
+  nameEl.value = view.name || '';
 
   document.getElementById('ve-duration').value = view.duration !== undefined ? view.duration : 20;
   document.getElementById('ve-preload-row').style.display = ENABLE_PRELOAD ? '' : 'none';
@@ -277,7 +275,7 @@ function toggleVePreload() {
 }
 
 function saveViewForm() {
-  const name           = _editingViewName || document.getElementById('ve-name').value.trim();
+  const name           = document.getElementById('ve-name').value.trim();
   const dur            = parseInt(document.getElementById('ve-duration').value, 10);
   const preloadEnabled = document.getElementById('ve-preload-enabled').checked;
   const lead           = preloadEnabled ? parseInt(document.getElementById('ve-leadtime').value, 10) : undefined;
@@ -295,8 +293,12 @@ function saveViewForm() {
   };
 
   if (_editingViewName) {
+    if (name !== _editingViewName && VIEWS.find(v => v.name === name)) {
+      alert(`View "${name}" already exists`); return;
+    }
     const idx = VIEWS.findIndex(v => v.name === _editingViewName);
     if (idx >= 0) VIEWS[idx] = view;
+    if (VIEWS_DEFAULT === _editingViewName) VIEWS_DEFAULT = name;
   } else {
     if (VIEWS.find(v => v.name === name)) { alert(`View "${name}" already exists`); return; }
     VIEWS.push(view);
