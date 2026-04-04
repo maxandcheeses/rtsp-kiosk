@@ -99,7 +99,7 @@ function camEscHtml(s) {
 function renderCamTable() {
   const tbody = document.getElementById('cam-tbody');
   if (!CAM_LOCAL_STREAMS || CAM_LOCAL_STREAMS.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="padding:32px;text-align:center;font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3)">
+    tbody.innerHTML = `<tr><td colspan="5" style="padding:32px;text-align:center;font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3)">
       NO STREAMS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Camera to add your first stream</span>
     </td></tr>`;
     return;
@@ -111,7 +111,7 @@ function renderCamTable() {
     row.style.cursor = 'pointer';
     row.onclick = (e) => { if (!e.target.closest('button')) openCamDrawer(stream.path); };
     row.innerHTML = `
-      <td style="width:32px;color:rgba(255,255,255,0.25);text-align:center">⠿</td>
+      <td class="cam-drag-handle" style="width:32px">≡</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${camEscHtml(stream.path)}</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${camEscHtml(camMaskSource(stream.source))}</td>
       <td style="text-align:right;white-space:nowrap">
@@ -122,13 +122,14 @@ function renderCamTable() {
 
     const drawerRow = document.createElement('tr');
     drawerRow.id = `cam-drawer-row-${stream.path}`;
-    drawerRow.innerHTML = `<td colspan="4" style="padding:0;border:none">
+    drawerRow.innerHTML = `<td colspan="5" style="padding:0;border:none">
       <div class="cam-drawer" id="cam-drawer-${camEscHtml(stream.path)}">
         <div class="cam-drawer-inner" id="cam-drawer-inner-${camEscHtml(stream.path)}"></div>
       </div>
     </td>`;
     tbody.appendChild(drawerRow);
   });
+  _initCamDrag();
 }
 
 function camFormRow(label, inputHtml) {
@@ -389,7 +390,7 @@ function deleteCamStream(path) {
   if (!row) return;
   row.classList.add('cam-row-confirm');
   row.onclick = null;
-  row.innerHTML = `<td colspan="4" style="padding:10px 16px">
+  row.innerHTML = `<td colspan="5" style="padding:10px 16px">
     <span style="font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.7)">Delete "<strong>${camEscHtml(stream.path)}</strong>"?</span>
   </td>
   <td style="text-align:right;white-space:nowrap;padding:10px 16px">
@@ -415,4 +416,87 @@ function addCamStream() {
   CAM_LOCAL_STREAMS.push(newStream);
   renderCamTable();
   openCamDrawer(newStream.path);
+}
+
+// ── Drag-to-reorder ───────────────────────────────────────
+
+let _camDrag = null;
+
+function _initCamDrag() {
+  document.querySelectorAll('.cam-drag-handle').forEach(handle => {
+    handle.addEventListener('pointerdown', _onCamDragHandleDown, { passive: false });
+  });
+}
+
+function _onCamDragHandleDown(e) {
+  e.preventDefault();
+  const handle = e.currentTarget;
+  const row    = handle.closest('tr');
+  const tbody  = row.closest('tbody');
+  const rows   = [...tbody.querySelectorAll('tr[id^="cam-row-"]')];
+  const idx    = rows.indexOf(row);
+  if (idx < 0) return;
+
+  const rect = row.getBoundingClientRect();
+
+  const ghost = document.createElement('div');
+  ghost.id = 'cam-drag-ghost';
+  ghost.style.left   = rect.left + 'px';
+  ghost.style.top    = rect.top  + 'px';
+  ghost.style.width  = rect.width  + 'px';
+  ghost.style.height = rect.height + 'px';
+  ghost.textContent  = CAM_LOCAL_STREAMS[idx]?.path || '';
+  document.body.appendChild(ghost);
+
+  row.classList.add('cam-row-dragging');
+  handle.setPointerCapture(e.pointerId);
+
+  _camDrag = { idx, dropIdx: idx, ghost, tbody, rows, offsetY: e.clientY - rect.top };
+
+  handle.addEventListener('pointermove',   _onCamDragMove);
+  handle.addEventListener('pointerup',     _onCamDragEnd);
+  handle.addEventListener('pointercancel', _onCamDragEnd);
+}
+
+function _onCamDragMove(e) {
+  if (!_camDrag) return;
+  const { ghost, rows, offsetY } = _camDrag;
+
+  ghost.style.top = (e.clientY - offsetY) + 'px';
+
+  let dropIdx = rows.length;
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i].getBoundingClientRect();
+    if (e.clientY < r.top + r.height / 2) { dropIdx = i; break; }
+  }
+  _camDrag.dropIdx = dropIdx;
+
+  rows.forEach(r => r.classList.remove('cam-drop-before', 'cam-drop-after'));
+  if (dropIdx < rows.length) {
+    rows[dropIdx].classList.add('cam-drop-before');
+  } else {
+    rows[rows.length - 1].classList.add('cam-drop-after');
+  }
+}
+
+function _onCamDragEnd(e) {
+  if (!_camDrag) return;
+  const { idx, dropIdx, ghost, rows } = _camDrag;
+  const handle = e.currentTarget;
+
+  handle.removeEventListener('pointermove',   _onCamDragMove);
+  handle.removeEventListener('pointerup',     _onCamDragEnd);
+  handle.removeEventListener('pointercancel', _onCamDragEnd);
+
+  ghost.remove();
+  rows.forEach(r => r.classList.remove('cam-row-dragging', 'cam-drop-before', 'cam-drop-after'));
+  _camDrag = null;
+
+  const newIdx = dropIdx <= idx ? dropIdx : dropIdx - 1;
+  if (newIdx === idx) return;
+
+  const [moved] = CAM_LOCAL_STREAMS.splice(idx, 1);
+  CAM_LOCAL_STREAMS.splice(newIdx, 0, moved);
+  markCamUnsaved();
+  renderCamTable();
 }
