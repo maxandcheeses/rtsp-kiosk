@@ -21,8 +21,8 @@ services:
       - ./www/js/mqtt.js:/usr/share/nginx/html/js/mqtt.js:ro
       - ./www/js/ui.js:/usr/share/nginx/html/js/ui.js:ro
       - ./www/js/debug.js:/usr/share/nginx/html/js/debug.js:ro
-      - ./data/streams-public.json:/usr/share/nginx/html/streams.json:ro
-      - ./data/views-public.json:/usr/share/nginx/html/views.json:ro
+      - ./data/streams.json:/usr/share/nginx/html/streams.json:ro
+      - ./data/views.json:/usr/share/nginx/html/views.json:ro
     depends_on:
       - fake-streams
 
