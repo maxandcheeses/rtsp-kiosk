@@ -162,7 +162,7 @@ function openCamDrawer(path) {
   const isNew = !CAM_STREAMS_FULL || !CAM_STREAMS_FULL.find(s => s.path === path);
   inner.innerHTML = buildCamDrawerForm(stream, isNew);
   const drawer = document.getElementById(`cam-drawer-${path}`);
-  drawer.style.maxHeight = (drawer.scrollHeight + 600) + 'px';
+  drawer.style.maxHeight = '9999px';
   CAM_OPEN_DRAWER = path;
   const row = document.getElementById(`cam-row-${path}`);
   if (row) row.classList.add('cam-row-active');
