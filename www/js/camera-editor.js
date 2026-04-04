@@ -147,6 +147,10 @@ function camToggleAdvanced(btn) {
   const open = adv.style.display !== 'none';
   adv.style.display = open ? 'none' : '';
   btn.textContent = (open ? '▶' : '▼') + ' Advanced';
+  if (CAM_OPEN_DRAWER) {
+    const drawer = document.getElementById(`cam-drawer-${CAM_OPEN_DRAWER}`);
+    if (drawer) drawer.style.maxHeight = (drawer.scrollHeight + 32) + 'px';
+  }
 }
 
 function openCamDrawer(path) {
