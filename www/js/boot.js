@@ -8,28 +8,28 @@ async function boot() {
   loadPerfSettings();
   loadMuteState();
 
-  // Wire up fullscreen timeout input in picker
+  // Wire up fullscreen timeout input in settings modal
   const fsInput = document.getElementById('fs-timeout-input');
-  fsInput.value = FULLSCREEN_TIMEOUT || '';
-  fsInput.addEventListener('change', () => {
-    const val = parseInt(fsInput.value, 10);
-    FULLSCREEN_TIMEOUT = isNaN(val) ? 0 : val;
-    try { localStorage.setItem('fsTimeout', FULLSCREEN_TIMEOUT); } catch(e) {}
-  });
-  // Restore saved value (overrides env default if user has changed it)
-  try {
-    const saved = localStorage.getItem('fsTimeout');
-    if (saved !== null) {
-      FULLSCREEN_TIMEOUT = Number(saved);
-      fsInput.value = FULLSCREEN_TIMEOUT || '';
-    }
-  } catch(e) {}
+  if (fsInput) {
+    fsInput.value = FULLSCREEN_TIMEOUT || '';
+    fsInput.addEventListener('change', () => {
+      const val = parseInt(fsInput.value, 10);
+      FULLSCREEN_TIMEOUT = isNaN(val) ? 0 : val;
+      try { localStorage.setItem('fsTimeout', FULLSCREEN_TIMEOUT); } catch(e) {}
+    });
+    // Restore saved value (overrides env default if user has changed it)
+    try {
+      const saved = localStorage.getItem('fsTimeout');
+      if (saved !== null) {
+        FULLSCREEN_TIMEOUT = Number(saved);
+        fsInput.value = FULLSCREEN_TIMEOUT || '';
+      }
+    } catch(e) {}
+  }
 
   if (FORCE_LAYOUT && FORCE_LAYOUT !== '$FORCE_LAYOUT' && LAYOUTS[FORCE_LAYOUT]) {
     // Env var is set — lock to this layout, disable modals and shortcuts
     applyLayout(FORCE_LAYOUT);
-    document.getElementById('picker').classList.remove('open');
-    document.getElementById('picker').style.pointerEvents = 'none';
   } else if (VIEWS.length > 0) {
     if (VIEWS_CYCLE) {
       // Cycling enabled — start from first view
@@ -51,7 +51,7 @@ async function boot() {
       if (!resolved) activateView(VIEWS[0].name);
     }
   } else {
-    // No views — try saved layout, then auto-select best, then show picker
+    // No views — try saved layout, then auto-select best
     let resolved = false;
     try {
       const saved = localStorage.getItem('layout');
@@ -64,7 +64,8 @@ async function boot() {
     }
 
     if (!resolved) {
-      document.getElementById('picker').classList.add('open');
+      // No views and no streams — open settings so the user can configure
+      if (typeof openSettingsModal === 'function') openSettingsModal();
     }
   }
 } // end boot()
@@ -75,7 +76,7 @@ document.addEventListener('keydown',    markInteracted, { once: false });
 document.addEventListener('touchstart', () => { markInteracted(); showSettingsBtn(); });
 
 // Close modal when clicking/tapping outside (on the backdrop)
-['picker', 'streams-modal', 'views-modal', 'settings-modal', 'performance-modal', 'cameras-modal'].forEach(id => {
+['streams-modal', 'views-modal', 'settings-modal', 'performance-modal', 'cameras-modal'].forEach(id => {
   const el = document.getElementById(id);
   if (!el) return;
   el.addEventListener('click', e => {

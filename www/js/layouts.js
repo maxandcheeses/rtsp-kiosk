@@ -138,8 +138,7 @@ function applyLayout(name) {
     }
   }
 
-  // Hide picker, start streams
-  document.getElementById('picker').classList.remove('open');
+  // Start streams
   for (let i = 0; i < count; i++) startWhep(i);
 
   // Save choice

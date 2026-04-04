@@ -34,14 +34,12 @@ document.addEventListener('fullscreenchange', () => {
 
 // ═══════════════════════════════════════════════════════
 // Keyboard shortcuts
-//   L — layout picker
-//   D — streams debug modal
+//   D — toggle debug overlay
 //   Escape — close any open modal
 // ═══════════════════════════════════════════════════════
 let returnToSettings = false; // true when a modal was opened from settings
 
 function closeAllModals() {
-  document.getElementById('picker').classList.remove('open');
   document.getElementById('streams-modal').classList.remove('open');
   document.getElementById('views-modal').classList.remove('open');
   document.getElementById('settings-modal').classList.remove('open');
@@ -71,10 +69,7 @@ function openFromSettings(which) {
   returnToSettings = true;
   document.getElementById('settings-modal').classList.remove('open');
   document.getElementById('performance-modal').classList.remove('open');
-  if (which === 'picker') {
-    stopAll();
-    document.getElementById('picker').classList.add('open');
-  } else if (which === 'views') {
+  if (which === 'views') {
     openViewsModal();
   } else if (which === 'streams') {
     openStreamsModal();
@@ -195,7 +190,7 @@ document.addEventListener('keydown', e => {
   const modalsEnabled = ENABLE_MODALS &&
     !(FORCE_LAYOUT && FORCE_LAYOUT !== '$FORCE_LAYOUT' && LAYOUTS[FORCE_LAYOUT]);
 
-  const anyOpen = ['picker','streams-modal','views-modal','settings-modal','performance-modal','cameras-modal']
+  const anyOpen = ['streams-modal','views-modal','settings-modal','performance-modal','cameras-modal']
     .some(id => document.getElementById(id)?.classList.contains('open'));
 
   // ── Escape — close modal or open settings ──
@@ -222,7 +217,6 @@ document.addEventListener('keydown', e => {
   if (!modalsEnabled) return;
 
   // ── Modal shortcuts — same key toggles; different key switches ──
-  const pickerOpen      = document.getElementById('picker')?.classList.contains('open');
   const viewsOpen       = document.getElementById('views-modal')?.classList.contains('open');
   const streamsOpen     = document.getElementById('streams-modal')?.classList.contains('open');
   const perfOpen        = document.getElementById('performance-modal')?.classList.contains('open');
@@ -232,15 +226,6 @@ document.addEventListener('keydown', e => {
     returnToSettings = false;
     closeAllModals();
     openCamerasModal();
-    return;
-  }
-
-  if (e.key === 'l' || e.key === 'L') {
-    if (pickerOpen) return;
-    returnToSettings = false;
-    closeAllModals();
-    stopAll();
-    document.getElementById('picker').classList.add('open');
     return;
   }
 
