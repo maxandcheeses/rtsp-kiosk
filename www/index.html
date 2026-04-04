@@ -732,6 +732,60 @@
     .dbg-live { color: #4ade80; }
     .dbg-err  { color: #f87171; }
     .dbg-countdown { font-size: 13px; color: #facc15; font-weight: bold; }
+
+    /* ── Cameras modal ── */
+    #cameras-modal { justify-content: flex-start; padding: 48px; overflow-y: auto; }
+    #cameras-modal h1 { margin-bottom: 8px; }
+    .cam-toolbar { display: flex; align-items: center; width: 100%; max-width: 900px; margin-bottom: 12px; }
+    .cam-add-btn {
+      background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3);
+      border-radius: 3px; color: #4ade80; font-family: 'Courier New', monospace;
+      font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 6px 14px; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    }
+    .cam-add-btn:hover { background: rgba(74,222,128,0.2); border-color: rgba(74,222,128,0.55); }
+    .cam-drawer { overflow: hidden; max-height: 0; transition: max-height 200ms ease; }
+    .cam-drawer-inner { padding: 16px 20px 20px; background: rgba(255,255,255,0.02); border-top: 1px solid rgba(255,255,255,0.08); }
+    .cam-form-grid { display: flex; flex-direction: column; gap: 12px; }
+    .cam-drawer-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .cam-save-btn {
+      background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.5);
+      border-radius: 3px; color: #4ade80; font-family: 'Courier New', monospace;
+      font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 6px 16px; cursor: pointer; transition: background 0.15s;
+    }
+    .cam-save-btn:hover { background: rgba(74,222,128,0.25); }
+    .cam-apply-btn {
+      background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.5);
+      border-radius: 3px; color: #4ade80; font-family: 'Courier New', monospace;
+      font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 8px 20px; cursor: pointer; transition: background 0.15s;
+    }
+    .cam-apply-btn:hover { background: rgba(74,222,128,0.25); }
+    .cam-apply-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+    .cam-unsaved-banner {
+      position: sticky; bottom: 0; display: flex; align-items: center;
+      justify-content: space-between; padding: 12px 20px;
+      background: rgba(15,15,15,0.97); border-top: 1px solid rgba(255,255,255,0.12);
+      font-family: 'Courier New', monospace; font-size: 11px; color: rgba(255,255,255,0.7);
+      gap: 16px; width: 100%; max-width: 900px;
+    }
+    .cam-unsaved-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #facc15; margin-right: 8px; vertical-align: middle; }
+    .cam-api-notice {
+      width: 100%; max-width: 900px; padding: 24px;
+      background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.2);
+      border-radius: 4px; font-family: 'Courier New', monospace;
+      text-align: center; color: rgba(255,255,255,0.4); font-size: 10px; line-height: 1.8;
+    }
+    .cam-field-error { font-size: 9px; color: #f87171; margin-top: 2px; font-family: 'Courier New', monospace; }
+    tr.cam-row-active td { background: rgba(255,255,255,0.04); }
+    tr.cam-row-confirm td { background: rgba(248,113,113,0.06); }
+    .cam-advanced-toggle {
+      background: none; border: none; color: rgba(255,255,255,0.35);
+      font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 0.2em;
+      text-transform: uppercase; cursor: pointer; padding: 6px 0; text-align: left; transition: color 0.15s;
+    }
+    .cam-advanced-toggle:hover { color: rgba(255,255,255,0.7); }
   </style>
   <!-- MQTT.js — WebSocket MQTT client -->
   <!-- mqtt.js bundled locally for offline/LAN support -->
@@ -860,7 +914,8 @@
     <div class="shortcut-row"><span class="shortcut-key" title="Close any open modal">Esc</span><span>Open settings / close modal</span></div>
     <div class="shortcut-row"><span class="shortcut-key">←</span><span class="shortcut-key">→</span><span>Previous / next view</span></div>
     <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Audio</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="settings-mute" onchange="toggleMute()"><span class="toggle-track"></span></label></div></div>
-    <div class="shortcut-row"><span class="shortcut-key" title="Pause / resume view cycling">C</span><span>Pause / resume cycling</span></div>
+    <div class="shortcut-row"><span class="shortcut-key" title="Pause / resume view cycling">Space</span><span>Pause / resume cycling</span></div>
+    <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('cameras')" title="Open camera settings">C</button><span>Camera settings</span></div>
     <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('picker')" title="Open layout picker">L</button><span>Layout picker</span></div>
     <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('views')" title="Open views">V</button><span>Views</span></div>
     <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('streams')" title="Open stream debug info">S</button><span>Stream debug info</span></div>
@@ -1091,5 +1146,43 @@
   // ENABLE_PRELOAD — set to 1/on/true to show per-view preload lead time in the views editor
   const ENABLE_PRELOAD        = ['1','on','true'].includes('$ENABLE_PRELOAD'.toLowerCase());
 </script>
-<script src="/js/app.js?v=2"></script></body>
+<div id="cameras-modal" class="modal">
+  <h1>CAMERAS</h1>
+  <div class="cam-toolbar">
+    <span style="flex:1"></span>
+    <button class="cam-add-btn" id="cam-add-btn" onclick="addCamStream()">+ Add Camera</button>
+  </div>
+  <table class="streams-table" id="cam-table" style="max-width:900px;width:100%">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Path</th>
+        <th>Label</th>
+        <th>Source</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="cam-tbody"></tbody>
+  </table>
+  <div class="cam-unsaved-banner" id="cam-banner" style="display:none">
+    <span><span class="cam-unsaved-dot"></span><span id="cam-banner-text">Unsaved changes</span></span>
+    <div style="display:flex;gap:8px">
+      <button class="perf-reset" onclick="discardCamChanges()">Discard</button>
+      <button class="cam-apply-btn" id="cam-apply-btn" onclick="applyCamChanges()">Apply Changes</button>
+    </div>
+  </div>
+  <p class="modal-hint">ESC to close · changes apply to MediaMTX without restart</p>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/layouts.js"></script>
+<script src="/js/webrtc.js"></script>
+<script src="/js/views.js"></script>
+<script src="/js/ui.js"></script>
+<script src="/js/mqtt.js"></script>
+<script src="/js/camera-editor.js"></script>
+<script src="/js/debug.js"></script>
+<script src="/js/views-editor.js"></script>
+<script src="/js/boot.js"></script>
+</body>
 </html>

@@ -1,7 +1,7 @@
 ---
 name: project-manager
 description: Staff-engineer-level repo governance agent for the rtsp-kiosk project. Use this agent when the user wants to: audit or organize the repo, check agent responsibility overlap, find stale or orphaned files, update README.md, evaluate whether a new agent is needed, review git hygiene, check for security issues, track technical debt, review port/service inventory, or get a project health report. Triggers: "audit the repo", "organize files", "check agent overlap", "update the readme", "clean up", "project manager", "what agents do we have", "is there overlap", "do we need a new agent", "what's in the repo", "repo structure", "project health", "tech debt", "stale branches", "security check", "what ports are we using", "onboarding", "handoff". IMPORTANT: this agent has no conversation history — the primary agent must describe the scope of the audit and pass any relevant context such as recently added files or agents.
-model: sonnet
+model: claude-sonnet-4-5
 color: yellow
 tools: Read, Edit, Write, Glob, Grep, Bash
 ---
@@ -123,17 +123,28 @@ Flag gaps as P2 findings. Fix them in README.md directly if small; surface large
 - Check for gaps — user tasks that no agent clearly owns.
 - Recommend additions or rewording to trigger phrases as P3 findings (do not edit agent files directly).
 
+## Baseline README Coverage Check (run on EVERY task, not just full audits)
+
+No matter how narrow the task, always run this check before reporting back:
+
+1. Glob `tools/*/` — for each tool subdirectory, confirm it appears in README.md. Flag any missing as P2.
+2. Glob `.claude/agents/*.md` — for each agent, confirm it appears in README.md's agent list. Flag any missing as P3.
+3. If gaps are found, either fix them in README.md directly or surface them explicitly in `## Findings` before finishing.
+
+This ensures no tool or agent silently falls through the cracks between targeted tasks.
+
 ## How to Conduct an Audit
 
 1. Run `git log --oneline -20`, `git status`, and `git branch -a` to understand recent activity and branch state.
 2. Use Glob to map the full directory tree.
 3. Read every agent file in `.claude/agents/`.
 4. Read `README.md` and all files under `.claude/docs/`.
-5. Grep for `TODO|FIXME|HACK|XXX` across source files.
-6. Review port bindings in all `docker-compose.yml` files.
-7. Produce a prioritized findings list (see output format below).
-8. Make any permitted direct edits (README.md, `.claude/docs/`).
-9. Report back.
+5. Run the Baseline README Coverage Check above.
+6. Grep for `TODO|FIXME|HACK|XXX` across source files.
+7. Review port bindings in all `docker-compose.yml` files.
+8. Produce a prioritized findings list (see output format below).
+9. Make any permitted direct edits (README.md, `.claude/docs/`).
+10. Report back.
 
 ## What You May and May Not Do
 
@@ -141,7 +152,7 @@ Flag gaps as P2 findings. Fix them in README.md directly if small; surface large
 |--------|-----------|
 | Edit `README.md` | Yes |
 | Create/edit files in `.claude/docs/` | Yes |
-| Edit agent definition files | No — surface the finding; let the human or meta-agent act |
+| Edit agent definition files (tools field only) | Yes — trim unnecessary tools; all other changes go to human or meta-agent |
 | Edit source code (`www/`, `scripts/`, `tools/`, `data/`) | No |
 | Edit Docker or Nginx config | No |
 | Delete files | No — flag only |
