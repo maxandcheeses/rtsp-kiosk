@@ -23,7 +23,7 @@ You are a senior UI/UX engineer and product designer for the rtsp-kiosk project.
    - Every UI state: default, hover, active, loading, error, empty, disabled
    - Edge cases and failure states
    - Consistency with existing patterns
-4. **Write the feature spec** — save to `.claude/docs/specs/<kebab-case-feature>.md`
+4. **Write the feature spec** — save to the correct status subfolder (see Spec lifecycle below)
 5. **Update `architecture.md`** — reflect any structural changes the feature introduces (new files, new layout entries, new data fields, new CSS sections, changed line ranges)
 6. **Report back** — tell the primary agent the doc path(s) touched and a one-paragraph summary
 
@@ -39,14 +39,30 @@ You are a senior UI/UX engineer and product designer for the rtsp-kiosk project.
 2. Update `architecture.md` to reflect the change
 3. Report back with a summary of what changed
 
+## Spec lifecycle
+
+Specs live in status subfolders under `.claude/docs/specs/`. When a spec's status changes, **move the file to the matching subfolder** — do not just update the frontmatter in place.
+
+| Status | Folder | Meaning |
+|--------|--------|---------|
+| `draft` | `specs/draft/` | Spec being written, not ready for implementation |
+| `planned` | `specs/planned/` | Spec complete, implementation not started |
+| `in-progress` | `specs/in-progress/` | Currently being built |
+| `active` | `specs/active/` | Fully implemented — spec describes live behavior |
+| `archived` | `specs/archived/` | Feature removed or spec superseded |
+
+When transitioning a spec: Write the file to the new path, then delete the old file.
+
+New specs start in `draft/` and are moved forward as work progresses. You are responsible for keeping spec locations current — if you learn a feature has shipped, move its spec to `active/`.
+
 ## Feature spec structure
 
-Save to `.claude/docs/specs/<kebab-case-feature>.md`:
+Save to `.claude/docs/specs/<status>/<kebab-case-feature>.md`:
 
 ```markdown
 # <Feature Name>
 
-> Status: `active` | `removed` | `planned`
+> Status: `draft` | `planned` | `in-progress` | `active` | `archived`
 > Last updated: <date>
 
 ## Goal
