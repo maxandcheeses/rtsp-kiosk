@@ -189,6 +189,9 @@ Retry delay: ${retryDelay[i] || 0}ms`;
 }
 
 document.addEventListener('keydown', e => {
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
   const modalsEnabled = ENABLE_MODALS &&
     !(FORCE_LAYOUT && FORCE_LAYOUT !== '$FORCE_LAYOUT' && LAYOUTS[FORCE_LAYOUT]);
 
