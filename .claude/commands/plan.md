@@ -10,7 +10,7 @@ Create a detailed implementation plan based on the user's requirements provided 
 ## Variables
 
 USER_PROMPT: $1
-PLAN_OUTPUT_DIRECTORY: `specs/`
+PLAN_OUTPUT_DIRECTORY: `.claude/docs/specs/planned/`
 
 ## Instructions
 
