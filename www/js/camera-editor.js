@@ -5,6 +5,61 @@ let CAM_LOCAL_STREAMS = null;
 let CAM_UNSAVED = false;
 let CAM_OPEN_DRAWER = null;
 
+const CAM_FIELD_SCHEMA = [
+  {
+    id: 'path', label: 'Path', type: 'text', default: '', section: 'main',
+    placeholder: 'my-camera',
+    hint: "Lowercase letters, numbers, hyphens",
+    validate: v => /^[a-z0-9-]+$/.test(v) ? null : 'Lowercase letters, numbers, and hyphens only',
+  },
+  {
+    id: 'label', label: 'Label', type: 'text', default: '', section: 'main',
+    placeholder: 'Front Door',
+  },
+  {
+    id: 'source', label: 'RTSP Source', type: 'text', default: '', section: 'main',
+    placeholder: 'rtsp://user:pass@host/stream',
+    validate: v => (v.startsWith('rtsp://') || v.startsWith('rtsps://')) ? null : 'Must start with rtsp:// or rtsps://',
+  },
+  {
+    id: 'rtspTransport', label: 'Transport', type: 'select', default: 'tcp', section: 'main',
+    options: [{value:'tcp',label:'TCP'},{value:'udp',label:'UDP'}],
+  },
+  {
+    id: 'aspectRatio', label: 'Aspect Ratio', type: 'select', default: '16:9', section: 'main',
+    options: [
+      {value:'16:9',label:'16:9'},{value:'4:3',label:'4:3'},
+      {value:'1:1',label:'1:1'},{value:'21:9',label:'21:9'},
+      {value:'custom',label:'Custom'},
+    ],
+  },
+  {
+    id: 'objectFit', label: 'Object Fit', type: 'select', default: 'contain', section: 'main',
+    options: [{value:'contain',label:'Contain (letterbox)'},{value:'cover',label:'Cover (crop)'}],
+  },
+  { id: 'audio', label: 'Audio', type: 'toggle', default: false, section: 'main' },
+  {
+    id: 'sourceOnDemand', label: 'On Demand', type: 'toggle', default: true, section: 'main',
+  },
+  {
+    id: 'sourceOnDemandStartTimeout', label: 'Start Timeout', type: 'text', default: '10s',
+    section: 'main', placeholder: '10s', dependsOn: 'sourceOnDemand',
+  },
+  {
+    id: 'sourceOnDemandCloseAfter', label: 'Close After', type: 'text', default: '10s',
+    section: 'main', placeholder: '10s', dependsOn: 'sourceOnDemand',
+  },
+  {
+    id: 'refreshInterval', label: 'Refresh Interval', type: 'number', default: 0,
+    section: 'advanced', hint: 'sec (0 = off)',
+  },
+  {
+    id: 'preloadLeadTime', label: 'Preload Lead', type: 'number', default: 0,
+    section: 'advanced', hint: 'sec (0 = default)',
+    showIf: () => typeof ENABLE_PRELOAD !== 'undefined' && ENABLE_PRELOAD,
+  },
+];
+
 function openCamerasModal() {
   closeAllModals();
   document.getElementById('cameras-modal').classList.add('open');
@@ -85,45 +140,80 @@ function camFormRow(label, inputHtml) {
   return `<div class="views-form-row"><label>${label}</label><div style="flex:1;display:flex;flex-direction:column;gap:4px">${inputHtml}</div></div>`;
 }
 
-function buildCamDrawerForm(stream, isNew) {
-  const ar = ['16:9','4:3','1:1','21:9'].includes(stream.aspectRatio) ? stream.aspectRatio : 'custom';
-  const arCustom = ar === 'custom' ? (stream.aspectRatio || '') : '';
-  return `<div class="cam-form-grid">
-    ${camFormRow('Path', `<input class="views-input" id="cam-field-path" value="${camEscHtml(stream.path||'')}" placeholder="my-camera">
-      <div style="font-size:9px;color:rgba(255,255,255,0.25);margin-top:2px;font-family:'Courier New',monospace">Lowercase letters, numbers, hyphens</div>
-      <div class="cam-field-error" id="cam-err-path"></div>`)}
-    ${camFormRow('Label', `<input class="views-input" id="cam-field-label" value="${camEscHtml(stream.label||'')}" placeholder="Front Door">`)}
-    ${camFormRow('RTSP Source', `<input class="views-input" id="cam-field-source" value="${camEscHtml(stream.source||'')}" placeholder="rtsp://user:pass@host/stream">
-      <div class="cam-field-error" id="cam-err-source"></div>`)}
-    ${camFormRow('Transport', `<select class="views-input" id="cam-field-rtspTransport" style="flex:none;width:auto">
-      <option value="tcp" ${stream.rtspTransport==='tcp'?'selected':''}>TCP</option>
-      <option value="udp" ${stream.rtspTransport==='udp'?'selected':''}>UDP</option>
-    </select>`)}
-    ${camFormRow('Aspect Ratio', `<div style="display:flex;gap:8px;align-items:center">
-      <select class="views-input" id="cam-field-aspectRatio" style="flex:none;width:auto" onchange="camArChange(this)">
-        <option value="16:9" ${ar==='16:9'?'selected':''}>16:9</option>
-        <option value="4:3" ${ar==='4:3'?'selected':''}>4:3</option>
-        <option value="1:1" ${ar==='1:1'?'selected':''}>1:1</option>
-        <option value="21:9" ${ar==='21:9'?'selected':''}>21:9</option>
-        <option value="custom" ${ar==='custom'?'selected':''}>Custom</option>
-      </select>
+function renderCamField(field, stream) {
+  const val = stream[field.id] !== undefined ? stream[field.id] : field.default;
+
+  if (field.id === 'aspectRatio') {
+    const ar = ['16:9','4:3','1:1','21:9'].includes(val) ? val : 'custom';
+    const arCustom = ar === 'custom' ? (val || '') : '';
+    const opts = field.options.map(o =>
+      `<option value="${camEscHtml(o.value)}" ${ar===o.value?'selected':''}>${camEscHtml(o.label)}</option>`
+    ).join('');
+    return camFormRow(field.label, `<div style="display:flex;gap:8px;align-items:center">
+      <select class="views-input" id="cam-field-aspectRatio" style="flex:none;width:auto" onchange="camArChange(this)">${opts}</select>
       <input class="views-input" id="cam-field-aspectRatio-custom" value="${camEscHtml(arCustom)}" placeholder="e.g. 9:16" style="flex:none;width:90px;${ar==='custom'?'':'display:none'}">
-    </div>`)}
-    ${camFormRow('Object Fit', `<select class="views-input" id="cam-field-objectFit" style="flex:none;width:auto">
-      <option value="contain" ${stream.objectFit==='cover'?'':'selected'}>Contain (letterbox)</option>
-      <option value="cover" ${stream.objectFit==='cover'?'selected':''}>Cover (crop)</option>
-    </select>`)}
-    ${camFormRow('Audio', `<label class="toggle"><input type="checkbox" id="cam-field-audio" ${stream.audio?'checked':''}><span class="toggle-track"></span></label>`)}
-    ${camFormRow('On Demand', `<label class="toggle"><input type="checkbox" id="cam-field-sourceOnDemand" ${stream.sourceOnDemand!==false?'checked':''} onchange="camOnDemandChange(this)"><span class="toggle-track"></span></label>`)}
-    <div id="cam-ondemand-fields" ${stream.sourceOnDemand===false?'style="display:none"':''}>
-      ${camFormRow('Start Timeout', `<input class="views-input" id="cam-field-sourceOnDemandStartTimeout" value="${camEscHtml(stream.sourceOnDemandStartTimeout||'10s')}" placeholder="10s" style="width:80px;flex:none">`)}
-      ${camFormRow('Close After', `<input class="views-input" id="cam-field-sourceOnDemandCloseAfter" value="${camEscHtml(stream.sourceOnDemandCloseAfter||'10s')}" placeholder="10s" style="width:80px;flex:none">`)}
-    </div>
+    </div>`);
+  }
+
+  if (field.type === 'toggle') {
+    const checked = field.id === 'sourceOnDemand' ? val !== false : !!val;
+    const extra = field.id === 'sourceOnDemand' ? ' onchange="camOnDemandChange(this)"' : '';
+    return camFormRow(field.label,
+      `<label class="toggle"><input type="checkbox" id="cam-field-${field.id}"${checked?' checked':''}${extra}><span class="toggle-track"></span></label>`
+    );
+  }
+
+  if (field.type === 'select') {
+    const opts = field.options.map(o =>
+      `<option value="${camEscHtml(o.value)}" ${val===o.value?'selected':''}>${camEscHtml(o.label)}</option>`
+    ).join('');
+    return camFormRow(field.label,
+      `<select class="views-input" id="cam-field-${field.id}" style="flex:none;width:auto">${opts}</select>`
+    );
+  }
+
+  if (field.type === 'number') {
+    const hint = field.hint ? `<span style="font-size:10px;color:rgba(255,255,255,0.3)">${camEscHtml(field.hint)}</span>` : '';
+    return camFormRow(field.label,
+      `<div style="display:flex;align-items:center;gap:8px"><input type="number" class="perf-input" id="cam-field-${field.id}" value="${camEscHtml(String(val))}" min="0">${hint}</div>`
+    );
+  }
+
+  // default: text
+  const phAttr = field.placeholder ? ` placeholder="${camEscHtml(field.placeholder)}"` : '';
+  const hintHtml = field.hint
+    ? `<div style="font-size:9px;color:rgba(255,255,255,0.25);margin-top:2px;font-family:'Courier New',monospace">${camEscHtml(field.hint)}</div>`
+    : '';
+  const errHtml = field.validate ? `<div class="cam-field-error" id="cam-err-${field.id}"></div>` : '';
+  return camFormRow(field.label,
+    `<input class="views-input" id="cam-field-${field.id}" value="${camEscHtml(String(val))}"${phAttr}>${hintHtml}${errHtml}`
+  );
+}
+
+function buildCamDrawerForm(stream, isNew) {
+  const mainFields = CAM_FIELD_SCHEMA.filter(f => f.section === 'main');
+  const advancedFields = CAM_FIELD_SCHEMA.filter(f => f.section === 'advanced' && (!f.showIf || f.showIf()));
+
+  let mainHtml = '';
+  for (const field of mainFields) {
+    if (field.dependsOn) {
+      const depVal = stream[field.dependsOn] !== undefined ? stream[field.dependsOn] : CAM_FIELD_SCHEMA.find(f => f.id === field.dependsOn)?.default;
+      const hidden = !depVal;
+      mainHtml += `<div id="cam-dep-${field.id}"${hidden?' style="display:none"':''}>` + renderCamField(field, stream) + '</div>';
+    } else {
+      mainHtml += renderCamField(field, stream);
+    }
+  }
+
+  let advHtml = '';
+  for (const field of advancedFields) {
+    advHtml += renderCamField(field, stream);
+  }
+
+  return `<div class="cam-form-grid">
+    ${mainHtml}
     <button class="cam-advanced-toggle" onclick="camToggleAdvanced(this)">▶ Advanced</button>
-    <div id="cam-advanced-fields" style="display:none">
-      ${camFormRow('Refresh Interval', `<div style="display:flex;align-items:center;gap:8px"><input type="number" class="perf-input" id="cam-field-refreshInterval" value="${stream.refreshInterval||0}" min="0"><span style="font-size:10px;color:rgba(255,255,255,0.3)">sec (0 = off)</span></div>`)}
-      ${camFormRow('Preload Lead', `<div style="display:flex;align-items:center;gap:8px"><input type="number" class="perf-input" id="cam-field-preloadLeadTime" value="${stream.preloadLeadTime||0}" min="0"><span style="font-size:10px;color:rgba(255,255,255,0.3)">sec (0 = default)</span></div>`)}
-    </div>
+    <div id="cam-advanced-fields" style="display:none">${advHtml}</div>
   </div>
   <div class="cam-drawer-footer">
     <button class="perf-reset" onclick="closeCamDrawer()">Cancel</button>
@@ -137,8 +227,10 @@ function camArChange(sel) {
 }
 
 function camOnDemandChange(cb) {
-  const fields = document.getElementById('cam-ondemand-fields');
-  if (fields) fields.style.display = cb.checked ? '' : 'none';
+  ['sourceOnDemandStartTimeout', 'sourceOnDemandCloseAfter'].forEach(id => {
+    const el = document.getElementById(`cam-dep-${id}`);
+    if (el) el.style.display = cb.checked ? '' : 'none';
+  });
 }
 
 function camToggleAdvanced(btn) {
@@ -323,18 +415,9 @@ function addCamStream() {
   if (!CAM_LOCAL_STREAMS) CAM_LOCAL_STREAMS = [];
   let n = 1;
   while (CAM_LOCAL_STREAMS.find(s => s.path === `new-camera-${n}`)) n++;
-  const newStream = {
-    path: `new-camera-${n}`,
-    label: '',
-    source: '',
-    rtspTransport: 'tcp',
-    aspectRatio: '16:9',
-    objectFit: 'contain',
-    audio: false,
-    sourceOnDemand: true,
-    sourceOnDemandStartTimeout: '10s',
-    sourceOnDemandCloseAfter: '10s',
-  };
+  const newStream = {};
+  CAM_FIELD_SCHEMA.forEach(f => { newStream[f.id] = f.default; });
+  newStream.path = `new-camera-${n}`;
   CAM_LOCAL_STREAMS.push(newStream);
   renderCamTable();
   openCamDrawer(newStream.path);
