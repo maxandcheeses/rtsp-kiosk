@@ -11,5 +11,24 @@ services:
     volumes:
       - ./www/index.html:/usr/share/nginx/html/index.html:ro
       - ./www/js/app.js:/usr/share/nginx/html/js/app.js:ro
+      - ./www/js/boot.js:/usr/share/nginx/html/js/boot.js:ro
+      - ./www/js/config.js:/usr/share/nginx/html/js/config.js:ro
+      - ./www/js/layouts.js:/usr/share/nginx/html/js/layouts.js:ro
+      - ./www/js/views.js:/usr/share/nginx/html/js/views.js:ro
+      - ./www/js/views-editor.js:/usr/share/nginx/html/js/views-editor.js:ro
+      - ./www/js/camera-editor.js:/usr/share/nginx/html/js/camera-editor.js:ro
+      - ./www/js/webrtc.js:/usr/share/nginx/html/js/webrtc.js:ro
+      - ./www/js/mqtt.js:/usr/share/nginx/html/js/mqtt.js:ro
+      - ./www/js/ui.js:/usr/share/nginx/html/js/ui.js:ro
+      - ./www/js/debug.js:/usr/share/nginx/html/js/debug.js:ro
       - ./data/streams-public.json:/usr/share/nginx/html/streams.json:ro
       - ./data/views-public.json:/usr/share/nginx/html/views.json:ro
+    depends_on:
+      - fake-streams
+
+  fake-streams:
+    build:
+      context: ./tools/fake-streams
+      dockerfile: Dockerfile
+    ports:
+      - "8554:8554"   # RTSP
