@@ -214,6 +214,7 @@ function _veSelectLayout(key) {
 
 function _renderVeStreamPicker() {
   const slotCount = LAYOUTS[_editLayoutSel]?.streams ?? 0;
+  const container = document.getElementById('ve-stream-picker');
 
   // Sync _editStreams length to slot count
   if (_editStreams.length > slotCount) {
@@ -222,25 +223,45 @@ function _renderVeStreamPicker() {
     while (_editStreams.length < slotCount) _editStreams.push('');
   }
 
-  let html = '';
+  container.innerHTML = '';
+
   for (let i = 0; i < slotCount; i++) {
     const current = _editStreams[i] || '';
-    const opts = `<option value="">— empty —</option>` +
-      STREAMS.map(s =>
-        `<option value="${s.path}"${s.path === current ? ' selected' : ''}>${s.path}</option>`
-      ).join('');
-    html += `<div class="views-form-row">
-      <label style="font-family:monospace;color:var(--muted,#888)">Slot ${i}</label>
-      <select class="views-input" onchange="_veSlotChange(${i}, this.value)">${opts}</select>
-    </div>`;
+
+    const row = document.createElement('div');
+    row.className = 'views-form-row';
+
+    const lbl = document.createElement('label');
+    lbl.style.cssText = 'font-family:monospace;color:rgba(255,255,255,0.45)';
+    lbl.textContent = `Panel ${i}`;
+
+    const sel = document.createElement('select');
+    sel.className = 'views-input';
+
+    const blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = '— select camera —';
+    sel.appendChild(blank);
+
+    STREAMS.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.path;
+      opt.textContent = s.path;
+      if (s.path === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
+
+    sel.addEventListener('change', (function(idx) {
+      return function() {
+        _editStreams[idx] = this.value;
+        _renderVeLayoutGrid();
+      };
+    })(i));
+
+    row.appendChild(lbl);
+    row.appendChild(sel);
+    container.appendChild(row);
   }
-
-  document.getElementById('ve-stream-picker').innerHTML = html;
-}
-
-function _veSlotChange(idx, value) {
-  _editStreams[idx] = value;
-  _renderVeLayoutGrid();
 }
 
 function cancelViewEdit() {
