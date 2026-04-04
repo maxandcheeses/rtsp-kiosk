@@ -227,8 +227,7 @@ document.addEventListener('keydown', e => {
   const perfOpen        = document.getElementById('performance-modal')?.classList.contains('open');
 
   if (e.key === 'c' || e.key === 'C') {
-    const camOpen = document.getElementById('cameras-modal')?.classList.contains('open');
-    if (camOpen) { closeAllModals(); return; }
+    if (document.getElementById('cameras-modal')?.classList.contains('open')) return;
     returnToSettings = false;
     closeAllModals();
     openCamerasModal();
@@ -236,7 +235,7 @@ document.addEventListener('keydown', e => {
   }
 
   if (e.key === 'l' || e.key === 'L') {
-    if (pickerOpen) { closeAllModals(); return; }
+    if (pickerOpen) return;
     returnToSettings = false;
     closeAllModals();
     stopAll();
@@ -245,7 +244,7 @@ document.addEventListener('keydown', e => {
   }
 
   if (e.key === 'v' || e.key === 'V') {
-    if (viewsOpen) { closeAllModals(); return; }
+    if (viewsOpen) return;
     returnToSettings = false;
     closeAllModals();
     openViewsModal();
@@ -261,7 +260,7 @@ document.addEventListener('keydown', e => {
   }
 
   if (e.key === 'p' || e.key === 'P') {
-    if (perfOpen) { closeAllModals(); return; }
+    if (perfOpen) return;
     returnToSettings = false;
     closeAllModals();
     document.getElementById('performance-modal').classList.add('open');
@@ -269,7 +268,7 @@ document.addEventListener('keydown', e => {
   }
 
   if (e.key === 's' || e.key === 'S') {
-    if (streamsOpen) { closeAllModals(); return; }
+    if (streamsOpen) return;
     returnToSettings = false;
     closeAllModals();
     openStreamsModal();
