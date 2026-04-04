@@ -165,6 +165,33 @@
       color: rgba(255,255,255,0.35); text-transform: uppercase;
     }
 
+    /* ── Shared modal close button ── */
+    .modal-close-btn {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      width: 28px;
+      height: 28px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 4px;
+      color: rgba(255,255,255,0.4);
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+      z-index: 1;
+    }
+    .modal-close-btn:hover {
+      color: rgba(248,113,113,0.8);
+      border-color: rgba(248,113,113,0.4);
+      background: rgba(248,113,113,0.06);
+    }
+
     /* ── Layout picker ── */
     #picker { }
     .layout-grid {
@@ -857,7 +884,7 @@
 <body>
 
 <div id="picker" class="modal">
-  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeAllModals()">✕</button>
+  <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
   <h1>Select Layout</h1>
   <div class="layout-grid">
 
@@ -973,7 +1000,7 @@
 </div>
 
 <div id="settings-modal" class="modal">
-  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeAllModals()">✕</button>
+  <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
   <h1>Settings</h1>
   <div class="shortcut-list">
     <div class="shortcut-row"><span class="shortcut-key" title="Close any open modal">Esc</span><span>Open settings / close modal</span></div>
@@ -999,7 +1026,7 @@
 </div>
 
 <div id="performance-modal" class="modal" style="justify-content:flex-start;padding:48px;overflow-y:auto;">
-  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeAllModals()">✕</button>
+  <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
   <h1>Performance</h1>
 
   <div class="perf-section">
@@ -1093,7 +1120,7 @@
 <button id="settings-btn" onclick="openSettingsModal()">⚙ Settings</button>
 
 <div id="views-modal" class="modal">
-  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeAllModals()">✕</button>
+  <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
   <h1>Views</h1>
 
   <!-- Table view -->
@@ -1166,7 +1193,7 @@
 </div>
 
 <div id="streams-modal" class="modal">
-  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeAllModals()">✕</button>
+  <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
   <h1>Configured Streams</h1>
   <table class="streams-table">
     <thead>
@@ -1209,7 +1236,7 @@
   const ENABLE_PRELOAD        = ['1','on','true'].includes('$ENABLE_PRELOAD'.toLowerCase());
 </script>
 <div id="cameras-modal" class="modal">
-  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeAllModals()">✕</button>
+  <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
   <h1>CAMERAS</h1>
   <div class="cam-toolbar">
     <span style="flex:1"></span>
@@ -1239,7 +1266,7 @@
 
 <!-- Actions modal -->
 <div id="actions-modal" style="display:none; position:fixed; background:rgba(10,10,10,0.92); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:32px 24px 48px 24px; box-shadow:0 8px 32px rgba(0,0,0,0.5); z-index:10001; min-width:280px; max-width:600px;">
-  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeActionsModal()">✕</button>
+  <button class="modal-close-btn" onclick="closeActionsModal()">✕</button>
   <div id="actions-grid" class="actions-grid"></div>
   <label style="display:flex; align-items:center; gap:8px; position:absolute; bottom:16px; left:24px; cursor:pointer;">
     <input type="checkbox" id="actions-keep-open" onchange="saveKeepOpen()">
