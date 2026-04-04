@@ -306,5 +306,9 @@ function saveViewForm() {
   }
 
   _persistViews();
+
+  // Re-activate if the edited view is currently playing
+  const wasActive = activeView === (_editingViewName || name);
   cancelViewEdit();
+  if (wasActive) activateView(name);
 }
