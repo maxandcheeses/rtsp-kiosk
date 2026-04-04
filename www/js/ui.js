@@ -105,6 +105,8 @@ function openViewsModal() {
   const cycleEl = document.getElementById('cycle-status');
   if (cycleEl) cycleEl.textContent = VIEWS_CYCLE ? 'on' : 'off';
 
+  _updateDefaultVisibility();
+
   // Show table, hide edit panel
   document.getElementById('views-table-wrap').style.display = '';
   document.getElementById('view-edit-panel').style.display = 'none';

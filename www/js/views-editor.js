@@ -13,11 +13,17 @@ function _persistViews() {
   } catch(e) {}
 }
 
+function _updateDefaultVisibility() {
+  const wrap = document.getElementById('views-default-wrap');
+  if (wrap) wrap.style.display = VIEWS_CYCLE ? 'none' : '';
+}
+
 function onViewsCycleToggle() {
   VIEWS_CYCLE = document.getElementById('views-cycle-chk').checked;
   _persistViews();
   const cycleEl = document.getElementById('cycle-status');
   if (cycleEl) cycleEl.textContent = VIEWS_CYCLE ? 'on' : 'off';
+  _updateDefaultVisibility();
 }
 
 function onViewsDefaultChange() {
