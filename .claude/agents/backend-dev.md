@@ -77,11 +77,11 @@ Optional fields: `objectFit`, `audio`, `refreshInterval`, `preloadLeadTime`, `ru
 
 After completing any change, update or create the relevant component doc in `.claude/docs/`. You own:
 
-- `.claude/docs/docker-services.md` — Docker Compose services, build/startup sequence, dev vs prod
-- `.claude/docs/mediamtx.md` — MediaMTX config, `generate-config.sh`, stream path generation
-- `.claude/docs/nginx.md` — Nginx routing rules, env var injection, serving strategy
-- `.claude/docs/data-schemas.md` — `streams.json`, `views.json`, public file sanitisation
-- `.claude/docs/env-vars.md` — all environment variables and their effects
+- `.claude/docs/infra/docker-services.md` — Docker Compose services, build/startup sequence, dev vs prod
+- `.claude/docs/infra/mediamtx.md` — MediaMTX config, `generate-config.sh`, stream path generation
+- `.claude/docs/infra/nginx.md` — Nginx routing rules, env var injection, serving strategy
+- `.claude/docs/frontend/data-schemas.md` — `streams.json`, `views.json`, public file sanitisation
+- `.claude/docs/infra/env-vars.md` — all environment variables and their effects
 
 Base all docs on the structure described in `.claude/docs/architecture.md`. If a doc doesn't exist yet, create it. Keep docs concise — focus on what isn't obvious from reading the config files.
 

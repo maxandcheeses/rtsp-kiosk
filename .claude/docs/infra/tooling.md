@@ -98,17 +98,29 @@ All hook scripts are Python `uv` inline scripts with `# /// script` headers. The
 | `pre_tool_use.py` | `PreToolUse` | Blocks dangerous bash commands; logs all events to `.claude/logs/pre_tool_use.json` |
 | `post_tool_use.py` | `PostToolUse` | Logs tool use events to `.claude/logs/post_tool_use.json` |
 | `user_prompt_submit.py` | `UserPromptSubmit` | Logs prompts to `.claude/logs/prompts.json`; writes `.claude/data/last_prompt.txt` |
-| `notification.py` | `Notification` | Logs Claude Code notifications to `.claude/logs/notifications.json` |
-| `subagent_stop.py` | `SubagentStop` | Shows macOS notification on subagent completion |
+| `notification.py` | `Notification` | Logs notifications to `logs/notification.json`; speaks "your agent needs input" via TTS when `--notify` is set |
+| `subagent_stop.py` | `SubagentStop` | Shows macOS notification on subagent completion; speaks a completion message via TTS when `--notify` is set |
+| `stop.py` | `Stop` | Logs stop events to `logs/stop.json`; optionally copies transcript to `logs/chat.json` (`--chat`); speaks completion via TTS when `--notify` is set |
 | `session_start.py` | `SessionStart` | Creates `.claude/data/sessions/{session_id}.json` |
 | `session_end.py` | `SessionEnd` | Adds `ended_at` timestamp to the session file |
-| `notify-complete.sh` | `Stop` | Reads transcript, shows macOS notification, speaks summary aloud (pre-existing) |
 
 **Blocked commands (PreToolUse):**
 - `rm -rf /` and `rm -rf ~`
 - `git push --force` to `main` or `master`
 - `DROP TABLE`
 - `chmod -R 777 /`
+
+**TTS system (`utils/tts/`):**
+
+Three TTS backends are available. `notification.py`, `stop.py`, and `subagent_stop.py` all select the best available backend at runtime based on env vars:
+
+| Script | Requires | Priority |
+|--------|----------|----------|
+| `utils/tts/elevenlabs_tts.py` | `ELEVENLABS_API_KEY` in env | 1 (highest) |
+| `utils/tts/openai_tts.py` | `OPENAI_API_KEY` in env | 2 |
+| `utils/tts/pyttsx3_tts.py` | nothing (offline) | 3 (fallback) |
+
+Set `ENGINEER_NAME` in `.env` to have `notification.py` occasionally address you by name (30% probability).
 
 **Exit codes:** `pre_tool_use.py` exits 2 on block; all other hooks exit 0.
 

@@ -23,7 +23,7 @@ You are a senior UI/UX engineer and product designer for the rtsp-kiosk project.
    - Every UI state: default, hover, active, loading, error, empty, disabled
    - Edge cases and failure states
    - Consistency with existing patterns
-4. **Write the feature spec** — save to `.claude/docs/<kebab-case-feature>.md`
+4. **Write the feature spec** — save to `.claude/docs/specs/<kebab-case-feature>.md`
 5. **Update `architecture.md`** — reflect any structural changes the feature introduces (new files, new layout entries, new data fields, new CSS sections, changed line ranges)
 6. **Report back** — tell the primary agent the doc path(s) touched and a one-paragraph summary
 
@@ -41,7 +41,7 @@ You are a senior UI/UX engineer and product designer for the rtsp-kiosk project.
 
 ## Feature spec structure
 
-Save to `.claude/docs/<kebab-case-feature>.md`:
+Save to `.claude/docs/specs/<kebab-case-feature>.md`:
 
 ```markdown
 # <Feature Name>

@@ -61,10 +61,10 @@ The frontend-dev agent is responsible for ensuring UX behavior is consistent acr
 
 After completing any change, update or create the relevant component doc in `.claude/docs/`. You own:
 
-- `.claude/docs/frontend-spa.md` — SPA structure, `index.html`, modals, env var placeholders
-- `.claude/docs/app-js.md` — `app.js` section map, key functions, patterns
-- `.claude/docs/layouts.md` — layout system, `LAYOUTS`, cell DOM structure, adding layouts
-- `.claude/docs/webrtc.md` — WHEP connection lifecycle, retry logic, connection reuse
+- `.claude/docs/frontend/frontend-spa.md` — SPA structure, `index.html`, modals, env var placeholders
+- `.claude/docs/frontend/app-js.md` — `app.js` section map, key functions, patterns
+- `.claude/docs/frontend/layouts.md` — layout system, `LAYOUTS`, cell DOM structure, adding layouts
+- `.claude/docs/frontend/webrtc.md` — WHEP connection lifecycle, retry logic, connection reuse
 
 Base all docs on the structure described in `.claude/docs/architecture.md`. If a doc doesn't exist yet, create it. Keep docs concise — focus on what isn't obvious from reading the code.
 

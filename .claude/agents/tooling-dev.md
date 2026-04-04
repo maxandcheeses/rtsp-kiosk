@@ -68,7 +68,7 @@ Each `path` value in `streams.json` corresponds to one WHEP endpoint.
 
 ## Component Docs
 
-After completing any work, update or create `.claude/docs/tooling.md`. This doc should cover:
+After completing any work, update or create `.claude/docs/infra/tooling.md`. This doc should cover:
 - What scripts exist in `scripts/` and `tools/`, what each does, and how to run it.
 - Any dependencies (jq, curl, docker, etc.).
 - Expected output and exit codes.
