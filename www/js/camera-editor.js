@@ -13,10 +13,6 @@ const CAM_FIELD_SCHEMA = [
     validate: v => /^[a-z0-9-]+$/.test(v) ? null : 'Lowercase letters, numbers, and hyphens only',
   },
   {
-    id: 'label', label: 'Label', type: 'text', default: '', section: 'main',
-    placeholder: 'Front Door',
-  },
-  {
     id: 'source', label: 'RTSP Source', type: 'text', default: '', section: 'main',
     placeholder: 'rtsp://user:pass@host/stream',
     validate: v => (v.startsWith('rtsp://') || v.startsWith('rtsps://')) ? null : 'Must start with rtsp:// or rtsps://',
@@ -117,7 +113,7 @@ function renderCamTable() {
     row.innerHTML = `
       <td style="width:32px;color:rgba(255,255,255,0.25);text-align:center">⠿</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${camEscHtml(stream.path)}</td>
-      <td>${camEscHtml(stream.label || '')}</td>
+      <td>${camEscHtml(stream.path)}</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${camEscHtml(camMaskSource(stream.source))}</td>
       <td style="text-align:right;white-space:nowrap">
         <button class="sp-btn" onclick="openCamDrawer('${camEscHtml(stream.path)}')" title="Edit">✎</button>
@@ -304,7 +300,6 @@ function saveCamDrawer(originalPath, isNew) {
   const updated = {
     path,
     ...(!isNew && path !== originalPath ? { _renamedFrom: originalPath } : {}),
-    label: document.getElementById('cam-field-label').value.trim(),
     source,
     rtspTransport: document.getElementById('cam-field-rtspTransport').value,
     aspectRatio,
@@ -396,7 +391,7 @@ function deleteCamStream(path) {
   row.classList.add('cam-row-confirm');
   row.onclick = null;
   row.innerHTML = `<td colspan="4" style="padding:10px 16px">
-    <span style="font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.7)">Delete "<strong>${camEscHtml(stream.label||stream.path)}</strong>"?</span>
+    <span style="font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.7)">Delete "<strong>${camEscHtml(stream.path)}</strong>"?</span>
   </td>
   <td style="text-align:right;white-space:nowrap;padding:10px 16px">
     <button class="perf-reset" onclick="renderCamTable()">Cancel</button>

@@ -101,14 +101,14 @@ function applyLayout(name) {
       <div class="err-overlay" id="err${i}">
         <div class="err-inner">
           <div class="err-code">No Signal</div>
-          <div class="err-sub">${stream.label}</div>
+          <div class="err-sub">${stream.path}</div>
         </div>
       </div>
       <video id="v${i}" autoplay muted playsinline style="object-fit:${objectFit}"></video>
       <div class="chrome">
         <div class="live">
           <div class="live-row"><span id="lbl${i}">LIVE</span><span class="dot" id="dot${i}"></span></div>
-          <div class="lbl">${stream.label}</div>
+          <div class="lbl">${stream.path}</div>
         </div>
         <button class="btn-fs" onclick="toggleFS(${i})">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">

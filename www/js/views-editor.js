@@ -66,7 +66,7 @@ function cloneView(name) {
   _editingViewName = null;
   _editLayoutSel   = view.layout;
   _editStreams      = [...(view.streams || [])];
-  _showViewForm({ ...view, name: newName, label: (view.label || view.name) + ' (copy)' });
+  _showViewForm({ ...view, name: newName });
 }
 
 // ── Drag-to-reorder ───────────────────────────────────────
@@ -96,7 +96,7 @@ function _onDragHandleDown(e) {
   ghost.style.top    = rect.top  + 'px';
   ghost.style.width  = rect.width  + 'px';
   ghost.style.height = rect.height + 'px';
-  ghost.textContent  = VIEWS[idx]?.label || VIEWS[idx]?.name || '';
+  ghost.textContent  = VIEWS[idx]?.name || '';
   document.body.appendChild(ghost);
 
   row.classList.add('view-row-dragging');
@@ -162,7 +162,7 @@ function openNewViewEditor() {
   _editingViewName = null;
   _editLayoutSel   = Object.keys(LAYOUTS)[0];
   _editStreams      = [];
-  _showViewForm({ name: '', label: '', duration: 20, preloadLeadTime: 5 });
+  _showViewForm({ name: '', duration: 20, preloadLeadTime: 5 });
 }
 
 function openViewEditor(name) {
@@ -184,7 +184,6 @@ function _showViewForm(view) {
   nameEl.disabled = !!_editingViewName;
   nameEl.style.opacity = _editingViewName ? '0.45' : '';
 
-  document.getElementById('ve-label').value    = view.label ?? '';
   document.getElementById('ve-duration').value = view.duration !== undefined ? view.duration : 20;
   document.getElementById('ve-preload-row').style.display = ENABLE_PRELOAD ? '' : 'none';
   if (ENABLE_PRELOAD) {
@@ -223,7 +222,7 @@ function _renderVeStreamPicker() {
       html += `<div class="sp-item sp-selected">
         <span class="sp-drag-handle">≡</span>
         <span class="sp-num">${i}</span>
-        <span class="sp-label">${s?.label || path}</span>
+        <span class="sp-label">${path}</span>
         <span class="sp-path">${path}</span>
         <button class="sp-btn" style="color:rgba(248,113,113,0.9)" onclick="_veStreamRemove(${i})">✕</button>
       </div>`;
@@ -235,7 +234,7 @@ function _renderVeStreamPicker() {
     available.forEach(path => {
       const s = STREAMS.find(s => s.path === path);
       html += `<div class="sp-item">
-        <span class="sp-label">${s?.label || path}</span>
+        <span class="sp-label">${path}</span>
         <span class="sp-path">${path}</span>
         <button class="sp-btn" onclick="_veStreamAdd('${path}')">+</button>
       </div>`;
@@ -286,7 +285,7 @@ function _onStreamDragDown(e) {
   ghost.style.width  = rect.width  + 'px';
   ghost.style.height = rect.height + 'px';
   const s = STREAMS.find(s => s.path === _editStreams[idx]);
-  ghost.textContent = s?.label || _editStreams[idx] || '';
+  ghost.textContent = _editStreams[idx] || '';
   document.body.appendChild(ghost);
 
   item.classList.add('sp-item-dragging');
@@ -356,7 +355,6 @@ function toggleVePreload() {
 
 function saveViewForm() {
   const name           = _editingViewName || document.getElementById('ve-name').value.trim();
-  const label          = document.getElementById('ve-label').value.trim();
   const dur            = parseInt(document.getElementById('ve-duration').value, 10);
   const preloadEnabled = document.getElementById('ve-preload-enabled').checked;
   const lead           = preloadEnabled ? parseInt(document.getElementById('ve-leadtime').value, 10) : undefined;
@@ -367,7 +365,6 @@ function saveViewForm() {
 
   const view = {
     name,
-    label:    label || name,
     layout:   _editLayoutSel,
     streams:  [..._editStreams],
     duration: isNaN(dur) ? 20 : dur,

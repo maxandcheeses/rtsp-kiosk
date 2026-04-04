@@ -115,7 +115,7 @@ function scheduleCycle(view) {
     const next = VIEWS[(idx + 1) % VIEWS.length];
     cycleIndex = (idx + 1) % VIEWS.length;
     console.log(`[Cycle] ${view.name} → ${next.name}`);
-    showIndicator('playing', next.label || next.name);
+    showIndicator('playing', next.name);
     activateView(next.name);
   }, duration * 1000);
   schedulePreload(view);
@@ -215,7 +215,7 @@ function navigateView(direction) {
   }
 
   console.log(`[Manual] navigating ${direction > 0 ? 'forward' : 'back'}: ${activeView} → ${next.name}`);
-  showIndicator('manual', `${direction > 0 ? '→' : '←'} ${next.label || next.name}`);
+  showIndicator('manual', `${direction > 0 ? '→' : '←'} ${next.name}`);
   activateView(next.name);
 }
 

@@ -158,7 +158,6 @@ function updateDebugOverlay() {
 
     return `
       <div class="dbg-row"><span class="dbg-key ${cls}">${s.path}</span><span class="dbg-val ${cls}">${status.toUpperCase()}</span></div>
-      <div class="dbg-row"><span class="dbg-key" style="padding-left:8px">label</span><span class="dbg-val">${s.label || '—'}</span></div>
       <div class="dbg-row"><span class="dbg-key" style="padding-left:8px">source</span><span class="dbg-val" title="${src}">${src}</span></div>
       <div class="dbg-row"><span class="dbg-key" style="padding-left:8px">refresh</span><span class="dbg-val">${refreshDisplay}</span></div>`;
   }).join('');

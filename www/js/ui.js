@@ -98,7 +98,7 @@ function openViewsModal() {
   const defaultSel = document.getElementById('views-default-sel');
   if (defaultSel) {
     defaultSel.innerHTML = VIEWS.map(v =>
-      `<option value="${v.name}"${v.name === VIEWS_DEFAULT ? ' selected' : ''}>${v.label || v.name}</option>`
+      `<option value="${v.name}"${v.name === VIEWS_DEFAULT ? ' selected' : ''}>${v.name}</option>`
     ).join('');
   }
 
@@ -133,7 +133,7 @@ function openViewsModal() {
       <td class="view-drag-handle">≡</td>
       <td>${isActive ? '▶' : ''}</td>
       <td title="${v.name}">${v.name}</td>
-      <td title="${v.label || ''}">${v.label || '—'}</td>
+      <td>${v.name}</td>
       <td title="${v.layout || '—'}" style="padding:6px 16px">${layoutSvg}</td>
       <td title="${(v.streams || []).map((s,i) => i+':'+s).join(', ')}">${(v.streams || []).map((s,i) => `<span style="color:rgba(255,255,255,0.4)">${i}</span>:${s}`).join('  ')}</td>
       <td>${duration}</td>
@@ -177,7 +177,7 @@ Retry delay: ${retryDelay[i] || 0}ms`;
     return `<tr>
       <td><span class="stream-status ${status}"></span>${status.toUpperCase()}</td>
       <td>${s.path || '—'}</td>
-      <td ${tip(s.label)}>${s.label || '—'}</td>
+      <td>${s.path}</td>
       <td>${s.aspectRatio || '—'}</td>
       <td>${s.objectFit || '—'}</td>
       <td>${s.audio ? 'yes' : 'no'}</td>

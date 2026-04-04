@@ -4,7 +4,6 @@
   "views": [
     {
       "name": "all-cams",
-      "label": "All Cameras",
       "layout": "primary-right",
       "streams": [
         "cam1",
@@ -16,7 +15,6 @@
     },
     {
       "name": "all-cams-mirror",
-      "label": "All Cameras",
       "layout": "primary-left",
       "streams": [
         "cam2",
