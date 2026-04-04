@@ -99,7 +99,7 @@ function camEscHtml(s) {
 function renderCamTable() {
   const tbody = document.getElementById('cam-tbody');
   if (!CAM_LOCAL_STREAMS || CAM_LOCAL_STREAMS.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="padding:32px;text-align:center;font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3)">
+    tbody.innerHTML = `<tr><td colspan="4" style="padding:32px;text-align:center;font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3)">
       NO STREAMS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Camera to add your first stream</span>
     </td></tr>`;
     return;
@@ -113,7 +113,6 @@ function renderCamTable() {
     row.innerHTML = `
       <td style="width:32px;color:rgba(255,255,255,0.25);text-align:center">⠿</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${camEscHtml(stream.path)}</td>
-      <td>${camEscHtml(stream.path)}</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${camEscHtml(camMaskSource(stream.source))}</td>
       <td style="text-align:right;white-space:nowrap">
         <button class="sp-btn" onclick="openCamDrawer('${camEscHtml(stream.path)}')" title="Edit">✎</button>
@@ -123,7 +122,7 @@ function renderCamTable() {
 
     const drawerRow = document.createElement('tr');
     drawerRow.id = `cam-drawer-row-${stream.path}`;
-    drawerRow.innerHTML = `<td colspan="5" style="padding:0;border:none">
+    drawerRow.innerHTML = `<td colspan="4" style="padding:0;border:none">
       <div class="cam-drawer" id="cam-drawer-${camEscHtml(stream.path)}">
         <div class="cam-drawer-inner" id="cam-drawer-inner-${camEscHtml(stream.path)}"></div>
       </div>
