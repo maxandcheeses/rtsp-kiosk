@@ -19,10 +19,13 @@ Enable kiosk operators to control devices (lights, locks, relays, etc.) directly
 
 2. **Trigger**: User taps/clicks anywhere on the panel OR the indicator button → actions modal opens, overlaying the panel.
 
-3. **Modal interaction**: User can press multiple buttons in sequence — modal does **not** close after each press. Closes on:
-   - `ESC` key
-   - Clicking the `✕` close button in modal top-right
-   - Clicking the backdrop outside the modal
+3. **Modal interaction**: 
+   - **Default**: Modal closes automatically after pressing an action button (150ms press feedback completes, then modal closes).
+   - **Keep-open mode**: User can enable a "Keep open" toggle in the modal footer. When on, modal stays open after action presses, allowing multiple actions in sequence. State is saved in `localStorage`.
+   - Modal always closes on:
+     - `ESC` key
+     - Clicking the `✕` close button in modal top-right
+     - Clicking the backdrop outside the modal
 
 4. **Slots without actions**: If a slot has no action group assigned (`slotGroups[i]` is `null` or undefined), no indicator is shown and tapping the panel does nothing.
 
@@ -51,7 +54,7 @@ Enable kiosk operators to control devices (lights, locks, relays, etc.) directly
 - **Sizing**: Auto-sized to fit button grid + padding. Min width `280px`, max width `600px`.
 - **Background**: `rgba(10,10,10,0.92)`
 - **Border**: `1px solid rgba(255,255,255,0.12)`, `border-radius: 8px`
-- **Padding**: `32px 24px 24px 24px` (extra top padding for close button)
+- **Padding**: `32px 24px 32px 24px` (extra padding top for close button, bottom for toggle)
 - **Shadow**: `box-shadow: 0 8px 32px rgba(0,0,0,0.5)`
 
 #### Backdrop
@@ -66,6 +69,23 @@ Enable kiosk operators to control devices (lights, locks, relays, etc.) directly
 - **Style**: Uses existing `.sp-btn` class (monospace, small), no border, `color: rgba(255,255,255,0.5)`
 - **Hover**: `color: rgba(248,113,113,0.6)` (red tint)
 - **Consistency requirement**: Add this close button pattern to **all existing modals** (`#picker`, `#streams-modal`, `#views-modal`, `#settings-modal`, `#performance-modal`, `#cameras-modal`)
+
+#### Keep-open toggle
+
+- **Position**: Bottom-left of modal footer, `position: absolute; bottom: 16px; left: 24px;`
+- **Layout**: Horizontal flex row with 8px gap (checkbox left, label right)
+- **Checkbox**: Uses existing `.toggle` / `.toggle-track` pattern from settings modal
+  - Width: `32px`, height: `16px`
+- **Label**: 
+  - Text: `"Keep open"`
+  - Font: `9px`, `'Courier New', monospace`
+  - Color: `rgba(255,255,255,0.35)`
+  - Margin-left: `8px`
+- **Behavior**: 
+  - Default: **off** (unchecked)
+  - Persisted in `localStorage.actionsKeepOpen` as `"true"` / `"false"` string
+  - Checked on modal open from localStorage
+  - Saved on toggle change
 
 #### Button grid
 
@@ -126,8 +146,10 @@ Icons use two formats:
 | **Modal open** | User clicks panel/indicator | Modal overlays panel, backdrop covers rest of viewport |
 | **Button default** | No state topic or state unknown | Default styling |
 | **Button "on"** | MQTT state matches `onValue` | Green glow |
-| **Button pressed** | Click/touch | 150ms white flash |
+| **Button pressed** | Click/touch | 150ms white flash, then modal closes (unless keep-open is on) |
 | **MQTT publish error** | Network/connection failure | 1s red flash on button |
+| **Keep-open toggle off** | Default state | Modal closes after action press |
+| **Keep-open toggle on** | User enables toggle | Modal stays open after action press |
 
 ### Motion
 
@@ -205,7 +227,8 @@ Icons use two formats:
      - `openActionsModal(slotIndex)` — look up group for active view's slot, position/render modal
      - `closeActionsModal()` — hide modal, clear backdrop
      - `renderActionButtons(groupId)` — build button grid from group's actions + current `ACTION_STATES`
-     - `pressAction(actionId)` — publish MQTT message, show press feedback
+     - `pressAction(actionId)` — publish MQTT message, show press feedback, auto-close if keep-open is off
+     - `saveKeepOpen()` — persist keep-open toggle state to localStorage
    - Globals:
      - `ACTIONS` — map of action ID → action object
      - `ACTION_GROUPS` — map of group ID → group object
@@ -229,6 +252,12 @@ Icons use two formats:
    <div id="actions-modal" class="modal" style="display:none; position:absolute;">
      <button class="sp-btn" style="position:absolute; top:16px; right:20px;" onclick="closeActionsModal()">✕</button>
      <div id="actions-grid" class="actions-grid"></div>
+     <div class="actions-footer">
+       <label style="display:flex; align-items:center; gap:8px; position:absolute; bottom:16px; left:24px;">
+         <input type="checkbox" id="actions-keep-open" class="toggle" onchange="saveKeepOpen()">
+         <span style="font-size:9px; font-family:'Courier New',monospace; color:rgba(255,255,255,0.35);">Keep open</span>
+       </label>
+     </div>
    </div>
    <div id="actions-backdrop" class="modal-backdrop" style="display:none;" onclick="closeActionsModal()"></div>
    ```
@@ -255,7 +284,7 @@ Add new section **"Actions modal"** after **"Camera editor modal"** section:
   background: rgba(10,10,10,0.92);
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 8px;
-  padding: 32px 24px 24px 24px;
+  padding: 32px 24px 32px 24px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
   z-index: 10001;
   min-width: 280px;
@@ -374,6 +403,7 @@ Functions and logic:
      - Else: center modal on viewport (fallback for small panels in dense layouts)
    - Set `#actions-modal` `top`, `left`, `display: block`
    - Set `#actions-backdrop` `display: block`
+   - Load keep-open state from `localStorage.getItem('actionsKeepOpen')` and set `#actions-keep-open` checkbox checked state
    - Call `renderActionButtons(groupId)`
    - Set `ACTIONS_MODAL_OPEN = true`
 
@@ -404,6 +434,14 @@ Functions and logic:
    - Publish MQTT: `mqtt.publish(action.publish.topic, action.publish.payload)`
    - If publish fails (MQTT not connected), flash button red (`background: rgba(248,113,113,0.3)` for 1s)
    - Else: flash button white (`background: rgba(255,255,255,0.15)` for 150ms)
+   - After 150ms feedback delay:
+     - Check `localStorage.getItem('actionsKeepOpen') === 'true'`
+     - If false (default): call `closeActionsModal()`
+     - If true: modal stays open
+
+7. **`saveKeepOpen()`**
+   - Read `#actions-keep-open` checkbox checked state
+   - Save to `localStorage.setItem('actionsKeepOpen', checked ? 'true' : 'false')`
 
 #### `www/js/app.js` changes
 
