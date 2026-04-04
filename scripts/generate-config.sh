@@ -51,7 +51,7 @@ echo "mediamtx.yml generated."
 echo "Generating streams-public.json..."
 
 echo "$STREAMS_ARRAY" | jq '[.[] | {
-  path, label, aspectRatio, objectFit, audio, refreshInterval, preloadLeadTime,
+  path, aspectRatio, objectFit, audio, refreshInterval, preloadLeadTime,
   source: (
     if .source then
       (.source | split("@")) as $parts |
