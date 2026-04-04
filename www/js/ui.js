@@ -200,6 +200,7 @@ document.addEventListener('keydown', e => {
 
   // ── Escape — close modal or open settings ──
   if (e.key === 'Escape') {
+    if (typeof closeActionsModal === 'function' && ACTIONS_MODAL_OPEN) { closeActionsModal(); return; }
     if (anyOpen) { closeAllModals(); return; }
     if (modalsEnabled) { openSettingsModal(); return; }
   }

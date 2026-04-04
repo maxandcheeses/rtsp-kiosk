@@ -2,6 +2,8 @@ function activateView(name, skipCycleReset) {
   const view = getView(name);
   if (!view) { console.warn(`View not found: ${name}`); return; }
 
+  if (typeof closeActionsModal === 'function' && ACTIONS_MODAL_OPEN) closeActionsModal();
+
   console.log(`Activating view: ${name}`);
   activeView = name;
 

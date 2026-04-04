@@ -1,6 +1,9 @@
 // ═══════════════════════════════════════════════════════
 // MQTT CLIENT
 // ═══════════════════════════════════════════════════════
+let _mqttClient = null;
+let _extraSubscriptions = []; // { topic, callback } registered before connection
+
 function startMQTT() {
   if (typeof mqtt === 'undefined') {
     console.warn('MQTT: mqtt.js not loaded');
@@ -31,18 +34,19 @@ function startMQTT() {
   if (MQTT_PASSWORD) opts.password = MQTT_PASSWORD;
 
   console.log(`MQTT: connecting to ${url}`);
-  const client = mqtt.connect(url, opts);
+  _mqttClient = mqtt.connect(url, opts);
 
-  client.on('connect', () => {
+  _mqttClient.on('connect', () => {
     console.log('MQTT: connected');
-    client.subscribe(MQTT_TOPIC_STREAM,           { qos: 1 });
-    client.subscribe(cfg.topicBase + '/view',     { qos: 1 });
+    _mqttClient.subscribe(MQTT_TOPIC_STREAM,           { qos: 1 });
+    _mqttClient.subscribe(cfg.topicBase + '/view',     { qos: 1 });
+    _extraSubscriptions.forEach(sub => _mqttClient.subscribe(sub.topic, { qos: 1 }));
   });
 
-  client.on('error',     err => console.error('MQTT error:', err));
-  client.on('reconnect', ()  => console.log('MQTT: reconnecting...'));
+  _mqttClient.on('error',     err => console.error('MQTT error:', err));
+  _mqttClient.on('reconnect', ()  => console.log('MQTT: reconnecting...'));
 
-  client.on('message', (topic, payload) => {
+  _mqttClient.on('message', (topic, payload) => {
     let data;
     try { data = JSON.parse(payload.toString()); }
     catch(e) { console.error('MQTT: invalid JSON on', topic, e); return; }
@@ -88,6 +92,29 @@ function startMQTT() {
     console.log(`MQTT: update for stream ${data.path}`);
     applyStreamUpdates([data]);
   });
+
+  // Dispatch to extra subscribers (raw payload string, not JSON-parsed)
+  _mqttClient.on('message', (topic, payload) => {
+    _extraSubscriptions.forEach(sub => {
+      if (sub.topic === topic) sub.callback(topic, payload.toString());
+    });
+  });
+}
+
+// Subscribe to an arbitrary topic and call callback(topic, payloadString) on message.
+// Safe to call before MQTT connects — will subscribe on connect.
+function mqttSubscribe(topic, callback) {
+  _extraSubscriptions.push({ topic, callback });
+  if (_mqttClient && _mqttClient.connected) {
+    _mqttClient.subscribe(topic, { qos: 1 });
+  }
+}
+
+// Publish a message. Returns true if sent, false if not connected.
+function mqttPublish(topic, payload) {
+  if (!_mqttClient || !_mqttClient.connected) return false;
+  _mqttClient.publish(topic, payload, { qos: 1 });
+  return true;
 }
 
 // Apply stream config updates from MQTT.

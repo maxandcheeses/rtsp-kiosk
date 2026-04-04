@@ -1,0 +1,51 @@
+{
+  "mqtt": {
+    "broker": "ws://192.168.1.100:9001",
+    "username": "admin",
+    "password": "password"
+  },
+  "actions": [
+    {
+      "id": "lights-on",
+      "label": "Lights On",
+      "icon": "mdi:lightbulb",
+      "publish": {
+        "topic": "home/living/lights/set",
+        "payload": "ON"
+      },
+      "state": {
+        "topic": "home/living/lights/state",
+        "onValue": "ON"
+      }
+    },
+    {
+      "id": "lights-off",
+      "label": "Lights Off",
+      "icon": "mdi:lightbulb-off",
+      "publish": {
+        "topic": "home/living/lights/set",
+        "payload": "OFF"
+      },
+      "state": {
+        "topic": "home/living/lights/state",
+        "onValue": "OFF"
+      }
+    },
+    {
+      "id": "fan-toggle",
+      "label": "Fan",
+      "icon": "💨",
+      "publish": {
+        "topic": "home/living/fan/toggle",
+        "payload": "TOGGLE"
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "living-room",
+      "name": "Living Room",
+      "actions": ["lights-on", "lights-off", "fan-toggle"]
+    }
+  ]
+}

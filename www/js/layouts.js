@@ -118,6 +118,24 @@ function applyLayout(name) {
       </div>`;
 
     wall.appendChild(cell);
+
+    // Inject action indicator if this slot has an action group
+    const _activeViewObj = typeof getView === 'function' && activeView ? getView(activeView) : null;
+    const _slotGroups = _activeViewObj && _activeViewObj.slotGroups;
+    if (_slotGroups && _slotGroups[i]) {
+      const indicator = document.createElement('button');
+      indicator.className = 'action-indicator';
+      indicator.textContent = '⚡';
+      indicator.title = 'Actions';
+      indicator.addEventListener('click', (e) => { e.stopPropagation(); openActionsModal(i); });
+      cell.appendChild(indicator);
+      // Clicking anywhere on the cell also opens the modal
+      cell.style.cursor = 'pointer';
+      cell.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        openActionsModal(i);
+      });
+    }
   }
 
   // Hide picker, start streams

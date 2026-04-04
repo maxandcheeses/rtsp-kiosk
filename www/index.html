@@ -786,14 +786,46 @@
       text-transform: uppercase; cursor: pointer; padding: 6px 0; text-align: left; transition: color 0.15s;
     }
     .cam-advanced-toggle:hover { color: rgba(255,255,255,0.7); }
+
+    /* ─── Actions modal ─── */
+    .actions-grid { display:grid; gap:16px; }
+    .actions-grid[data-count="1"],.actions-grid[data-count="2"] { grid-template-columns:1fr; }
+    .actions-grid[data-count="3"],.actions-grid[data-count="4"],.actions-grid[data-count="5"],.actions-grid[data-count="6"] { grid-template-columns:1fr 1fr; }
+    .action-btn {
+      width:120px; height:80px;
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.15);
+      border-radius:6px; color:rgba(255,255,255,0.7);
+      cursor:pointer; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:6px;
+      transition:background 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      font-family:'Courier New',monospace; font-size:11px; text-align:center; padding:8px;
+    }
+    .action-btn:hover { background:rgba(255,255,255,0.1); }
+    .action-btn.on {
+      background:rgba(74,222,128,0.12); border-color:rgba(74,222,128,0.5);
+      box-shadow:0 0 12px rgba(74,222,128,0.6); color:rgba(74,222,128,0.9);
+    }
+    .action-btn-icon { font-size:24px; line-height:1; }
+    .action-indicator {
+      position:absolute; bottom:12px; right:12px;
+      width:36px; height:36px; background:rgba(10,10,10,0.7);
+      border:1px solid rgba(255,255,255,0.15); border-radius:50%;
+      color:rgba(255,255,255,0.5); font-size:18px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition:background 0.15s ease, color 0.15s ease; z-index:100;
+    }
+    .action-indicator:hover { background:rgba(10,10,10,0.85); color:rgba(255,255,255,0.75); }
   </style>
   <!-- MQTT.js — WebSocket MQTT client -->
   <!-- mqtt.js bundled locally for offline/LAN support -->
   <script src="/mqtt.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
 </head>
 <body>
 
 <div id="picker" class="modal">
+  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeAllModals()">✕</button>
   <h1>Select Layout</h1>
   <div class="layout-grid">
 
@@ -909,6 +941,7 @@
 </div>
 
 <div id="settings-modal" class="modal">
+  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeAllModals()">✕</button>
   <h1>Settings</h1>
   <div class="shortcut-list">
     <div class="shortcut-row"><span class="shortcut-key" title="Close any open modal">Esc</span><span>Open settings / close modal</span></div>
@@ -934,6 +967,7 @@
 </div>
 
 <div id="performance-modal" class="modal" style="justify-content:flex-start;padding:48px;overflow-y:auto;">
+  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeAllModals()">✕</button>
   <h1>Performance</h1>
 
   <div class="perf-section">
@@ -1027,6 +1061,7 @@
 <button id="settings-btn" onclick="openSettingsModal()">⚙ Settings</button>
 
 <div id="views-modal" class="modal">
+  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeAllModals()">✕</button>
   <h1>Views</h1>
 
   <!-- Table view -->
@@ -1099,6 +1134,7 @@
 </div>
 
 <div id="streams-modal" class="modal">
+  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeAllModals()">✕</button>
   <h1>Configured Streams</h1>
   <table class="streams-table">
     <thead>
@@ -1141,6 +1177,7 @@
   const ENABLE_PRELOAD        = ['1','on','true'].includes('$ENABLE_PRELOAD'.toLowerCase());
 </script>
 <div id="cameras-modal" class="modal">
+  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeAllModals()">✕</button>
   <h1>CAMERAS</h1>
   <div class="cam-toolbar">
     <span style="flex:1"></span>
@@ -1167,6 +1204,17 @@
   <p class="modal-hint">ESC to close · changes apply to MediaMTX without restart</p>
 </div>
 
+<!-- Actions modal -->
+<div id="actions-modal" style="display:none; position:fixed; background:rgba(10,10,10,0.92); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:32px 24px 48px 24px; box-shadow:0 8px 32px rgba(0,0,0,0.5); z-index:10001; min-width:280px; max-width:600px;">
+  <button class="sp-btn" style="position:absolute; top:16px; right:20px; color:rgba(255,255,255,0.5)" onclick="closeActionsModal()">✕</button>
+  <div id="actions-grid" class="actions-grid"></div>
+  <label style="display:flex; align-items:center; gap:8px; position:absolute; bottom:16px; left:24px; cursor:pointer;">
+    <input type="checkbox" id="actions-keep-open" onchange="saveKeepOpen()">
+    <span style="font-size:9px; font-family:'Courier New',monospace; color:rgba(255,255,255,0.35);">Keep open</span>
+  </label>
+</div>
+<div id="actions-backdrop" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:10000;" onclick="closeActionsModal()"></div>
+
 <script src="/js/config.js"></script>
 <script src="/js/layouts.js"></script>
 <script src="/js/webrtc.js"></script>
@@ -1176,6 +1224,7 @@
 <script src="/js/camera-editor.js"></script>
 <script src="/js/debug.js"></script>
 <script src="/js/views-editor.js"></script>
+<script src="/js/actions.js"></script>
 <script src="/js/boot.js"></script>
 </body>
 </html>

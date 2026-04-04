@@ -72,6 +72,7 @@ function cloneView(name) {
   _editingViewName = null;
   _editLayoutSel   = view.layout;
   _editStreams      = [...(view.streams || [])];
+  _editSlotGroups  = [...(view.slotGroups || [])];
   _showViewForm({ ...view, name: newName });
 }
 
@@ -163,11 +164,13 @@ function _onDragEnd(e) {
 let _editingViewName = null; // null = new view
 let _editLayoutSel   = null;
 let _editStreams      = [];
+let _editSlotGroups  = [];
 
 function openNewViewEditor() {
   _editingViewName = null;
   _editLayoutSel   = Object.keys(LAYOUTS)[0];
   _editStreams      = [];
+  _editSlotGroups  = [];
   _showViewForm({ name: '', duration: 20, preloadLeadTime: 5 });
 }
 
@@ -177,6 +180,7 @@ function openViewEditor(name) {
   _editingViewName = name;
   _editLayoutSel   = view.layout;
   _editStreams      = [...(view.streams || [])];
+  _editSlotGroups  = [...(view.slotGroups || [])];
   _showViewForm(view);
 }
 
@@ -227,6 +231,13 @@ function _renderVeStreamPicker() {
     while (_editStreams.length < slotCount) _editStreams.push('');
   }
 
+  // Sync _editSlotGroups length to slot count
+  if (_editSlotGroups.length > slotCount) {
+    _editSlotGroups.splice(slotCount);
+  } else {
+    while (_editSlotGroups.length < slotCount) _editSlotGroups.push(null);
+  }
+
   container.innerHTML = '';
 
   for (let i = 0; i < slotCount; i++) {
@@ -262,8 +273,30 @@ function _renderVeStreamPicker() {
       };
     })(i));
 
+    const groupSel = document.createElement('select');
+    groupSel.className = 'views-input';
+    groupSel.style.marginTop = '4px';
+
+    const noneOpt = document.createElement('option');
+    noneOpt.value = '';
+    noneOpt.textContent = '— no actions —';
+    groupSel.appendChild(noneOpt);
+
+    Object.values(ACTION_GROUPS).forEach(g => {
+      const opt = document.createElement('option');
+      opt.value = g.id;
+      opt.textContent = g.name;
+      if ((_editSlotGroups[i] || '') === g.id) opt.selected = true;
+      groupSel.appendChild(opt);
+    });
+
+    groupSel.addEventListener('change', (function(idx) {
+      return function() { _editSlotGroups[idx] = this.value || null; };
+    })(i));
+
     row.appendChild(lbl);
     row.appendChild(sel);
+    row.appendChild(groupSel);
     container.appendChild(row);
   }
 }
@@ -271,6 +304,7 @@ function _renderVeStreamPicker() {
 function cancelViewEdit() {
   _editingViewName = null;
   _editStreams      = [];
+  _editSlotGroups  = [];
   openViewsModal();
 }
 
@@ -292,9 +326,10 @@ function saveViewForm() {
 
   const view = {
     name,
-    layout:   _editLayoutSel,
-    streams:  _editStreams.filter(Boolean),
-    duration: isNaN(dur) ? 20 : dur,
+    layout:     _editLayoutSel,
+    streams:    _editStreams.filter(Boolean),
+    duration:   isNaN(dur) ? 20 : dur,
+    slotGroups: _editSlotGroups.map(g => g || null),
     ...(preloadEnabled ? { preloadLeadTime: isNaN(lead) ? 5 : lead } : {}),
   };
 

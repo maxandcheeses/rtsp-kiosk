@@ -4,6 +4,7 @@
 async function boot() {
   await loadStreams();
   await loadViews();
+  if (typeof loadActionsConfig === 'function') await loadActionsConfig();
   loadPerfSettings();
   loadMuteState();
 
