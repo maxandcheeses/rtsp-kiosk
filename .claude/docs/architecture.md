@@ -457,3 +457,4 @@ Stored per-device in `localStorage('perfSettings')`. Configurable via the perfor
 2. **`scripts/generate-config.sh`**: if it maps to a MediaMTX config key, add a jq line in section 1
 3. **`scripts/generate-config.sh`**: if it should be visible in the browser, add to the `jq` whitelist in section 2
 4. **`www/js/app.js`**: consume the field where needed (e.g., `stream.myField`)
+5. **`www/js/camera-editor.js` — `CAM_FIELD_SCHEMA`** (planned): add field descriptor to the schema array — see `.claude/docs/specs/planned/camera-field-schema.md` for the descriptor shape and renderer contract
