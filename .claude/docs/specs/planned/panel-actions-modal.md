@@ -368,9 +368,10 @@ Functions and logic:
    - Look up `groupId = view.slotGroups[slotIndex]`
    - If `!groupId`, return (no-op)
    - Get panel cell DOM: `document.getElementById('cell' + slotIndex)`
+   - Measure panel rect via `getBoundingClientRect()`
    - Calculate modal position:
-     - If cell width/height > 300px: center modal over cell
-     - Else: center modal on viewport
+     - If panel width >= 280px AND panel height >= 300px: center modal over panel
+     - Else: center modal on viewport (fallback for small panels in dense layouts)
    - Set `#actions-modal` `top`, `left`, `display: block`
    - Set `#actions-backdrop` `display: block`
    - Call `renderActionButtons(groupId)`
@@ -548,7 +549,7 @@ Create sample file:
 
 2. **Multiple MQTT connections**: If actions use different brokers (per-action `publish.mqtt` block), each needs its own MQTT client connection. v1 can limit to one global broker only — per-action override is parsed but ignored. Defer multi-broker support to v2?
 
-3. **Modal position on small panels**: If a panel is very small (e.g., 8-stream layout where each panel is < 300px), centering the modal over the panel may cause overlap or readability issues. Current plan is to fall back to viewport centering — is this sufficient?
+3. **Modal position on small panels** — RESOLVED: If the panel cell is smaller than the modal's minimum size (280px wide or 300px tall), center the modal on screen instead of overlaying the panel. The backdrop still covers the full screen. JS determines this at open time by measuring the panel's `getBoundingClientRect()`.
 
 4. **Toggle actions**: Should a button auto-detect toggle behavior (e.g., publish "ON" if current state is "OFF" and vice versa), or always publish a fixed payload? Current design: always publish fixed payload. Toggle logic requires explicit ON/OFF actions in the group.
 
