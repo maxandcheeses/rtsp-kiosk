@@ -16,7 +16,7 @@
 | `mqtt.js` | `startMQTT()`, `applyStreamUpdates()` |
 | `camera-editor.js` | `CAM_*` globals, `openCamerasModal()`, `loadCamStreams()`, all `cam*` functions |
 | `debug.js` | `globalMuted`/`userInteracted`, `markInteracted()`, `applyMute()`, `toggleMute()`, `loadMuteState()`, `debugInterval`/`cycleStartedAt`/`cycleDuration`, `startDebugTimer()`, `updateDebugOverlay()` |
-| `views-editor.js` | `_persistViews()`, views CRUD functions, drag-to-reorder for views table, view edit form functions, stream picker drag, `cancelViewEdit()`, `toggleVePreload()`, `saveViewForm()` |
+| `views-editor.js` | `_persistViews()`, views CRUD functions, drag-to-reorder for views table, view edit form functions, per-slot stream dropdowns (`_renderVeStreamPicker`, `_veSlotChange`), `cancelViewEdit()`, `toggleVePreload()`, `saveViewForm()` |
 | `boot.js` | `boot()`, `markInteracted` event listeners, backdrop-click forEach, `startMQTT()` call, `boot()` call |
 
 ### Load order in index.html
