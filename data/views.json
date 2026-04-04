@@ -6,9 +6,9 @@
       "name": "all-cams",
       "layout": "primary-right",
       "streams": [
-        "cam1",
-        "cam2",
-        "cam3"
+        "test-1",
+        "test-2",
+        "test-3"
       ],
       "duration": 20,
       "preloadLeadTime": 20
@@ -17,9 +17,9 @@
       "name": "all-cams-mirror",
       "layout": "primary-left",
       "streams": [
-        "cam2",
-        "cam3",
-        "cam1"
+        "test-2",
+        "test-3",
+        "test-1"
       ],
       "duration": 20,
       "preloadLeadTime": 20

@@ -24,6 +24,21 @@ services:
       - ./data/streams.json:/usr/share/nginx/html/streams.json:ro
       - ./data/views.json:/usr/share/nginx/html/views.json:ro
     depends_on:
+      - mediamtx
+
+  mediamtx:
+    build:
+      context: .
+      dockerfile: Dockerfile.mediamtx
+    ports:
+      - "8889:8889"     # WebRTC/WHEP HTTP
+      - "8189:8189/udp" # WebRTC ICE/UDP
+    environment:
+      HOST_IP: "${HOST_IP:-127.0.0.1}"
+      STUN_PORT: "3478"
+    volumes:
+      - ./data:/data
+    depends_on:
       - fake-streams
 
   fake-streams:
