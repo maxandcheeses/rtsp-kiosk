@@ -130,7 +130,18 @@ www/
 ├── css/
 │   └── app.css       All styles
 ├── js/
-│   └── app.js        Entire SPA logic (~1100 lines)
+│   ├── app.js        Core SPA logic (~1100 lines)
+│   ├── boot.js       Boot sequence, module initialization
+│   ├── config.js     Env var and config loading
+│   ├── layouts.js    Layout definitions and wall rendering
+│   ├── webrtc.js     WebRTC/WHEP connection lifecycle
+│   ├── views.js      View loading, activation, cycling
+│   ├── mqtt.js       MQTT client and message handling
+│   ├── ui.js         Keyboard shortcuts, modals, UI state
+│   ├── debug.js      Debug overlay and performance monitoring
+│   ├── camera-editor.js   Camera settings editor modal (planned)
+│   ├── views-editor.js    Views editor modal
+│   └── actions.js    Panel actions modal, MQTT action buttons (planned)
 ├── mqtt.min.js       Bundled at build time (from node_modules/mqtt)
 └── favicon.svg
 ```
@@ -167,6 +178,7 @@ All styles, organised by component:
 | Cycle indicator | `#cycle-indicator` |
 | Debug overlay | `#debug-overlay`, `.dbg-*` |
 | Camera editor modal | `#cameras-modal`, `.cam-toolbar`, `.cam-add-btn`, `.cam-drawer`, `.cam-drawer-inner`, `.cam-form-grid`, `.cam-advanced-toggle`, `.cam-save-btn`, `.cam-unsaved-banner`, `.cam-unsaved-dot`, `.cam-banner-actions`, `.cam-api-unavailable`, `.cam-api-unavailable-title`, `.cam-api-unavailable-body` |
+| Actions modal (planned) | `#actions-modal`, `#actions-backdrop`, `.actions-grid`, `.action-btn`, `.action-btn.on`, `.action-btn-icon`, `.action-indicator` |
 
 **Design tokens** (not CSS variables — used inline as rgba/hex):
 - Background: `#000`
@@ -367,7 +379,44 @@ Pause/resume preserves `remainingOnPause` — resumes exact remaining time, not 
       "layout": "primary-right",// must match a key in LAYOUTS
       "streams": ["cam1","cam2","cam3"], // ordered list of stream paths
       "duration": 20,           // seconds per view (cycle); -1 = stay forever
-      "preloadLeadTime": 20     // seconds before switch to start preloading next view
+      "preloadLeadTime": 20,    // seconds before switch to start preloading next view
+      "slotGroups": ["living-room", null, "bedroom"]  // optional — action group IDs per slot (planned)
+    }
+  ]
+}
+```
+
+### `data/actions.json` (planned)
+
+Global actions registry for panel action buttons. See `.claude/docs/specs/planned/panel-actions-modal.md` for full spec.
+
+```jsonc
+{
+  "mqtt": {
+    "broker": "ws://192.168.1.x:9001",
+    "username": "user",
+    "password": "pass"
+  },
+  "actions": [
+    {
+      "id": "lights-on",
+      "label": "Lights On",
+      "icon": "mdi:lightbulb",          // MDI icon or emoji
+      "publish": {
+        "topic": "home/living/lights/set",
+        "payload": "ON"
+      },
+      "state": {                        // optional — subscribe to state topic for visual feedback
+        "topic": "home/living/lights/state",
+        "onValue": "ON"
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "living-room",
+      "name": "Living Room",
+      "actions": ["lights-on", "lights-off", "fan-toggle"]  // max 6
     }
   ]
 }
@@ -387,6 +436,7 @@ Pause/resume preserves `remainingOnPause` — resumes exact remaining time, not 
 GET /              → index.html
 GET /streams.json  → streams-public.json  (no-cache)
 GET /views.json    → views-public.json    (no-cache)
+GET /actions.json  → actions.json         (no-cache) (planned)
 GET /*.json        → 403 (all other JSON blocked)
 GET /*.js          → cache 1yr immutable
 GET /*             → try_files $uri =404
@@ -433,7 +483,8 @@ Stored per-device in `localStorage('perfSettings')`. Configurable via the perfor
 |-----|--------|
 | `L` | Toggle layout picker |
 | `D` | Toggle streams debug modal |
-| `Escape` | Close any open modal |
+| `V` | Toggle views editor |
+| `Escape` | Close any open modal (including actions modal) |
 | `Space` | Pause/resume view cycling |
 | `←` / `→` | Manual view navigation |
 | `M` | Mute/unmute |
@@ -458,3 +509,16 @@ Stored per-device in `localStorage('perfSettings')`. Configurable via the perfor
 3. **`scripts/generate-config.sh`**: if it should be visible in the browser, add to the `jq` whitelist in section 2
 4. **`www/js/app.js`**: consume the field where needed (e.g., `stream.myField`)
 5. **`www/js/camera-editor.js` — `CAM_FIELD_SCHEMA`** (planned): add field descriptor to the schema array — see `.claude/docs/specs/planned/camera-field-schema.md` for the descriptor shape and renderer contract
+
+---
+
+## 16. Planned Features
+
+Feature specs in `.claude/docs/specs/planned/`:
+
+| Feature | Status | Spec | Summary |
+|---------|--------|------|---------|
+| **Panel Actions Modal** | `planned` | [panel-actions-modal.md](./specs/planned/panel-actions-modal.md) | Click a camera panel to open an action button grid. Publish MQTT messages (unlock door, toggle lights) with visual state feedback. Actions defined in `data/actions.json`, assigned per-view slot via `slotGroups[]`. |
+| **Camera Settings Editor** | `planned` | [camera-settings-editor.md](./camera-settings-editor.md) | In-browser editor for `streams.json`. Add/edit/delete cameras, configure RTSP source, object-fit, refresh interval, etc. Requires `streams-api` service (read/write endpoint). |
+
+When a planned feature is implemented, move its spec to `.claude/docs/specs/active/` and update this table.
