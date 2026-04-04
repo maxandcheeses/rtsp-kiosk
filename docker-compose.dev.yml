@@ -30,5 +30,3 @@ services:
     build:
       context: ./tools/fake-streams
       dockerfile: Dockerfile
-    ports:
-      - "8554:8554"   # RTSP
