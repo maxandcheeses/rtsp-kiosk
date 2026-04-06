@@ -64,7 +64,7 @@ function openCamerasModal() {
 
 async function loadCamStreams() {
   const tbody = document.getElementById('cam-tbody');
-  tbody.innerHTML = '<tr><td colspan="5" style="padding:20px;text-align:center;font-family:\'Courier New\',monospace;font-size:10px;color:rgba(255,255,255,0.3)">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;font-family:\'Courier New\',monospace;font-size:10px;color:rgba(255,255,255,0.3)">Loading...</td></tr>';
   try {
     const res = await fetch('/api/streams');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -80,7 +80,7 @@ async function loadCamStreams() {
     CAM_LOCAL_STREAMS = null;
     const addBtn = document.getElementById('cam-add-btn');
     if (addBtn) addBtn.style.display = 'none';
-    tbody.innerHTML = `<tr><td colspan="5"><div class="cam-api-notice">
+    tbody.innerHTML = `<tr><td colspan="6"><div class="cam-api-notice">
       <div style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:rgba(248,113,113,0.8);margin-bottom:10px">Streams API Not Available</div>
       The streams-api service is not reachable.<br>Ensure it is running and Nginx is proxying /api/streams.
     </div></td></tr>`;
@@ -99,7 +99,7 @@ function camEscHtml(s) {
 function renderCamTable() {
   const tbody = document.getElementById('cam-tbody');
   if (!CAM_LOCAL_STREAMS || CAM_LOCAL_STREAMS.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="padding:32px;text-align:center;font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3)">
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:32px;text-align:center;font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3)">
       NO STREAMS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Camera to add your first stream</span>
     </td></tr>`;
     return;
@@ -110,9 +110,20 @@ function renderCamTable() {
     row.id = `cam-row-${stream.path}`;
     row.style.cursor = 'pointer';
     row.onclick = (e) => { if (!e.target.closest('button')) openCamDrawer(stream.path); };
+    const streamIdx = (typeof STREAMS !== 'undefined' ? STREAMS : []).findIndex(s => s.path === stream.path);
+    let streamStatus = 'idle';
+    if (streamIdx >= 0) {
+      if (document.getElementById('err' + streamIdx)?.classList.contains('show')) {
+        streamStatus = 'err';
+      } else {
+        const vid = document.getElementById('v' + streamIdx);
+        if (vid && !vid.paused && vid.readyState >= 2) streamStatus = 'live';
+      }
+    }
     row.innerHTML = `
       <td class="cam-drag-handle" style="width:32px">≡</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${camEscHtml(stream.path)}</td>
+      <td style="width:40px;text-align:center"><span class="stream-status ${streamStatus}"></span></td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${camEscHtml(camMaskSource(stream.source))}</td>
       <td style="text-align:right;white-space:nowrap">
         <button class="sp-btn" onclick="openCamDrawer('${camEscHtml(stream.path)}')" title="Edit">✎</button>
@@ -122,7 +133,7 @@ function renderCamTable() {
 
     const drawerRow = document.createElement('tr');
     drawerRow.id = `cam-drawer-row-${stream.path}`;
-    drawerRow.innerHTML = `<td colspan="5" style="padding:0;border:none">
+    drawerRow.innerHTML = `<td colspan="6" style="padding:0;border:none">
       <div class="cam-drawer" id="cam-drawer-${camEscHtml(stream.path)}">
         <div class="cam-drawer-inner" id="cam-drawer-inner-${camEscHtml(stream.path)}"></div>
       </div>
@@ -388,10 +399,15 @@ function deleteCamStream(path) {
   if (!stream) return;
   const row = document.getElementById(`cam-row-${path}`);
   if (!row) return;
+  const usedByViews = (typeof VIEWS !== 'undefined' ? VIEWS : [])
+    .filter(v => Array.isArray(v.streams) && v.streams.includes(path));
+  const usageNote = usedByViews.length > 0
+    ? `<div style="margin-top:6px;font-size:10px;color:rgba(248,113,113,0.7)">Used by ${usedByViews.length} view(s) — will be removed from them on apply.</div>`
+    : '';
   row.classList.add('cam-row-confirm');
   row.onclick = null;
   row.innerHTML = `<td colspan="5" style="padding:10px 16px">
-    <span style="font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.7)">Delete "<strong>${camEscHtml(stream.path)}</strong>"?</span>
+    <span style="font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.7)">Delete "<strong>${camEscHtml(stream.path)}</strong>"?</span>${usageNote}
   </td>
   <td style="text-align:right;white-space:nowrap;padding:10px 16px">
     <button class="perf-reset" onclick="renderCamTable()">Cancel</button>
