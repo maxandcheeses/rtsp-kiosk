@@ -1,8 +1,8 @@
 {
   "mqtt": {
-    "broker": "ws://192.168.1.100:9001",
-    "username": "admin",
-    "password": "password"
+    "broker": "ws://localhost:9001",
+    "username": "",
+    "password": ""
   },
   "actions": [
     {
@@ -32,12 +32,55 @@
       }
     },
     {
-      "id": "fan-toggle",
-      "label": "Fan",
-      "icon": "💨",
+      "id": "fan-on",
+      "label": "Fan On",
+      "icon": "mdi:fan",
       "publish": {
-        "topic": "home/living/fan/toggle",
-        "payload": "TOGGLE"
+        "topic": "home/living/fan/set",
+        "payload": "ON"
+      },
+      "state": {
+        "topic": "home/living/fan/state",
+        "onValue": "ON"
+      }
+    },
+    {
+      "id": "fan-off",
+      "label": "Fan Off",
+      "icon": "mdi:fan-off",
+      "publish": {
+        "topic": "home/living/fan/set",
+        "payload": "OFF"
+      },
+      "state": {
+        "topic": "home/living/fan/state",
+        "onValue": "OFF"
+      }
+    },
+    {
+      "id": "lock-door",
+      "label": "Lock",
+      "icon": "mdi:lock",
+      "publish": {
+        "topic": "home/front-door/lock/set",
+        "payload": "LOCK"
+      },
+      "state": {
+        "topic": "home/front-door/lock/state",
+        "onValue": "LOCKED"
+      }
+    },
+    {
+      "id": "unlock-door",
+      "label": "Unlock",
+      "icon": "mdi:lock-open",
+      "publish": {
+        "topic": "home/front-door/lock/set",
+        "payload": "UNLOCK"
+      },
+      "state": {
+        "topic": "home/front-door/lock/state",
+        "onValue": "UNLOCKED"
       }
     }
   ],
@@ -45,7 +88,12 @@
     {
       "id": "living-room",
       "name": "Living Room",
-      "actions": ["lights-on", "lights-off", "fan-toggle"]
+      "actions": ["lights-on", "lights-off", "fan-on", "fan-off"]
+    },
+    {
+      "id": "front-door",
+      "name": "Front Door",
+      "actions": ["lock-door", "unlock-door"]
     }
   ]
 }
