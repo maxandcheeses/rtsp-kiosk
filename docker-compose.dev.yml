@@ -25,10 +25,12 @@ services:
       - ./data/streams.json:/usr/share/nginx/html/streams.json:ro
       - ./data/views.json:/usr/share/nginx/html/views.json:ro
       - ./data/actions.json:/usr/share/nginx/html/actions.json:ro
+      - ./tools/mqtt-test/index.html:/usr/share/nginx/html/mqtt-test.html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - mediamtx
       - streams-api
+      - mqtt
 
   streams-api:
     build:
@@ -61,3 +63,11 @@ services:
     build:
       context: ./tools/fake-streams
       dockerfile: Dockerfile
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./tools/mqtt-test/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MQTT Test Harness</title>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      color: rgba(255,255,255,0.75);
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      padding: 32px;
+      margin: 0;
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 13px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin: 0 0 12px 0;
+    }
+    h2 {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      margin: 24px 0 12px 0;
+    }
+    .header-line {
+      margin: 12px 0 20px 0;
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+    }
+    .status {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: normal;
+    }
+    .status.connected {
+      background: rgba(74,222,128,0.15);
+      color: #4ade80;
+      border: 1px solid rgba(74,222,128,0.3);
+    }
+    .status.disconnected {
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .status.error {
+      background: rgba(248,113,113,0.15);
+      color: #f87171;
+      border: 1px solid rgba(248,113,113,0.3);
+    }
+    .switch-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .switch-btn {
+      padding: 8px 16px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px;
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 11px;
+      transition: all 0.15s ease;
+    }
+    .switch-btn:hover {
+      border-color: rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.08);
+    }
+    .switch-btn.on {
+      background: rgba(74,222,128,0.12);
+      border-color: rgba(74,222,128,0.5);
+      color: #4ade80;
+      box-shadow: 0 0 8px rgba(74,222,128,0.3);
+    }
+    .switch-btn-inner {
+      display: block;
+      margin-bottom: 4px;
+    }
+    .switch-value {
+      display: block;
+      font-size: 10px;
+      opacity: 0.5;
+    }
+    .log {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px;
+      padding: 12px;
+      height: 200px;
+      overflow-y: auto;
+      font-size: 11px;
+      margin-bottom: 16px;
+    }
+    .log-row {
+      padding: 2px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.5);
+      word-break: break-all;
+    }
+    .log-row .time {
+      opacity: 0.3;
+    }
+    .log-row .topic {
+      color: rgba(255,255,255,0.7);
+    }
+    .log-row .payload {
+      color: #4ade80;
+    }
+    .form-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 3px;
+      color: rgba(255,255,255,0.7);
+      font-family: inherit;
+      font-size: 11px;
+      padding: 6px 10px;
+      flex-shrink: 0;
+    }
+    input:focus {
+      outline: none;
+      border-color: rgba(74,222,128,0.4);
+      background: rgba(74,222,128,0.08);
+    }
+    input#pub-topic {
+      flex: 1;
+      min-width: 200px;
+    }
+    button.send {
+      padding: 6px 16px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 3px;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 11px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    button.send:hover {
+      background: rgba(255,255,255,0.11);
+      border-color: rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.8);
+    }
+    .note {
+      background: rgba(255,255,255,0.03);
+      border-left: 2px solid rgba(255,255,255,0.15);
+      padding: 12px;
+      margin: 20px 0;
+      font-size: 10px;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <!-- To enable MQTT in the kiosk, add to data/streams.json:
+       "mqtt": { "enabled": true }
+       The kiosk will connect to ws://localhost:9001 automatically
+       (MQTT_DEFAULTS uses window.location.hostname and port 9001). -->
+
+  <h1>MQTT Test Harness</h1>
+  <div class="header-line">Broker: <code>ws://localhost:9001</code> &nbsp; <span id="status" class="status disconnected">Disconnected</span></div>
+
+  <h2>State Switches</h2>
+  <div class="switch-container" id="switches">Loading actions.json…</div>
+
+  <h2>Command Log <span style="opacity:0.4;font-size:10px">(messages published by kiosk)</span></h2>
+  <div id="log" class="log"></div>
+
+  <h2>Manual Publish</h2>
+  <div class="form-group">
+    <input id="pub-topic" placeholder="topic" />
+    <input id="pub-payload" placeholder="payload" />
+    <button class="send" onclick="manualPublish()">Send</button>
+  </div>
+
+  <div class="note">
+    Open the kiosk at <code>http://localhost:8080</code>, add <code>"mqtt": { "enabled": true }</code> to data/streams.json, then assign the <strong>living-room</strong> action group to a view to test. Click action buttons in the kiosk and watch the log above.
+  </div>
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script>
+    const BROKER = 'ws://localhost:9001/mqtt';
+    let client = null;
+    let stateValues = {}; // topic → current value
+    let stateOnValues = {}; // topic → Set of known onValues
+
+    async function init() {
+      // 1. Fetch actions.json
+      let cfg;
+      try {
+        const res = await fetch('/actions.json');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        cfg = await res.json();
+      } catch(e) {
+        document.getElementById('switches').textContent = 'Failed to load /actions.json: ' + e.message;
+        return;
+      }
+
+      // 2. Collect state topics and their onValues
+      const stateTopics = new Map(); // topic → Set of onValues
+      const publishTopics = new Set();
+      (cfg.actions || []).forEach(a => {
+        if (a.state && a.state.topic) {
+          if (!stateTopics.has(a.state.topic)) stateTopics.set(a.state.topic, new Set());
+          if (a.state.onValue) stateTopics.get(a.state.topic).add(a.state.onValue);
+        }
+        if (a.publish && a.publish.topic) publishTopics.add(a.publish.topic);
+      });
+
+      // 3. Render switch buttons
+      const switchContainer = document.getElementById('switches');
+      switchContainer.innerHTML = '';
+      if (stateTopics.size === 0) {
+        switchContainer.textContent = 'No state topics found in actions.json';
+      } else {
+        stateTopics.forEach((onValues, topic) => {
+          stateOnValues[topic] = onValues;
+          const btn = document.createElement('button');
+          btn.className = 'switch-btn';
+          btn.id = 'sw-' + topic.replace(/\//g, '-').replace(/[^a-z0-9-]/gi, '');
+          btn.dataset.topic = topic;
+          btn.dataset.onValues = JSON.stringify([...onValues]);
+          btn.innerHTML = `<span class="switch-btn-inner">${escapeHtml(topic)}</span><span class="switch-value" id="val-${btn.id}">—</span>`;
+          btn.onclick = () => toggleSwitch(topic, onValues);
+          switchContainer.appendChild(btn);
+        });
+      }
+
+      // 4. Connect MQTT
+      client = mqtt.connect(BROKER, {
+        clientId: 'test-harness-' + Math.random().toString(16).slice(2, 8),
+        reconnectPeriod: 1000,
+        connectTimeout: 10000
+      });
+
+      client.on('connect', () => {
+        setStatus('connected');
+        stateTopics.forEach((_, topic) => {
+          if (client) client.subscribe(topic, { qos: 0 });
+        });
+        publishTopics.forEach(topic => {
+          if (client) client.subscribe(topic, { qos: 0 });
+        });
+      });
+
+      client.on('error', (err) => {
+        console.error('MQTT error:', err);
+        setStatus('error');
+      });
+
+      client.on('close', () => setStatus('disconnected'));
+
+      client.on('message', (topic, payload) => {
+        const val = payload.toString();
+        // Update switch if it's a state topic
+        const btnId = 'sw-' + topic.replace(/\//g, '-').replace(/[^a-z0-9-]/gi, '');
+        const btn = document.getElementById(btnId);
+        if (btn) {
+          stateValues[topic] = val;
+          const isOn = (stateOnValues[topic] || new Set()).has(val);
+          btn.classList.toggle('on', isOn);
+          const valEl = document.getElementById('val-' + btnId);
+          if (valEl) valEl.textContent = escapeHtml(val);
+        }
+        // Always log
+        appendLog(topic, val);
+      });
+    }
+
+    function toggleSwitch(topic, onValues) {
+      if (!client || !client.connected) {
+        alert('Not connected to broker');
+        return;
+      }
+      const current = stateValues[topic];
+      const vals = [...onValues];
+      // Toggle: if current matches a known value, send the next one; else send first
+      let next;
+      if (vals.length >= 2) {
+        const idx = vals.indexOf(current);
+        next = vals[(idx + 1) % vals.length];
+      } else if (vals.length === 1) {
+        next = current === vals[0] ? 'OFF' : vals[0];
+      } else {
+        next = current === 'ON' ? 'OFF' : 'ON';
+      }
+      client.publish(topic, next);
+    }
+
+    function appendLog(topic, payload) {
+      const log = document.getElementById('log');
+      const now = new Date();
+      const timeStr = String(now.getHours()).padStart(2, '0') + ':' +
+                      String(now.getMinutes()).padStart(2, '0') + ':' +
+                      String(now.getSeconds()).padStart(2, '0');
+      const row = document.createElement('div');
+      row.className = 'log-row';
+      row.innerHTML = `<span class="time">[${timeStr}]</span>  <span class="topic">${escapeHtml(topic)}</span>  →  <span class="payload">${escapeHtml(payload)}</span>`;
+      log.appendChild(row);
+      while (log.children.length > 100) log.removeChild(log.firstChild);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function manualPublish() {
+      if (!client || !client.connected) {
+        alert('Not connected to broker');
+        return;
+      }
+      const topic = document.getElementById('pub-topic').value.trim();
+      const payload = document.getElementById('pub-payload').value.trim();
+      if (topic) {
+        client.publish(topic, payload);
+        document.getElementById('pub-topic').value = '';
+        document.getElementById('pub-payload').value = '';
+      }
+    }
+
+    function setStatus(state) {
+      const el = document.getElementById('status');
+      el.className = 'status ' + state;
+      el.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+    }
+
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
+    init();
+  </script>
+</body>
+</html>
