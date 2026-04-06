@@ -6,6 +6,7 @@ let _mqttClient = null;
 let _extraSubscriptions = []; // { topic, callback } registered before connection
 
 let _mqttConnected   = false;
+let _mqttConnecting  = false;
 let _mqttReconnDelay = 1000;
 let _mqttReconnTimer = null;
 let _mqttPublishQueue = [];
@@ -19,6 +20,8 @@ function _mqttScheduleReconnect() {
     if (_mqttClient) {
       console.log(`MQTT: reconnecting (backoff ${_mqttReconnDelay}ms)`);
       _mqttClient.reconnect();
+      _mqttConnecting = true;
+      _updateMqttStatusIndicator();
     }
     _mqttReconnDelay = Math.min(_mqttReconnDelay * 2, _MQTT_DELAY_MAX);
   }, _mqttReconnDelay);
@@ -55,8 +58,11 @@ function startMQTT() {
 
   console.log(`MQTT: connecting to ${url}`);
   _mqttClient = mqtt.connect(url, opts);
+  _mqttConnecting = true;
+  _updateMqttStatusIndicator();
 
   _mqttClient.on('connect', () => {
+    _mqttConnecting = false;
     _mqttConnected = true;
     _mqttReconnDelay = 1000;
     if (_mqttReconnTimer) { clearTimeout(_mqttReconnTimer); _mqttReconnTimer = null; }
@@ -159,8 +165,11 @@ function mqttConnect(broker, username, password) {
 
   console.log(`MQTT (actions): connecting to ${broker}`);
   _mqttClient = mqtt.connect(broker, opts);
+  _mqttConnecting = true;
+  _updateMqttStatusIndicator();
 
   _mqttClient.on('connect', () => {
+    _mqttConnecting = false;
     _mqttConnected = true;
     _mqttReconnDelay = 1000;
     if (_mqttReconnTimer) { clearTimeout(_mqttReconnTimer); _mqttReconnTimer = null; }
@@ -274,8 +283,38 @@ function _updateMqttStatusIndicator() {
   if (_mqttConnected) {
     el.textContent = '● MQTT';
     el.style.color = 'rgba(74,222,128,0.7)';
+    el.style.pointerEvents = 'none';
+    el.style.cursor = '';
+    el.onclick = null;
+  } else if (_mqttConnecting) {
+    el.textContent = '● MQTT';
+    el.style.color = 'rgba(251,191,36,0.7)';
+    el.style.pointerEvents = 'none';
+    el.style.cursor = '';
+    el.onclick = null;
   } else {
     el.textContent = '● MQTT';
-    el.style.color = 'rgba(248,113,113,0.5)';
+    el.style.color = 'rgba(248,113,113,0.7)';
+    el.style.pointerEvents = 'auto';
+    el.style.cursor = 'pointer';
+    el.onclick = mqttForceReconnect;
   }
+}
+
+function mqttForceReconnect() {
+  if (!_mqttClient) return;
+  // Cancel pending backoff timers for both MQTT paths
+  if (_mqttReconnTimer) { clearTimeout(_mqttReconnTimer); _mqttReconnTimer = null; }
+  if (typeof _actMqttReconnTimer !== 'undefined' && _actMqttReconnTimer) {
+    clearTimeout(_actMqttReconnTimer);
+    _actMqttReconnTimer = null;
+  }
+  // Reset delays
+  _mqttReconnDelay = 1000;
+  if (typeof _actMqttReconnDelay !== 'undefined') _actMqttReconnDelay = 1000;
+  // Trigger reconnect
+  _mqttConnecting = true;
+  _updateMqttStatusIndicator();
+  console.log('MQTT: force reconnect requested');
+  _mqttClient.reconnect();
 }

@@ -93,6 +93,11 @@ function _renderActionButtons(groupId) {
   if (!group) return;
 
   const actionIds = (group.actions || []).slice(0, 6);
+  const statusEl = document.getElementById('actions-mqtt-status');
+  if (statusEl) {
+    const hasMqtt = actionIds.some(id => ACTIONS[id] && ACTIONS[id].publish);
+    statusEl.style.display = hasMqtt ? '' : 'none';
+  }
   if (group.actions && group.actions.length > 6) {
     console.warn(`Actions: group "${groupId}" has ${group.actions.length} actions; only first 6 shown`);
   }
