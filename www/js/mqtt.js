@@ -2,6 +2,54 @@
 // MQTT CLIENT
 // ═══════════════════════════════════════════════════════
 let _mqttClient = null;
+
+// ── Named client pool (for actions multi-server support) ──────────────────────
+const _mqttClients = new Map(); // serverId → mqtt client instance
+
+function getOrCreateMqttClient(serverConfig) {
+  // serverConfig: { id, broker, username, password }
+  const existing = _mqttClients.get(serverConfig.id);
+  if (existing && existing.connected) return existing;
+
+  // Disconnect stale client for this id if present
+  if (existing) {
+    try { existing.end(true); } catch(e) {}
+    _mqttClients.delete(serverConfig.id);
+  }
+
+  const opts = {
+    clientId: 'rtsp-kiosk-act-' + Math.random().toString(16).slice(2, 8),
+    clean: true,
+    reconnectPeriod: 0,
+  };
+  if (serverConfig.username) opts.username = serverConfig.username;
+  if (serverConfig.password) opts.password = serverConfig.password;
+
+  console.log(`Actions MQTT [${serverConfig.id}]: connecting to ${serverConfig.broker}`);
+  const client = mqtt.connect(serverConfig.broker, opts);
+
+  client.on('connect', () => {
+    console.log(`Actions MQTT [${serverConfig.id}]: connected`);
+  });
+  client.on('close', () => {
+    console.log(`Actions MQTT [${serverConfig.id}]: closed`);
+  });
+  client.on('error', err => {
+    console.error(`Actions MQTT [${serverConfig.id}] error:`, err);
+  });
+
+  _mqttClients.set(serverConfig.id, client);
+  return client;
+}
+
+function disconnectMqttClient(serverId) {
+  const client = _mqttClients.get(serverId);
+  if (client) {
+    try { client.end(true); } catch(e) {}
+    _mqttClients.delete(serverId);
+    console.log(`Actions MQTT [${serverId}]: disconnected`);
+  }
+}
 let _extraSubscriptions = []; // { topic, callback } registered before connection
 
 let _mqttConnected   = false;

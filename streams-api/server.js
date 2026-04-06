@@ -213,8 +213,13 @@ const server = http.createServer(async (req, res) => {
       try {
         const raw = await readBody(req);
         const body = JSON.parse(raw);
-        if (!body || typeof body !== 'object' || !Array.isArray(body.actions) || !Array.isArray(body.groups)) {
-          send(res, 400, { error: 'Body must be { mqtt?, actions, groups }' });
+        if (
+          !body || typeof body !== 'object' ||
+          !Array.isArray(body.actions) ||
+          !Array.isArray(body.groups) ||
+          !body.mqtt || !Array.isArray(body.mqtt.servers)
+        ) {
+          send(res, 400, { error: 'Body must be { mqtt: { servers }, actions, groups }' });
           return;
         }
         writeActions(body);

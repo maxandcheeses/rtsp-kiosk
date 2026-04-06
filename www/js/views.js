@@ -7,6 +7,9 @@ function activateView(name, skipCycleReset) {
   console.log(`Activating view: ${name}`);
   activeView = name;
 
+  // Lazy-connect MQTT servers needed for this view's action groups
+  if (typeof connectServersForView === 'function') connectServersForView(view);
+
   // Filter STREAMS to only those in this view, in order
   const ordered = view.streams
     .map(p => STREAMS.find(s => s.path === p))
