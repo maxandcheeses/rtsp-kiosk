@@ -37,58 +37,38 @@ document.addEventListener('fullscreenchange', () => {
 //   D — toggle debug overlay
 //   Escape — close any open modal
 // ═══════════════════════════════════════════════════════
-let returnToSettings = false; // true when a modal was opened from settings
+let _activeSettingsTab = 'general';
 
 function closeAllModals() {
-  document.getElementById('streams-modal').classList.remove('open');
-  document.getElementById('views-modal').classList.remove('open');
   document.getElementById('settings-modal').classList.remove('open');
-  document.getElementById('performance-modal').classList.remove('open');
-  document.getElementById('cameras-modal').classList.remove('open');
-  document.getElementById('actions-settings-modal').classList.remove('open');
   // Reset clear storage confirmation state
   const confirmEl = document.getElementById('clear-storage-confirm');
   const btnEl = document.getElementById('clear-storage-btn');
   if (confirmEl) confirmEl.style.display = 'none';
   if (btnEl) btnEl.style.display = '';
-
-  // Return to settings if we navigated here from it
-  if (returnToSettings) {
-    returnToSettings = false;
-    document.getElementById('settings-modal').classList.add('open');
-  }
 }
 
-function openSettingsModal() {
-  returnToSettings = false;
+function activateSettingsTab(tab) {
+  _activeSettingsTab = tab;
+  document.querySelectorAll('.settings-tab-panel').forEach(p => p.style.display = 'none');
+  const panel = document.getElementById('stab-' + tab);
+  if (panel) panel.style.display = '';
+  document.querySelectorAll('.settings-tab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === tab)
+  );
+  if (tab === 'cameras' && typeof renderCamerasTab === 'function') renderCamerasTab();
+  if (tab === 'views'   && typeof renderViewsTab   === 'function') renderViewsTab();
+  if (tab === 'actions' && typeof renderActionsTab === 'function') renderActionsTab();
+  if (tab === 'streams') renderStreamsTab();
+}
+
+function openSettingsModal(tab = 'general') {
   closeAllModals();
   document.getElementById('settings-modal').classList.add('open');
+  activateSettingsTab(tab);
 }
 
-// Open a modal from within settings — closing returns to settings
-function openFromSettings(which) {
-  returnToSettings = true;
-  document.getElementById('settings-modal').classList.remove('open');
-  document.getElementById('performance-modal').classList.remove('open');
-  if (which === 'views') {
-    openViewsModal();
-  } else if (which === 'streams') {
-    openStreamsModal();
-  } else if (which === 'performance') {
-    closeAllModals();
-    returnToSettings = true;
-    document.getElementById('performance-modal').classList.add('open');
-  } else if (which === 'cameras') {
-    openCamerasModal();
-  } else if (which === 'actions-settings') {
-    openActionsSettingsModal();
-  }
-}
-
-// F key also opens performance directly
-// (handled separately in keydown — openFromSettings just for settings nav)
-
-function openViewsModal() {
+function renderViewsTab() {
   // Toolbar state
   const cycleChk = document.getElementById('views-cycle-chk');
   if (cycleChk) cycleChk.checked = VIEWS_CYCLE;
@@ -140,11 +120,14 @@ function openViewsModal() {
     </tr>`;
   }).join('') || '<tr><td colspan="7" style="opacity:0.4;padding:16px">No views configured — click + Add View</td></tr>';
 
-  document.getElementById('views-modal').classList.add('open');
   _initViewDrag();
 }
 
-function openStreamsModal() {
+function openViewsModal() {
+  openSettingsModal('views');
+}
+
+function renderStreamsTab() {
   const tbody = document.getElementById('streams-tbody');
   tbody.innerHTML = STREAMS.map((s, i) => {
     const video   = document.getElementById(`v${i}`);
@@ -156,21 +139,8 @@ function openStreamsModal() {
       : s.refreshInterval || STREAM_REFRESH_GLOBAL || '—';
     const source  = s.source ? s.source.replace(/:[^@]*@/, ':***@') : '—';
 
-    // Native title tooltip — rendered by browser/OS, no custom styling
-    const tip = (text) => `title="${String(text ?? '—').replace(/"/g, '&quot;')}"`;
-
     const pcState    = streamPCs[i] ? streamPCs[i].iceConnectionState : 'no connection';
-    const statusTip  = `Status: ${status.toUpperCase()}
-ICE: ${pcState}
-Retry delay: ${retryDelay[i] || 0}ms`;
     const refreshVal = typeof refresh === 'number' ? `${refresh}s` : refresh;
-    const refreshTip = STREAM_REFRESH_GLOBAL === 0
-      ? 'Globally disabled — per-stream config ignored'
-      : s.refreshInterval
-        ? `Per-stream: ${s.refreshInterval}s`
-        : STREAM_REFRESH_GLOBAL
-          ? `Global: ${STREAM_REFRESH_GLOBAL}s`
-          : 'Disabled';
     const sourceFull = s.source || '—';
 
     return `<tr>
@@ -183,7 +153,10 @@ Retry delay: ${retryDelay[i] || 0}ms`;
       <td title="${sourceFull.replace(/"/g, '&quot;')}" style="font-size:10px;opacity:0.6;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${source}</td>
     </tr>`;
   }).join('');
-  document.getElementById('streams-modal').classList.add('open');
+}
+
+function openStreamsModal() {
+  openSettingsModal('streams');
 }
 
 document.addEventListener('keydown', e => {
@@ -193,8 +166,7 @@ document.addEventListener('keydown', e => {
   const modalsEnabled = ENABLE_MODALS &&
     !(FORCE_LAYOUT && FORCE_LAYOUT !== '$FORCE_LAYOUT' && LAYOUTS[FORCE_LAYOUT]);
 
-  const anyOpen = ['streams-modal','views-modal','settings-modal','performance-modal','cameras-modal','actions-settings-modal']
-    .some(id => document.getElementById(id)?.classList.contains('open'));
+  const anyOpen = ['settings-modal'].some(id => document.getElementById(id)?.classList.contains('open'));
 
   // ── Escape — close modal or open settings ──
   if (e.key === 'Escape') {
@@ -219,32 +191,24 @@ document.addEventListener('keydown', e => {
 
   if (!modalsEnabled) return;
 
-  // ── Modal shortcuts — same key toggles; different key switches ──
-  const viewsOpen       = document.getElementById('views-modal')?.classList.contains('open');
-  const streamsOpen     = document.getElementById('streams-modal')?.classList.contains('open');
-  const perfOpen        = document.getElementById('performance-modal')?.classList.contains('open');
+  // ── Modal shortcuts — if settings open on that tab already, close; otherwise switch/open ──
+  const settingsOpen = document.getElementById('settings-modal')?.classList.contains('open');
 
   if (e.key === 'a' || e.key === 'A') {
-    if (document.getElementById('actions-settings-modal')?.classList.contains('open')) return;
-    returnToSettings = false;
-    closeAllModals();
-    openActionsSettingsModal();
+    if (settingsOpen && _activeSettingsTab === 'actions') { closeAllModals(); return; }
+    openSettingsModal('actions');
     return;
   }
 
   if (e.key === 'c' || e.key === 'C') {
-    if (document.getElementById('cameras-modal')?.classList.contains('open')) return;
-    returnToSettings = false;
-    closeAllModals();
-    openCamerasModal();
+    if (settingsOpen && _activeSettingsTab === 'cameras') { closeAllModals(); return; }
+    openSettingsModal('cameras');
     return;
   }
 
   if (e.key === 'v' || e.key === 'V') {
-    if (viewsOpen) return;
-    returnToSettings = false;
-    closeAllModals();
-    openViewsModal();
+    if (settingsOpen && _activeSettingsTab === 'views') { closeAllModals(); return; }
+    openSettingsModal('views');
     return;
   }
 
@@ -257,18 +221,14 @@ document.addEventListener('keydown', e => {
   }
 
   if (e.key === 'p' || e.key === 'P') {
-    if (perfOpen) return;
-    returnToSettings = false;
-    closeAllModals();
-    document.getElementById('performance-modal').classList.add('open');
+    if (settingsOpen && _activeSettingsTab === 'performance') { closeAllModals(); return; }
+    openSettingsModal('performance');
     return;
   }
 
   if (e.key === 's' || e.key === 'S') {
-    if (streamsOpen) return;
-    returnToSettings = false;
-    closeAllModals();
-    openStreamsModal();
+    if (settingsOpen && _activeSettingsTab === 'streams') { closeAllModals(); return; }
+    openSettingsModal('streams');
     return;
   }
 });

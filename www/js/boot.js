@@ -76,7 +76,7 @@ document.addEventListener('keydown',    markInteracted, { once: false });
 document.addEventListener('touchstart', () => { markInteracted(); showSettingsBtn(); });
 
 // Close modal when clicking/tapping outside (on the backdrop)
-['streams-modal', 'views-modal', 'settings-modal', 'performance-modal', 'cameras-modal', 'actions-settings-modal'].forEach(id => {
+['settings-modal'].forEach(id => {
   const el = document.getElementById(id);
   if (!el) return;
   el.addEventListener('click', e => {

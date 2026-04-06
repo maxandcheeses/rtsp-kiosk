@@ -17,10 +17,12 @@ function _aeEsc(s) {
 
 // ── Open / load ─────────────────────────────────────────────────────────────
 
-function openActionsSettingsModal() {
-  closeAllModals();
-  document.getElementById('actions-settings-modal').classList.add('open');
+function renderActionsTab() {
   loadActionsEditorData();
+}
+
+function openActionsSettingsModal() {
+  openSettingsModal('actions');
 }
 
 async function loadActionsEditorData() {

@@ -56,10 +56,12 @@ const CAM_FIELD_SCHEMA = [
   },
 ];
 
-function openCamerasModal() {
-  closeAllModals();
-  document.getElementById('cameras-modal').classList.add('open');
+function renderCamerasTab() {
   loadCamStreams();
+}
+
+function openCamerasModal() {
+  openSettingsModal('cameras');
 }
 
 async function loadCamStreams() {

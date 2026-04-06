@@ -193,13 +193,7 @@
     }
 
 
-    /* ── Streams debug modal (D key) ── */
-    #streams-modal {
-      justify-content: flex-start;
-      padding: 48px;
-      overflow-y: auto;
-    }
-    #streams-modal h1 { margin-bottom: 8px; }
+    /* ── Streams tab ── */
     .streams-table {
       width: 100%;
       max-width: 900px;
@@ -401,13 +395,7 @@
       color: rgba(255,255,255,0.7);
       border-color: rgba(255,255,255,0.35);
     }
-    /* ── Views modal ── */
-    #views-modal {
-      justify-content: flex-start;
-      padding: 48px;
-      overflow-y: auto;
-    }
-    #views-modal h1 { margin-bottom: 8px; }
+    /* ── Views tab ── */
     .views-toolbar {
       display: flex;
       align-items: center;
@@ -587,34 +575,34 @@
     }
     .view-drag-handle:active { cursor: grabbing; color: rgba(255,255,255,0.9); }
 
-    /* ── Views modal — touch-friendly sizing + legibility ── */
-    #views-modal .streams-table { font-size: 13px; }
-    #views-modal .streams-table th { font-size: 11px; }
-    #views-modal .views-toolbar { font-size: 13px; font-weight: 500; }
-    #views-modal .views-form-row { font-size: 13px; }
-    #views-modal .views-form-row label { font-size: 12px; font-weight: 500; }
-    #views-modal .sp-section-label { font-size: 11px; }
-    #views-modal .sp-item { font-size: 12px; }
-    #views-modal .sp-path { font-size: 11px; }
-    #views-modal .modal-hint { font-size: 11px; }
-    #views-modal .sp-btn {
+    /* ── Views tab — touch-friendly sizing + legibility ── */
+    #stab-views .streams-table { font-size: 13px; }
+    #stab-views .streams-table th { font-size: 11px; }
+    #stab-views .views-toolbar { font-size: 13px; font-weight: 500; }
+    #stab-views .views-form-row { font-size: 13px; }
+    #stab-views .views-form-row label { font-size: 12px; font-weight: 500; }
+    #stab-views .sp-section-label { font-size: 11px; }
+    #stab-views .sp-item { font-size: 12px; }
+    #stab-views .sp-path { font-size: 11px; }
+    #stab-views .modal-hint { font-size: 11px; }
+    #stab-views .sp-btn {
       width: 40px; height: 40px;
       font-size: 16px;
       color: rgba(255,255,255,0.65);
       border-color: rgba(255,255,255,0.2);
     }
-    #views-modal .sp-btn:hover {
+    #stab-views .sp-btn:hover {
       color: #fff;
       border-color: rgba(255,255,255,0.55);
       background: rgba(255,255,255,0.08);
     }
-    #views-modal .perf-reset {
+    #stab-views .perf-reset {
       font-size: 12px;
       padding: 10px 18px;
       color: rgba(255,255,255,0.7);
       border-color: rgba(255,255,255,0.3);
     }
-    #views-modal .perf-reset:hover {
+    #stab-views .perf-reset:hover {
       color: #fff;
       border-color: rgba(255,255,255,0.65);
     }
@@ -736,9 +724,7 @@
       letter-spacing: 0.05em;
     }
 
-    /* ── Cameras modal ── */
-    #cameras-modal { justify-content: flex-start; padding: 48px; overflow-y: auto; }
-    #cameras-modal h1 { margin-bottom: 8px; }
+    /* ── Cameras tab ── */
     .cam-toolbar { display: flex; align-items: center; width: 100%; max-width: 900px; margin-bottom: 12px; }
     .cam-add-btn {
       background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3);
@@ -790,9 +776,15 @@
     }
     .cam-advanced-toggle:hover { color: rgba(255,255,255,0.7); }
 
-    /* ─── Actions settings modal ─── */
-    #actions-settings-modal { justify-content: flex-start; padding: 48px; overflow-y: auto; }
-    #actions-settings-modal h1 { margin-bottom: 8px; }
+    /* ─── Tabbed settings layout ─── */
+    .settings-layout { display:flex; width:100%; height:100%; }
+    .settings-sidebar { width:160px; min-width:160px; border-right:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; gap:2px; padding:12px 8px; }
+    .settings-tab-btn { width:100%; text-align:left; padding:8px 12px; background:transparent; border:1px solid transparent; border-radius:3px; color:rgba(255,255,255,0.45); font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
+    .settings-tab-btn:hover { color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.04); }
+    .settings-tab-btn.active { color:rgba(255,255,255,0.9); background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.2); }
+    .settings-content { flex:1; overflow-y:auto; padding:40px 48px; position:relative; }
+
+    /* ─── Actions tab ─── */
     .ae-tab-nav { display:flex; gap:4px; margin-bottom:20px; }
     .ae-tab-btn { padding:6px 16px; border:1px solid rgba(255,255,255,0.12); border-radius:3px; background:transparent; color:rgba(255,255,255,0.4); font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
     .ae-tab-btn.active { border-color:rgba(255,255,255,0.35); color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.06); }
@@ -835,219 +827,259 @@
 <body>
 
 
-<div id="settings-modal" class="modal">
-  <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
-  <h1>Settings</h1>
-  <div class="shortcut-list">
-    <div class="shortcut-row"><span class="shortcut-key" title="Close any open modal">Esc</span><span>Open settings / close modal</span></div>
-    <div class="shortcut-row"><span class="shortcut-key">←</span><span class="shortcut-key">→</span><span>Previous / next view</span></div>
-    <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Audio</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="settings-mute" onchange="toggleMute()"><span class="toggle-track"></span></label></div></div>
-    <div class="shortcut-row"><span class="shortcut-key" title="Pause / resume view cycling">Space</span><span>Pause / resume cycling</span></div>
-    <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('cameras')" title="Open camera settings">C</button><span>Camera settings</span></div>
-    <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('actions-settings')" title="Open actions settings">A</button><span>Action settings</span></div>
-<div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('views')" title="Open views">V</button><span>Views</span></div>
-    <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('streams')" title="Open stream debug info">S</button><span>Stream debug info</span></div>
-    <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('performance')" title="Open performance settings">P</button><span>Performance</span></div>
-    <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Fullscreen timeout (sec, 0 = off)</span><input type="number" id="fs-timeout-input" min="0" max="3600" placeholder="sec" style="width:56px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:3px;color:rgba(255,255,255,0.85);font-family:'Courier New',monospace;font-size:11px;padding:4px 8px;text-align:center;outline:none;" /></div></div>
-    <div class="shortcut-row" style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">
-      <div id="clear-storage-confirm" style="display:none;width:100%;flex-direction:column;gap:8px;">
-        <span style="font-size:10px;color:rgba(255,255,255,0.5);">Clear all saved preferences?</span>
-        <div style="display:flex;gap:8px;">
-          <button class="perf-reset" style="color:rgba(248,113,113,0.9);border-color:rgba(248,113,113,0.4);flex:1" onclick="confirmClearStorage()">Yes, clear</button>
-          <button class="perf-reset" style="flex:1" onclick="cancelClearStorage()">Cancel</button>
-        </div>
-      </div>
-      <button id="clear-storage-btn" class="perf-reset" style="color:rgba(248,113,113,0.7);border-color:rgba(248,113,113,0.3);width:100%" onclick="promptClearStorage()">Clear all saved data</button>
+<div id="settings-modal" class="modal" style="padding:0;align-items:stretch;">
+  <div class="settings-layout">
+    <div class="settings-sidebar">
+      <button class="settings-tab-btn active" data-tab="general" onclick="activateSettingsTab('general')">General</button>
+      <button class="settings-tab-btn" data-tab="views" onclick="activateSettingsTab('views')">Views</button>
+      <button class="settings-tab-btn" data-tab="cameras" onclick="activateSettingsTab('cameras')">Cameras</button>
+      <button class="settings-tab-btn" data-tab="actions" onclick="activateSettingsTab('actions')">Actions</button>
+      <button class="settings-tab-btn" data-tab="performance" onclick="activateSettingsTab('performance')">Performance</button>
+      <button class="settings-tab-btn" data-tab="streams" onclick="activateSettingsTab('streams')">Streams</button>
     </div>
-  </div>
-</div>
+    <div class="settings-content">
+      <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
 
-<div id="performance-modal" class="modal" style="justify-content:flex-start;padding:48px;overflow-y:auto;">
-  <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
-  <h1>Performance</h1>
+      <!-- General tab -->
+      <div id="stab-general" class="settings-tab-panel">
+        <h1 style="margin-bottom:24px">Settings</h1>
+        <div class="shortcut-list">
+          <div class="shortcut-row"><span class="shortcut-key" title="Close any open modal">Esc</span><span>Open settings / close modal</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">←</span><span class="shortcut-key">→</span><span>Previous / next view</span></div>
+          <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Audio</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="settings-mute" onchange="toggleMute()"><span class="toggle-track"></span></label></div></div>
+          <div class="shortcut-row"><span class="shortcut-key" title="Pause / resume view cycling">Space</span><span>Pause / resume cycling</span></div>
+          <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Fullscreen timeout (sec, 0 = off)</span><input type="number" id="fs-timeout-input" min="0" max="3600" placeholder="sec" style="width:56px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:3px;color:rgba(255,255,255,0.85);font-family:'Courier New',monospace;font-size:11px;padding:4px 8px;text-align:center;outline:none;" /></div></div>
+          <div class="shortcut-row" style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">
+            <div id="clear-storage-confirm" style="display:none;width:100%;flex-direction:column;gap:8px;">
+              <span style="font-size:10px;color:rgba(255,255,255,0.5);">Clear all saved preferences?</span>
+              <div style="display:flex;gap:8px;">
+                <button class="perf-reset" style="color:rgba(248,113,113,0.9);border-color:rgba(248,113,113,0.4);flex:1" onclick="confirmClearStorage()">Yes, clear</button>
+                <button class="perf-reset" style="flex:1" onclick="cancelClearStorage()">Cancel</button>
+              </div>
+            </div>
+            <button id="clear-storage-btn" class="perf-reset" style="color:rgba(248,113,113,0.7);border-color:rgba(248,113,113,0.3);width:100%" onclick="promptClearStorage()">Clear all saved data</button>
+          </div>
+        </div>
+      </div>
 
-  <div class="perf-section">
-    <div class="perf-section-title">WebRTC</div>
-    <div class="perf-rows">
-      <div class="perf-row">
-        <div class="perf-label">
-          Low power mode
-          <small>Hints browser to use less CPU/GPU for decoding</small>
+      <!-- Views tab -->
+      <div id="stab-views" class="settings-tab-panel" style="display:none">
+        <!-- Table view -->
+        <div id="views-table-wrap" style="width:100%;max-width:900px;display:flex;flex-direction:column;gap:0">
+          <div class="views-toolbar">
+            <div class="views-toolbar-group">
+              <span>Cycle</span>
+              <label class="toggle" style="margin-left:4px">
+                <input type="checkbox" id="views-cycle-chk" onchange="onViewsCycleToggle()">
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+            <div class="views-toolbar-group" id="views-default-wrap">
+              <label for="views-default-sel">Default</label>
+              <select id="views-default-sel" onchange="onViewsDefaultChange()"></select>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:8px;">
+              <button class="perf-reset" onclick="openNewViewEditor()">+ Add View</button>
+            </div>
+          </div>
+          <table class="streams-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th></th>
+                <th>Name</th>
+                <th>Layout</th>
+                <th>Streams</th>
+                <th>Duration</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="views-tbody"></tbody>
+          </table>
+          <div class="modal-hint" style="margin-top:16px">ESC to close · Cycling: <span id="cycle-status">—</span></div>
         </div>
-        <label class="toggle">
-          <input type="checkbox" id="perf-low-power" onchange="savePerfSettings()">
-          <span class="toggle-track"></span>
-        </label>
-      </div>
-    </div>
 
-    <div class="perf-section-title">Preloading</div>
-    <div class="perf-rows">
-      <div class="perf-row">
-        <div class="perf-label">
-          Disable preloading
-          <small>Stops hidden connections — saves memory on low-end devices</small>
+        <!-- Edit / add form (shown instead of table) -->
+        <div id="view-edit-panel" style="display:none;width:100%;max-width:640px;">
+          <div id="view-edit-title" style="margin-bottom:16px;font-size:13px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.7)">Edit View</div>
+          <div class="views-form-grid">
+            <div class="views-form-row">
+              <label for="ve-name">Name</label>
+              <input type="text" class="views-input" id="ve-name" placeholder="my-view" autocomplete="off" />
+            </div>
+            <div class="views-form-row">
+              <label for="ve-duration">Duration (s)</label>
+              <input type="number" class="perf-input" id="ve-duration" min="-1" placeholder="20" />
+              <span style="font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:0.1em">−1 = stay forever</span>
+            </div>
+            <div class="views-form-row" id="ve-preload-row">
+              <label for="ve-preload-enabled">Preload lead (s)</label>
+              <label class="toggle" style="flex:0 0 36px;margin-right:10px">
+                <input type="checkbox" id="ve-preload-enabled" onchange="toggleVePreload()">
+                <span class="toggle-track"></span>
+              </label>
+              <input type="number" class="perf-input" id="ve-leadtime" min="0" placeholder="5" style="display:none" />
+              <span id="ve-preload-hint" style="font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:0.05em">off</span>
+            </div>
+          </div>
+          <div style="font-size:11px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);text-transform:uppercase;margin:0 0 8px;font-weight:500">Layout</div>
+          <div id="ve-layout-grid" class="ve-layout-grid"></div>
+          <div style="font-size:11px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);text-transform:uppercase;margin:16px 0 8px;font-weight:500">Streams</div>
+          <div id="ve-stream-picker"></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+            <button class="perf-reset" onclick="cancelViewEdit()">Cancel</button>
+            <button class="perf-reset" style="color:#4ade80;border-color:rgba(74,222,128,0.6);background:rgba(74,222,128,0.1)" onclick="saveViewForm()">Save View</button>
+          </div>
         </div>
-        <label class="toggle">
-          <input type="checkbox" id="perf-no-preload" onchange="savePerfSettings()">
-          <span class="toggle-track"></span>
-        </label>
       </div>
-    </div>
 
-    <div class="perf-section-title">Streams</div>
-    <div class="perf-rows">
-      <div class="perf-row">
-        <div class="perf-label">
-          Destroy off-screen streams
-          <small>Closes WebRTC connections for streams not in current view</small>
+      <!-- Cameras tab -->
+      <div id="stab-cameras" class="settings-tab-panel" style="display:none">
+        <div class="cam-toolbar">
+          <span style="flex:1"></span>
+          <button class="cam-add-btn" id="cam-add-btn" onclick="addCamStream()">+ Add Camera</button>
         </div>
-        <label class="toggle">
-          <input type="checkbox" id="perf-destroy-offscreen" onchange="savePerfSettings()">
-          <span class="toggle-track"></span>
-        </label>
-      </div>
-      <div class="perf-row">
-        <div class="perf-label">
-          Max visible streams
-          <small>Cap number of simultaneous streams (0 = no limit)</small>
+        <table class="streams-table" id="cam-table" style="max-width:900px;width:100%">
+          <thead>
+            <tr>
+              <th></th>
+              <th></th>
+              <th>Name</th>
+              <th>Source</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="cam-tbody"></tbody>
+        </table>
+        <div class="cam-unsaved-banner" id="cam-banner" style="display:none">
+          <span><span class="cam-unsaved-dot"></span><span id="cam-banner-text">Unsaved changes</span></span>
+          <div style="display:flex;gap:8px">
+            <button class="perf-reset" onclick="discardCamChanges()">Discard</button>
+            <button class="cam-apply-btn" id="cam-apply-btn" onclick="applyCamChanges()">Apply Changes</button>
+          </div>
         </div>
-        <input type="number" class="perf-input" id="perf-max-streams" min="0" max="8" value="0" onchange="savePerfSettings()">
+        <p class="modal-hint" style="margin-top:12px">ESC to close · changes apply to MediaMTX without restart</p>
       </div>
-      <div class="perf-row">
-        <div class="perf-label">
-          Max keep-alive connections
-          <small>When destroy off-screen is on — keep streams alive for next view if total connections ≤ this. 0 = use lead time logic instead</small>
-        </div>
-        <input type="number" class="perf-input" id="perf-max-keepalive" min="0" max="8" value="0" onchange="savePerfSettings()">
-      </div>
-    </div>
 
-    <div class="perf-section-title">Retry</div>
-    <div class="perf-rows">
-      <div class="perf-row">
-        <div class="perf-label">
-          Max retry delay (seconds)
-          <small>Caps exponential backoff — lower saves reconnect attempts</small>
-        </div>
-        <input type="number" class="perf-input" id="perf-max-retry" min="2" max="300" value="30" onchange="savePerfSettings()">
+      <!-- Actions tab -->
+      <div id="stab-actions" class="settings-tab-panel" style="display:none">
+        <div id="ae-content"><!-- rendered by JS --></div>
       </div>
-    </div>
 
-    <div class="perf-section-title">Debug</div>
-    <div class="perf-rows">
-      <div class="perf-row">
-        <div class="perf-label">
-          Debug overlay
-          <small>Shows stream info, source, refresh and view countdown on screen</small>
+      <!-- Performance tab -->
+      <div id="stab-performance" class="settings-tab-panel" style="display:none">
+        <div class="perf-section">
+          <div class="perf-section-title">WebRTC</div>
+          <div class="perf-rows">
+            <div class="perf-row">
+              <div class="perf-label">
+                Low power mode
+                <small>Hints browser to use less CPU/GPU for decoding</small>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="perf-low-power" onchange="savePerfSettings()">
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="perf-section-title">Preloading</div>
+          <div class="perf-rows">
+            <div class="perf-row">
+              <div class="perf-label">
+                Disable preloading
+                <small>Stops hidden connections — saves memory on low-end devices</small>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="perf-no-preload" onchange="savePerfSettings()">
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="perf-section-title">Streams</div>
+          <div class="perf-rows">
+            <div class="perf-row">
+              <div class="perf-label">
+                Destroy off-screen streams
+                <small>Closes WebRTC connections for streams not in current view</small>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="perf-destroy-offscreen" onchange="savePerfSettings()">
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+            <div class="perf-row">
+              <div class="perf-label">
+                Max visible streams
+                <small>Cap number of simultaneous streams (0 = no limit)</small>
+              </div>
+              <input type="number" class="perf-input" id="perf-max-streams" min="0" max="8" value="0" onchange="savePerfSettings()">
+            </div>
+            <div class="perf-row">
+              <div class="perf-label">
+                Max keep-alive connections
+                <small>When destroy off-screen is on — keep streams alive for next view if total connections ≤ this. 0 = use lead time logic instead</small>
+              </div>
+              <input type="number" class="perf-input" id="perf-max-keepalive" min="0" max="8" value="0" onchange="savePerfSettings()">
+            </div>
+          </div>
+
+          <div class="perf-section-title">Retry</div>
+          <div class="perf-rows">
+            <div class="perf-row">
+              <div class="perf-label">
+                Max retry delay (seconds)
+                <small>Caps exponential backoff — lower saves reconnect attempts</small>
+              </div>
+              <input type="number" class="perf-input" id="perf-max-retry" min="2" max="300" value="30" onchange="savePerfSettings()">
+            </div>
+          </div>
+
+          <div class="perf-section-title">Debug</div>
+          <div class="perf-rows">
+            <div class="perf-row">
+              <div class="perf-label">
+                Debug overlay
+                <small>Shows stream info, source, refresh and view countdown on screen</small>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="perf-debug-overlay" onchange="savePerfSettings()">
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button class="perf-reset" onclick="resetPerfSettings()">Reset to defaults</button>
+          </div>
         </div>
-        <label class="toggle">
-          <input type="checkbox" id="perf-debug-overlay" onchange="savePerfSettings()">
-          <span class="toggle-track"></span>
-        </label>
       </div>
-    </div>
 
-    <div style="display:flex;justify-content:flex-end;">
-      <button class="perf-reset" onclick="resetPerfSettings()">Reset to defaults</button>
-    </div>
-  </div>
-</div>
+      <!-- Streams tab -->
+      <div id="stab-streams" class="settings-tab-panel" style="display:none">
+        <table class="streams-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Name</th>
+              <th>Aspect Ratio</th>
+              <th>Fit</th>
+              <th>Audio</th>
+              <th>Refresh</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody id="streams-tbody"></tbody>
+        </table>
+        <div class="modal-hint" style="margin-top:16px">ESC to close</div>
+      </div>
+
+    </div><!-- /.settings-content -->
+  </div><!-- /.settings-layout -->
+</div><!-- /#settings-modal -->
 
 <button id="settings-btn" onclick="openSettingsModal()">⚙ Settings</button>
-
-<div id="views-modal" class="modal">
-  <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
-  <h1>Views</h1>
-
-  <!-- Table view -->
-  <div id="views-table-wrap" style="width:100%;max-width:900px;display:flex;flex-direction:column;gap:0">
-    <div class="views-toolbar">
-      <div class="views-toolbar-group">
-        <span>Cycle</span>
-        <label class="toggle" style="margin-left:4px">
-          <input type="checkbox" id="views-cycle-chk" onchange="onViewsCycleToggle()">
-          <span class="toggle-track"></span>
-        </label>
-      </div>
-      <div class="views-toolbar-group" id="views-default-wrap">
-        <label for="views-default-sel">Default</label>
-        <select id="views-default-sel" onchange="onViewsDefaultChange()"></select>
-      </div>
-      <div style="margin-left:auto;display:flex;gap:8px;">
-        <button class="perf-reset" onclick="openNewViewEditor()">+ Add View</button>
-      </div>
-    </div>
-    <table class="streams-table">
-      <thead>
-        <tr>
-          <th></th>
-          <th></th>
-          <th>Name</th>
-          <th>Layout</th>
-          <th>Streams</th>
-          <th>Duration</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="views-tbody"></tbody>
-    </table>
-    <div class="modal-hint" style="margin-top:16px">ESC to close · Cycling: <span id="cycle-status">—</span></div>
-  </div>
-
-  <!-- Edit / add form (shown instead of table) -->
-  <div id="view-edit-panel" style="display:none;width:100%;max-width:640px;">
-    <div id="view-edit-title" style="margin-bottom:16px;font-size:13px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.7)">Edit View</div>
-    <div class="views-form-grid">
-      <div class="views-form-row">
-        <label for="ve-name">Name</label>
-        <input type="text" class="views-input" id="ve-name" placeholder="my-view" autocomplete="off" />
-      </div>
-      <div class="views-form-row">
-        <label for="ve-duration">Duration (s)</label>
-        <input type="number" class="perf-input" id="ve-duration" min="-1" placeholder="20" />
-        <span style="font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:0.1em">−1 = stay forever</span>
-      </div>
-      <div class="views-form-row" id="ve-preload-row">
-        <label for="ve-preload-enabled">Preload lead (s)</label>
-        <label class="toggle" style="flex:0 0 36px;margin-right:10px">
-          <input type="checkbox" id="ve-preload-enabled" onchange="toggleVePreload()">
-          <span class="toggle-track"></span>
-        </label>
-        <input type="number" class="perf-input" id="ve-leadtime" min="0" placeholder="5" style="display:none" />
-        <span id="ve-preload-hint" style="font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:0.05em">off</span>
-      </div>
-    </div>
-    <div style="font-size:11px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);text-transform:uppercase;margin:0 0 8px;font-weight:500">Layout</div>
-    <div id="ve-layout-grid" class="ve-layout-grid"></div>
-    <div style="font-size:11px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);text-transform:uppercase;margin:16px 0 8px;font-weight:500">Streams</div>
-    <div id="ve-stream-picker"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
-      <button class="perf-reset" onclick="cancelViewEdit()">Cancel</button>
-      <button class="perf-reset" style="color:#4ade80;border-color:rgba(74,222,128,0.6);background:rgba(74,222,128,0.1)" onclick="saveViewForm()">Save View</button>
-    </div>
-  </div>
-</div>
-
-<div id="streams-modal" class="modal">
-  <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
-  <h1>Configured Streams</h1>
-  <table class="streams-table">
-    <thead>
-      <tr>
-        <th>Status</th>
-        <th>Name</th>
-        <th>Aspect Ratio</th>
-        <th>Fit</th>
-        <th>Audio</th>
-        <th>Refresh</th>
-        <th>Source</th>
-      </tr>
-    </thead>
-    <tbody id="streams-tbody"></tbody>
-  </table>
-  <div class="modal-hint">ESC to close</div>
-</div>
 
 <div id="cycle-indicator"><span class="ci-icon"></span><span id="ci-text"></span></div>
 <div id="debug-overlay"></div>
@@ -1072,40 +1104,6 @@
   // ENABLE_PRELOAD — set to 1/on/true to show per-view preload lead time in the views editor
   const ENABLE_PRELOAD        = ['1','on','true'].includes('$ENABLE_PRELOAD'.toLowerCase());
 </script>
-<div id="cameras-modal" class="modal">
-  <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
-  <h1>CAMERAS</h1>
-  <div class="cam-toolbar">
-    <span style="flex:1"></span>
-    <button class="cam-add-btn" id="cam-add-btn" onclick="addCamStream()">+ Add Camera</button>
-  </div>
-  <table class="streams-table" id="cam-table" style="max-width:900px;width:100%">
-    <thead>
-      <tr>
-        <th></th>
-        <th></th>
-        <th>Name</th>
-        <th>Source</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody id="cam-tbody"></tbody>
-  </table>
-  <div class="cam-unsaved-banner" id="cam-banner" style="display:none">
-    <span><span class="cam-unsaved-dot"></span><span id="cam-banner-text">Unsaved changes</span></span>
-    <div style="display:flex;gap:8px">
-      <button class="perf-reset" onclick="discardCamChanges()">Discard</button>
-      <button class="cam-apply-btn" id="cam-apply-btn" onclick="applyCamChanges()">Apply Changes</button>
-    </div>
-  </div>
-  <p class="modal-hint">ESC to close · changes apply to MediaMTX without restart</p>
-</div>
-
-<div id="actions-settings-modal" class="modal">
-  <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
-  <h1>ACTIONS</h1>
-  <div id="ae-content"><!-- rendered by JS --></div>
-</div>
 
 <!-- Actions modal -->
 <div id="actions-modal" style="display:none; position:fixed; background:rgba(10,10,10,0.92); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:32px 24px 48px 24px; box-shadow:0 8px 32px rgba(0,0,0,0.5); z-index:10001; min-width:280px; max-width:600px;">

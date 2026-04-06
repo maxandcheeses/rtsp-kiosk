@@ -38,14 +38,14 @@ function moveView(name, dir) {
   if (next < 0 || next >= VIEWS.length) return;
   [VIEWS[idx], VIEWS[next]] = [VIEWS[next], VIEWS[idx]];
   _persistViews();
-  openViewsModal();
+  renderViewsTab();
 }
 
 let _confirmDeleteName = null;
 
 function promptDeleteView(name) {
   _confirmDeleteName = name;
-  openViewsModal();
+  renderViewsTab();
 }
 
 function confirmDeleteView(name) {
@@ -55,12 +55,12 @@ function confirmDeleteView(name) {
   VIEWS.splice(idx, 1);
   if (VIEWS_DEFAULT === name) VIEWS_DEFAULT = VIEWS[0]?.name ?? null;
   _persistViews();
-  openViewsModal();
+  renderViewsTab();
 }
 
 function cancelDeleteView() {
   _confirmDeleteName = null;
-  openViewsModal();
+  renderViewsTab();
 }
 
 function cloneView(name) {
@@ -156,7 +156,7 @@ function _onDragEnd(e) {
   const [moved] = VIEWS.splice(idx, 1);
   VIEWS.splice(newIdx, 0, moved);
   _persistViews();
-  openViewsModal();
+  renderViewsTab();
 }
 
 // ── View edit form ────────────────────────────────────
@@ -305,7 +305,7 @@ function cancelViewEdit() {
   _editingViewName = null;
   _editStreams      = [];
   _editSlotGroups  = [];
-  openViewsModal();
+  renderViewsTab();
 }
 
 function toggleVePreload() {
