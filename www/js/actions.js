@@ -5,11 +5,9 @@
 let ACTIONS       = {};  // id → action object
 let ACTION_GROUPS = {};  // id → group object
 let ACTION_STATES = {};  // state topic → last payload string
-let MQTT_SERVERS  = {};  // id → server config object
 let ACTIONS_MODAL_OPEN = false;
 let _actionsSlotIndex  = null; // which slot triggered the modal
 let _actionUnsubscribers = [];
-let _connectedServerIds = new Set(); // server ids currently connected for active panel
 
 async function loadActionsConfig() {
   // Clean up any previous subscriptions from a prior load
@@ -17,7 +15,6 @@ async function loadActionsConfig() {
   _actionUnsubscribers = [];
   ACTIONS       = {};
   ACTION_GROUPS = {};
-  MQTT_SERVERS  = {};
   // Keep ACTION_STATES — values are still valid if topics haven't changed
 
   try {
@@ -25,11 +22,14 @@ async function loadActionsConfig() {
     if (!res.ok) { console.log('Actions: no actions.json found, skipping'); return; }
     const cfg = await res.json();
 
-    // Parse servers (new schema: mqtt.servers array)
-    ((cfg.mqtt && cfg.mqtt.servers) || []).forEach(s => { MQTT_SERVERS[s.id] = s; });
-
     (cfg.actions || []).forEach(a => { ACTIONS[a.id] = a; });
     (cfg.groups  || []).forEach(g => { ACTION_GROUPS[g.id] = g; });
+
+    // Connect global MQTT client using broker from actions.json if configured
+    if (cfg.mqtt && cfg.mqtt.broker) {
+      const { broker, username, password } = cfg.mqtt;
+      mqttConnect(broker, username, password);
+    }
 
     // Subscribe to all unique state topics via the global MQTT client
     const stateTopics = new Set();
@@ -44,71 +44,9 @@ async function loadActionsConfig() {
       _actionUnsubscribers.push(unsub);
     });
 
-    console.log(`Actions: loaded ${Object.keys(ACTIONS).length} actions, ${Object.keys(ACTION_GROUPS).length} groups, ${Object.keys(MQTT_SERVERS).length} MQTT servers`);
-
-    // Connect servers for the current view context
-    connectServersForContext();
+    console.log(`Actions: loaded ${Object.keys(ACTIONS).length} actions, ${Object.keys(ACTION_GROUPS).length} groups`);
   } catch(e) {
     console.warn('Actions: failed to load actions.json', e);
-  }
-}
-
-// Connect MQTT servers needed for the current view context; disconnect others.
-// - If view cycling is enabled: connect servers for all groups across all views.
-// - If view cycling is disabled: connect servers for groups in the active view only.
-// Called after loadActionsConfig() and after each view change (when cycling is off).
-function connectServersForContext() {
-  if (typeof mqtt === 'undefined') return;
-
-  // Determine which view(s) to consider
-  let groupIds = new Set();
-  if (VIEWS_CYCLE && VIEWS.length > 1) {
-    // Cycling on — collect groups from all views
-    VIEWS.forEach(view => {
-      const slotGroups = view.slotGroups;
-      if (slotGroups) Object.values(slotGroups).forEach(g => { if (g) groupIds.add(g); });
-    });
-  } else {
-    // Cycling off — only current active view
-    const view = typeof getView === 'function' && activeView ? getView(activeView) : null;
-    const slotGroups = view && view.slotGroups;
-    if (slotGroups) Object.values(slotGroups).forEach(g => { if (g) groupIds.add(g); });
-  }
-
-  // Collect all unique mqttServer ids needed by actions in those groups
-  const needed = new Set();
-  groupIds.forEach(groupId => {
-    const group = ACTION_GROUPS[groupId];
-    if (!group) return;
-    (group.actions || []).forEach(actionId => {
-      const action = ACTIONS[actionId];
-      if (action && action.type === 'mqtt' && action.mqttServer) {
-        needed.add(action.mqttServer);
-      }
-    });
-  });
-
-  // Disconnect servers no longer needed
-  _connectedServerIds.forEach(id => {
-    if (!needed.has(id)) {
-      disconnectMqttClient(id);
-      _connectedServerIds.delete(id);
-    }
-  });
-
-  // Connect newly needed servers
-  needed.forEach(serverId => {
-    if (!_connectedServerIds.has(serverId)) {
-      const serverConfig = MQTT_SERVERS[serverId];
-      if (serverConfig) {
-        getOrCreateMqttClient(serverConfig);
-        _connectedServerIds.add(serverId);
-      }
-    }
-  });
-
-  if (needed.size > 0 || _connectedServerIds.size > 0) {
-    console.log(`Actions MQTT: context updated — connected servers: [${[...needed].join(', ') || 'none'}]`);
   }
 }
 
@@ -166,11 +104,7 @@ function _renderActionButtons(groupId) {
     if (!action) { console.warn(`Actions: action "${id}" not found`); return ''; }
 
     // Determine if the action's MQTT client is connected
-    const isDisabled = action.type === 'mqtt' && (
-      !action.mqttServer ||
-      !MQTT_SERVERS[action.mqttServer] ||
-      !(_mqttClients.get(action.mqttServer) && _mqttClients.get(action.mqttServer).connected)
-    );
+    const isDisabled = action.type === 'mqtt' && !_mqttConnected;
 
     const isOn = action.state && ACTION_STATES[action.state.topic] === action.state.onValue;
     const iconHtml = _renderIcon(action.icon);
@@ -202,18 +136,8 @@ function pressAction(actionId) {
 
   const btn = document.querySelector(`[data-action-id="${actionId}"]`);
 
-  // Route publish to the correct named MQTT client
-  let ok = false;
-  if (action.type === 'mqtt' && action.mqttServer) {
-    const client = _mqttClients.get(action.mqttServer);
-    if (client && client.connected) {
-      client.publish(action.publish.topic, action.publish.payload, { qos: 1 });
-      ok = true;
-    }
-  } else if (!action.type || action.type !== 'mqtt') {
-    // Fallback to global MQTT for legacy actions without type field
-    ok = mqttPublish(action.publish.topic, action.publish.payload);
-  }
+  // Publish via the global MQTT client
+  const ok = mqttPublish(action.publish.topic, action.publish.payload);
 
   if (!ok) {
     if (btn) {

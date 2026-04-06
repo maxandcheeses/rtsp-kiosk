@@ -7,9 +7,6 @@ function activateView(name, skipCycleReset) {
   console.log(`Activating view: ${name}`);
   activeView = name;
 
-  // Lazy-connect MQTT servers needed for this view's action groups
-  if (typeof connectServersForView === 'function') connectServersForView(view);
-
   // Filter STREAMS to only those in this view, in order
   const ordered = view.streams
     .map(p => STREAMS.find(s => s.path === p))
@@ -104,13 +101,6 @@ function activateView(name, skipCycleReset) {
   // Schedule next view if cycling
   if (!skipCycleReset) scheduleCycle(view);
 
-  // Update MQTT server connections for the new view context.
-  // When cycling is off, the active view determines which servers to connect.
-  // When cycling is on, connectServersForContext already connected all views' servers
-  // at loadActionsConfig time — no need to re-run on every view change.
-  if (!VIEWS_CYCLE && typeof connectServersForContext === 'function') {
-    connectServersForContext();
-  }
 }
 
 function scheduleCycle(view) {

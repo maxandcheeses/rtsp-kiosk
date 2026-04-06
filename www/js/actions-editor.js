@@ -94,7 +94,6 @@ function _renderAeTabsInto(container) {
     <div id="ae-tab-content" style="width:100%;max-width:900px">${tabContent}</div>
     ${bannerHtml}`;
 
-  if (AE_TAB === 'mqtt')    _initAeSrvDrag();
   if (AE_TAB === 'actions') _initAeActionDrag();
   if (AE_TAB === 'groups')  _initAeGroupDrag();
 }
@@ -109,193 +108,35 @@ function switchAeTab(tab) {
 // ── MQTT Tab ─────────────────────────────────────────────────────────────────
 
 function _buildAeMqttTab() {
-  const servers = (AE_LOCAL && AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || [];
+  const broker   = (AE_LOCAL && AE_LOCAL.mqtt && AE_LOCAL.mqtt.broker)   || '';
+  const username = (AE_LOCAL && AE_LOCAL.mqtt && AE_LOCAL.mqtt.username) || '';
+  const password = (AE_LOCAL && AE_LOCAL.mqtt && AE_LOCAL.mqtt.password) || '';
 
-  const addBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-    <button class="cam-add-btn" onclick="addAeServer()">+ Add Server</button>
-  </div>`;
-
-  if (servers.length === 0) {
-    return addBtn + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
-      NO MQTT SERVERS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Server above</span>
-    </div>`;
-  }
-
-  let rows = '';
-  servers.forEach(srv => {
-    const id  = srv.id || '';
-    const esc = _aeEsc(id);
-    const isOpen = AE_OPEN_DRAWER === `srv:${id}`;
-
-    rows += `<tr id="ae-srv-row-${esc}" style="cursor:pointer" onclick="(function(e){if(!e.target.closest('button'))openAeSrvDrawer('${esc}')})(event)">
-      <td class="cam-drag-handle" style="width:32px">≡</td>
-      <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${_aeEsc(id)}</td>
-      <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.4);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_aeEsc(srv.broker || '')}</td>
-      <td style="text-align:right;white-space:nowrap">
-        <button class="sp-btn" onclick="openAeSrvDrawer('${esc}')" title="Edit">✎</button>
-        <button class="sp-btn" onclick="deleteAeServer('${esc}')" title="Delete" style="color:rgba(248,113,113,0.6);border-color:rgba(248,113,113,0.2)">✕</button>
-      </td>
-    </tr>
-    <tr id="ae-srv-drawer-row-${esc}">
-      <td colspan="4" style="padding:0;border:none">
-        <div class="cam-drawer" id="ae-srv-drawer-${esc}" style="${isOpen ? 'max-height:9999px' : ''}">
-          <div class="cam-drawer-inner" id="ae-srv-drawer-inner-${esc}">${isOpen ? _buildAeSrvDrawerForm(srv, false) : ''}</div>
-        </div>
-      </td>
-    </tr>`;
-  });
-
-  return addBtn + `<table class="streams-table" style="width:100%">
-    <thead><tr>
-      <th></th><th>ID</th><th>Broker</th><th></th>
-    </tr></thead>
-    <tbody id="ae-srv-tbody">${rows}</tbody>
-  </table>`;
-}
-
-function _buildAeSrvDrawerForm(srv, isNew) {
-  const id       = srv.id || '';
-  const broker   = srv.broker || '';
-  const username = srv.username || '';
-  const password = srv.password || '';
-  return `<div class="cam-form-grid">
-    <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">ID (slug)</label>
-      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-        <input class="views-input" id="ae-srv-field-id" value="${_aeEsc(id)}" placeholder="my-broker">
-        <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace">Lowercase letters, numbers, hyphens</div>
-        <div class="cam-field-error" id="ae-srv-err-id"></div>
-      </div>
-    </div>
+  return `<div class="cam-form-grid" style="max-width:600px">
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Broker URL</label>
-      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-        <input class="views-input" id="ae-srv-field-broker" value="${_aeEsc(broker)}" placeholder="ws://host:9001">
-        <div class="cam-field-error" id="ae-srv-err-broker"></div>
-      </div>
+      <input class="views-input" id="ae-mqtt-broker" value="${_aeEsc(broker)}" placeholder="ws://host:9001"
+        oninput="_aeMqttFieldChanged()">
     </div>
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Username</label>
-      <input class="views-input" id="ae-srv-field-username" value="${_aeEsc(username)}" placeholder="optional">
+      <input class="views-input" id="ae-mqtt-username" value="${_aeEsc(username)}" placeholder="optional"
+        oninput="_aeMqttFieldChanged()">
     </div>
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Password</label>
-      <input class="views-input" type="password" id="ae-srv-field-password" value="${_aeEsc(password)}" placeholder="optional">
+      <input class="views-input" type="password" id="ae-mqtt-password" value="${_aeEsc(password)}" placeholder="optional"
+        oninput="_aeMqttFieldChanged()">
     </div>
-  </div>
-  <div class="cam-drawer-footer">
-    <button class="perf-reset" onclick="closeAeDrawer()">Cancel</button>
-    <button class="cam-save-btn" onclick="saveAeSrvDrawer('${_aeEsc(id)}', ${isNew})">Save</button>
   </div>`;
 }
 
-function openAeSrvDrawer(id) {
-  if (AE_OPEN_DRAWER && AE_OPEN_DRAWER !== `srv:${id}`) closeAeDrawer();
-  const srv = (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers || []).find(s => s.id === id);
-  if (!srv) return;
-  const inner = document.getElementById(`ae-srv-drawer-inner-${id}`);
-  if (!inner) return;
-  const isNew = !AE_FULL || !(AE_FULL.mqtt && AE_FULL.mqtt.servers || []).find(s => s.id === id);
-  inner.innerHTML = _buildAeSrvDrawerForm(srv, isNew);
-  const drawer = document.getElementById(`ae-srv-drawer-${id}`);
-  if (drawer) drawer.style.maxHeight = '9999px';
-  AE_OPEN_DRAWER = `srv:${id}`;
-  const row = document.getElementById(`ae-srv-row-${id}`);
-  if (row) row.classList.add('cam-row-active');
-}
-
-function saveAeSrvDrawer(originalId, isNew) {
-  const idEl     = document.getElementById('ae-srv-field-id');
-  const brokerEl = document.getElementById('ae-srv-field-broker');
-  const newId    = idEl     ? idEl.value.trim()     : originalId;
-  const broker   = brokerEl ? brokerEl.value.trim() : '';
-  const username = (document.getElementById('ae-srv-field-username') || {}).value || '';
-  const password = (document.getElementById('ae-srv-field-password') || {}).value || '';
-
-  let valid = true;
-
-  const errId = document.getElementById('ae-srv-err-id');
-  if (!/^[a-z0-9-]+$/.test(newId)) {
-    if (errId) errId.textContent = 'Lowercase letters, numbers, and hyphens only';
-    valid = false;
-  } else if (newId !== originalId && (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers || []).find(s => s.id === newId)) {
-    if (errId) errId.textContent = 'ID already exists';
-    valid = false;
-  } else {
-    if (errId) errId.textContent = '';
-  }
-
-  const errBroker = document.getElementById('ae-srv-err-broker');
-  if (!broker) {
-    if (errBroker) errBroker.textContent = 'Broker URL is required';
-    valid = false;
-  } else {
-    if (errBroker) errBroker.textContent = '';
-  }
-
-  if (!valid) return;
-
-  // Cascade-rename mqttServer references in actions if id changed
-  if (newId !== originalId) {
-    (AE_LOCAL.actions || []).forEach(a => {
-      if (a.mqttServer === originalId) a.mqttServer = newId;
-    });
-  }
-
-  const updated = { id: newId, broker, username, password };
-  if (!AE_LOCAL.mqtt) AE_LOCAL.mqtt = { servers: [] };
-  if (!AE_LOCAL.mqtt.servers) AE_LOCAL.mqtt.servers = [];
-  const idx = AE_LOCAL.mqtt.servers.findIndex(s => s.id === originalId);
-  if (idx >= 0) {
-    AE_LOCAL.mqtt.servers[idx] = updated;
-  } else {
-    AE_LOCAL.mqtt.servers.push(updated);
-  }
-
-  AE_OPEN_DRAWER = null;
-  const container = document.getElementById('ae-tabs-and-content');
-  if (container) _renderAeTabsInto(container);
+function _aeMqttFieldChanged() {
+  if (!AE_LOCAL.mqtt) AE_LOCAL.mqtt = {};
+  AE_LOCAL.mqtt.broker   = (document.getElementById('ae-mqtt-broker')   || {}).value || '';
+  AE_LOCAL.mqtt.username = (document.getElementById('ae-mqtt-username') || {}).value || '';
+  AE_LOCAL.mqtt.password = (document.getElementById('ae-mqtt-password') || {}).value || '';
   markAeUnsaved();
-}
-
-function deleteAeServer(id) {
-  const servers = (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || [];
-  const srv = servers.find(s => s.id === id);
-  if (!srv) return;
-  const row = document.getElementById(`ae-srv-row-${id}`);
-  if (!row) return;
-  row.classList.add('cam-row-confirm');
-  row.onclick = null;
-  row.innerHTML = `<td colspan="3" style="padding:10px 16px">
-    <span style="font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.7)">Delete server "<strong>${_aeEsc(id)}</strong>"?</span>
-  </td>
-  <td style="text-align:right;white-space:nowrap;padding:10px 16px">
-    <button class="perf-reset" onclick="(function(){const c=document.getElementById('ae-tabs-and-content');if(c)_renderAeTabsInto(c);})()">Cancel</button>
-    <button class="cam-save-btn" style="background:rgba(248,113,113,0.15);border-color:rgba(248,113,113,0.5);color:#f87171" onclick="confirmDeleteAeServer('${_aeEsc(id)}')">Delete</button>
-  </td>`;
-}
-
-function confirmDeleteAeServer(id) {
-  if (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) {
-    AE_LOCAL.mqtt.servers = AE_LOCAL.mqtt.servers.filter(s => s.id !== id);
-  }
-  // Leave orphaned mqttServer references — they render as disabled at runtime
-  if (AE_OPEN_DRAWER === `srv:${id}`) AE_OPEN_DRAWER = null;
-  const container = document.getElementById('ae-tabs-and-content');
-  if (container) _renderAeTabsInto(container);
-  markAeUnsaved();
-}
-
-function addAeServer() {
-  if (!AE_LOCAL.mqtt) AE_LOCAL.mqtt = { servers: [] };
-  if (!AE_LOCAL.mqtt.servers) AE_LOCAL.mqtt.servers = [];
-  let n = 1;
-  while (AE_LOCAL.mqtt.servers.find(s => s.id === `server-${n}`)) n++;
-  const newSrv = { id: `server-${n}`, broker: '', username: '', password: '' };
-  AE_LOCAL.mqtt.servers.push(newSrv);
-  AE_OPEN_DRAWER = `srv:${newSrv.id}`;
-  const container = document.getElementById('ae-tabs-and-content');
-  if (container) _renderAeTabsInto(container);
 }
 
 // ── Actions Tab ───────────────────────────────────────────────────────────────
@@ -319,15 +160,12 @@ function _buildAeActionsTab() {
     const esc = _aeEsc(id);
     const iconHtml = action.icon ? _renderIcon(action.icon) : '';
     const publishSummary = action.publish ? `${_aeEsc(action.publish.topic)} → ${_aeEsc(action.publish.payload)}` : '—';
-    const stateInfo = action.state ? `<span style="font-size:9px;color:rgba(255,255,255,0.3)">${_aeEsc(action.state.topic)}</span>` : '';
-    const serverLabel = action.mqttServer ? _aeEsc(action.mqttServer) : '<span style="color:rgba(248,113,113,0.6)">none</span>';
     const isOpen = AE_OPEN_DRAWER === id;
 
     rows += `<tr id="ae-action-row-${esc}" style="cursor:pointer" onclick="(function(e){if(!e.target.closest('button'))openAeActionDrawer('${esc}')})(event)">
       <td class="cam-drag-handle" style="width:32px">≡</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${_aeEsc(id)}</td>
       <td style="font-size:11px">${_aeEsc(action.label || '')}</td>
-      <td style="font-family:'Courier New',monospace;font-size:9px;color:rgba(255,255,255,0.4)">${serverLabel}</td>
       <td style="font-size:18px;padding:6px 10px">${iconHtml}</td>
       <td style="font-family:'Courier New',monospace;font-size:9px;color:rgba(255,255,255,0.4);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${publishSummary}</td>
       <td style="text-align:right;white-space:nowrap">
@@ -336,7 +174,7 @@ function _buildAeActionsTab() {
       </td>
     </tr>
     <tr id="ae-action-drawer-row-${esc}">
-      <td colspan="7" style="padding:0;border:none">
+      <td colspan="6" style="padding:0;border:none">
         <div class="cam-drawer" id="ae-action-drawer-${esc}" style="${isOpen ? 'max-height:9999px' : ''}">
           <div class="cam-drawer-inner" id="ae-action-drawer-inner-${esc}">${isOpen ? _buildAeActionDrawerForm(action, false) : ''}</div>
         </div>
@@ -346,29 +184,21 @@ function _buildAeActionsTab() {
 
   return addBtn + `<table class="streams-table" style="width:100%">
     <thead><tr>
-      <th></th><th>ID</th><th>Label</th><th>Server</th><th>Icon</th><th>Publish</th><th></th>
+      <th></th><th>ID</th><th>Label</th><th>Icon</th><th>Publish</th><th></th>
     </tr></thead>
     <tbody id="ae-actions-tbody">${rows}</tbody>
   </table>`;
 }
 
 function _buildAeActionDrawerForm(action, isNew) {
-  const id         = action.id || '';
-  const label      = action.label || '';
-  const icon       = action.icon || '';
-  const type       = action.type || 'mqtt';
-  const mqttServer = action.mqttServer || '';
+  const id     = action.id || '';
+  const label  = action.label || '';
+  const icon   = action.icon || '';
+  const type   = action.type || 'mqtt';
   const pTopic = (action.publish && action.publish.topic) || '';
   const pPay   = (action.publish && action.publish.payload) || '';
   const sTopic = (action.state && action.state.topic) || '';
   const sOnVal = (action.state && action.state.onValue) || '';
-
-  const servers = (AE_LOCAL && AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || [];
-  const serverOpts = servers.length === 0
-    ? `<option value="" disabled>No servers configured</option>`
-    : `<option value="">— none —</option>` + servers.map(s =>
-        `<option value="${_aeEsc(s.id)}"${s.id === mqttServer ? ' selected' : ''}>${_aeEsc(s.id)}</option>`
-      ).join('');
 
   const iconPreviewId = `ae-icon-preview-${_aeEsc(id)}`;
   return `<div class="cam-form-grid">
@@ -392,15 +222,6 @@ function _buildAeActionDrawerForm(action, isNew) {
       <select class="views-input" id="ae-field-type" style="flex:none;width:auto">
         <option value="mqtt"${type === 'mqtt' ? ' selected' : ''}>mqtt</option>
       </select>
-    </div>
-    <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Server</label>
-      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-        <select class="views-input" id="ae-field-server" style="flex:none;width:auto"${servers.length === 0 ? ' disabled' : ''}>
-          ${serverOpts}
-        </select>
-        <div class="cam-field-error" id="ae-err-server"></div>
-      </div>
     </div>
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Icon</label>
@@ -463,17 +284,10 @@ function openAeActionDrawer(id) {
 
 function closeAeDrawer() {
   if (!AE_OPEN_DRAWER) return;
-  let drawerEl, rowEl;
-  if (AE_OPEN_DRAWER.startsWith('srv:')) {
-    const srvId = AE_OPEN_DRAWER.slice(4);
-    drawerEl = document.getElementById(`ae-srv-drawer-${srvId}`);
-    rowEl    = document.getElementById(`ae-srv-row-${srvId}`);
-  } else {
-    drawerEl = document.getElementById(`ae-action-drawer-${AE_OPEN_DRAWER}`) ||
-               document.getElementById(`ae-group-drawer-${AE_OPEN_DRAWER}`);
-    rowEl    = document.getElementById(`ae-action-row-${AE_OPEN_DRAWER}`) ||
-               document.getElementById(`ae-group-row-${AE_OPEN_DRAWER}`);
-  }
+  const drawerEl = document.getElementById(`ae-action-drawer-${AE_OPEN_DRAWER}`) ||
+                   document.getElementById(`ae-group-drawer-${AE_OPEN_DRAWER}`);
+  const rowEl    = document.getElementById(`ae-action-row-${AE_OPEN_DRAWER}`) ||
+                   document.getElementById(`ae-group-row-${AE_OPEN_DRAWER}`);
   if (drawerEl) drawerEl.style.maxHeight = '0';
   if (rowEl) rowEl.classList.remove('cam-row-active');
   AE_OPEN_DRAWER = null;
@@ -489,11 +303,10 @@ function saveAeActionDrawer(originalId, isNew) {
   const newLabel   = labelEl ? labelEl.value.trim() : '';
   const pTopic     = ptEl    ? ptEl.value.trim()    : '';
   const pPayload   = ppEl    ? ppEl.value.trim()    : '';
-  const icon       = (document.getElementById('ae-field-icon')   || {}).value || '';
-  const sTopic     = (document.getElementById('ae-field-state-topic')   || {}).value.trim();
-  const sOnVal     = (document.getElementById('ae-field-state-onvalue') || {}).value.trim();
-  const type       = (document.getElementById('ae-field-type')   || {}).value || 'mqtt';
-  const mqttServer = (document.getElementById('ae-field-server') || {}).value || '';
+  const icon   = (document.getElementById('ae-field-icon')           || {}).value || '';
+  const sTopic = (document.getElementById('ae-field-state-topic')   || {}).value.trim();
+  const sOnVal = (document.getElementById('ae-field-state-onvalue') || {}).value.trim();
+  const type   = (document.getElementById('ae-field-type')           || {}).value || 'mqtt';
 
   let valid = true;
 
@@ -532,20 +345,11 @@ function saveAeActionDrawer(originalId, isNew) {
     if (errPP) errPP.textContent = '';
   }
 
-  const errServer = document.getElementById('ae-err-server');
-  if (type === 'mqtt' && !mqttServer) {
-    if (errServer) errServer.textContent = 'Server is required for MQTT actions';
-    valid = false;
-  } else {
-    if (errServer) errServer.textContent = '';
-  }
-
   if (!valid) return;
 
   const updated = {
     id: newId,
     type,
-    ...(type === 'mqtt' ? { mqttServer } : {}),
     label: newLabel,
     ...(icon ? { icon } : {}),
     publish: { topic: pTopic, payload: pPayload },
@@ -581,7 +385,7 @@ function deleteAeAction(id) {
   if (!row) return;
   row.classList.add('cam-row-confirm');
   row.onclick = null;
-  row.innerHTML = `<td colspan="6" style="padding:10px 16px">
+  row.innerHTML = `<td colspan="5" style="padding:10px 16px">
     <span style="font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.7)">Delete action "<strong>${_aeEsc(id)}</strong>"?</span>
   </td>
   <td style="text-align:right;white-space:nowrap;padding:10px 16px">
@@ -606,8 +410,7 @@ function addAeAction() {
   if (!AE_LOCAL.actions) AE_LOCAL.actions = [];
   let n = 1;
   while (AE_LOCAL.actions.find(a => a.id === `new-action-${n}`)) n++;
-  const firstServer = (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers && AE_LOCAL.mqtt.servers[0] && AE_LOCAL.mqtt.servers[0].id) || '';
-  const newAction = { id: `new-action-${n}`, type: 'mqtt', mqttServer: firstServer, label: '', publish: { topic: '', payload: '' } };
+  const newAction = { id: `new-action-${n}`, type: 'mqtt', label: '', publish: { topic: '', payload: '' } };
   AE_LOCAL.actions.push(newAction);
   AE_OPEN_DRAWER = newAction.id;
   const container = document.getElementById('ae-tabs-and-content');
@@ -941,78 +744,9 @@ function discardAeChanges() {
   if (container) _renderAeTabsInto(container);
 }
 
-// ── Drag-to-reorder: Servers ──────────────────────────────────────────────────
+// ── Drag-to-reorder: Actions ──────────────────────────────────────────────────
 
 let _aeDrag = null;
-
-function _initAeSrvDrag() {
-  document.querySelectorAll('#ae-srv-tbody .cam-drag-handle').forEach(handle => {
-    handle.addEventListener('pointerdown', _onAeSrvDragDown, { passive: false });
-  });
-}
-
-function _onAeSrvDragDown(e) {
-  e.preventDefault();
-  const handle = e.currentTarget;
-  const row    = handle.closest('tr');
-  const tbody  = document.getElementById('ae-srv-tbody');
-  if (!tbody) return;
-  const rows   = [...tbody.querySelectorAll('tr[id^="ae-srv-row-"]')];
-  const idx    = rows.indexOf(row);
-  if (idx < 0) return;
-
-  const rect = row.getBoundingClientRect();
-  const ghost = document.createElement('div');
-  ghost.id = 'ae-drag-ghost';
-  ghost.style.cssText = `position:fixed;z-index:2000;pointer-events:none;background:rgba(15,15,15,0.97);border:1px solid rgba(74,222,128,0.5);border-radius:3px;box-shadow:0 6px 24px rgba(0,0,0,0.7);display:flex;align-items:center;padding:0 16px;font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.8);left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px`;
-  const servers = (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || [];
-  ghost.textContent = servers[idx] ? servers[idx].id : '';
-  document.body.appendChild(ghost);
-
-  row.classList.add('cam-row-dragging');
-  handle.setPointerCapture(e.pointerId);
-  _aeDrag = { type: 'server', idx, dropIdx: idx, ghost, rows, offsetY: e.clientY - rect.top };
-  handle.addEventListener('pointermove',   _onAeSrvDragMove);
-  handle.addEventListener('pointerup',     _onAeSrvDragEnd);
-  handle.addEventListener('pointercancel', _onAeSrvDragEnd);
-}
-
-function _onAeSrvDragMove(e) {
-  if (!_aeDrag) return;
-  const { ghost, rows, offsetY } = _aeDrag;
-  ghost.style.top = (e.clientY - offsetY) + 'px';
-  let dropIdx = rows.length;
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i].getBoundingClientRect();
-    if (e.clientY < r.top + r.height / 2) { dropIdx = i; break; }
-  }
-  _aeDrag.dropIdx = dropIdx;
-  rows.forEach(r => r.classList.remove('cam-drop-before', 'cam-drop-after'));
-  if (dropIdx < rows.length) rows[dropIdx].classList.add('cam-drop-before');
-  else rows[rows.length - 1].classList.add('cam-drop-after');
-}
-
-function _onAeSrvDragEnd(e) {
-  if (!_aeDrag) return;
-  const { idx, dropIdx, ghost, rows } = _aeDrag;
-  const handle = e.currentTarget;
-  handle.removeEventListener('pointermove',   _onAeSrvDragMove);
-  handle.removeEventListener('pointerup',     _onAeSrvDragEnd);
-  handle.removeEventListener('pointercancel', _onAeSrvDragEnd);
-  ghost.remove();
-  rows.forEach(r => r.classList.remove('cam-row-dragging', 'cam-drop-before', 'cam-drop-after'));
-  _aeDrag = null;
-  const newIdx = dropIdx <= idx ? dropIdx : dropIdx - 1;
-  if (newIdx === idx) return;
-  const servers = (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || [];
-  const [moved] = servers.splice(idx, 1);
-  servers.splice(newIdx, 0, moved);
-  const container = document.getElementById('ae-tabs-and-content');
-  if (container) _renderAeTabsInto(container);
-  markAeUnsaved();
-}
-
-// ── Drag-to-reorder: Actions ──────────────────────────────────────────────────
 
 function _initAeActionDrag() {
   document.querySelectorAll('#ae-actions-tbody .cam-drag-handle').forEach(handle => {
