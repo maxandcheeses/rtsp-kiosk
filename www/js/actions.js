@@ -138,6 +138,11 @@ function pressAction(actionId) {
       setTimeout(() => { if (btn) btn.style.background = ''; }, 1000);
     }
     console.warn('Actions: MQTT not connected, cannot publish');
+    setTimeout(() => {
+      let keepOpen = false;
+      try { keepOpen = localStorage.getItem('actionsKeepOpen') === 'true'; } catch(e) {}
+      if (!keepOpen) closeActionsModal();
+    }, 1000);
     return;
   }
 
