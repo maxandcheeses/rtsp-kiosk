@@ -53,24 +53,10 @@ function openActionsModal(slotIndex) {
 
   const modal = document.getElementById('actions-modal');
   const backdrop = document.getElementById('actions-backdrop');
-  const cell = document.getElementById('cell' + slotIndex);
 
-  if (cell) {
-    const rect = cell.getBoundingClientRect();
-    if (rect.width >= 280 && rect.height >= 300) {
-      modal.style.left = Math.round(rect.left + rect.width / 2) + 'px';
-      modal.style.top  = Math.round(rect.top  + rect.height / 2) + 'px';
-      modal.style.transform = 'translate(-50%, -50%)';
-    } else {
-      modal.style.left = '50%';
-      modal.style.top  = '50%';
-      modal.style.transform = 'translate(-50%, -50%)';
-    }
-  } else {
-    modal.style.left = '50%';
-    modal.style.top  = '50%';
-    modal.style.transform = 'translate(-50%, -50%)';
-  }
+  modal.style.left = '50%';
+  modal.style.top  = '50%';
+  modal.style.transform = 'translate(-50%, -50%)';
 
   const keepOpenEl = document.getElementById('actions-keep-open');
   if (keepOpenEl) {
