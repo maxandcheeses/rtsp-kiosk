@@ -1,7 +1,7 @@
 # Camera Settings Editor
 
-> Status: `planned`
-> Last updated: 2026-04-03 (path rename handling)
+> Status: `active`
+> Last updated: 2026-04-05
 
 ## Goal
 
