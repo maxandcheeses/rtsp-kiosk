@@ -105,6 +105,7 @@ services:
     environment:
       - STREAMS_FILE=/data/streams.json
       - VIEWS_FILE=/data/views.json
+      - ACTIONS_FILE=/data/actions.json
       - MEDIAMTX_API_URL=http://mediamtx:9997
       - STREAMS_API_KEY=${STREAMS_API_KEY:-}
     depends_on:

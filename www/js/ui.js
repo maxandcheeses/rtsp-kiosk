@@ -45,6 +45,7 @@ function closeAllModals() {
   document.getElementById('settings-modal').classList.remove('open');
   document.getElementById('performance-modal').classList.remove('open');
   document.getElementById('cameras-modal').classList.remove('open');
+  document.getElementById('actions-settings-modal').classList.remove('open');
   // Reset clear storage confirmation state
   const confirmEl = document.getElementById('clear-storage-confirm');
   const btnEl = document.getElementById('clear-storage-btn');
@@ -79,6 +80,8 @@ function openFromSettings(which) {
     document.getElementById('performance-modal').classList.add('open');
   } else if (which === 'cameras') {
     openCamerasModal();
+  } else if (which === 'actions-settings') {
+    openActionsSettingsModal();
   }
 }
 
@@ -190,7 +193,7 @@ document.addEventListener('keydown', e => {
   const modalsEnabled = ENABLE_MODALS &&
     !(FORCE_LAYOUT && FORCE_LAYOUT !== '$FORCE_LAYOUT' && LAYOUTS[FORCE_LAYOUT]);
 
-  const anyOpen = ['streams-modal','views-modal','settings-modal','performance-modal','cameras-modal']
+  const anyOpen = ['streams-modal','views-modal','settings-modal','performance-modal','cameras-modal','actions-settings-modal']
     .some(id => document.getElementById(id)?.classList.contains('open'));
 
   // ── Escape — close modal or open settings ──
@@ -220,6 +223,14 @@ document.addEventListener('keydown', e => {
   const viewsOpen       = document.getElementById('views-modal')?.classList.contains('open');
   const streamsOpen     = document.getElementById('streams-modal')?.classList.contains('open');
   const perfOpen        = document.getElementById('performance-modal')?.classList.contains('open');
+
+  if (e.key === 'a' || e.key === 'A') {
+    if (document.getElementById('actions-settings-modal')?.classList.contains('open')) return;
+    returnToSettings = false;
+    closeAllModals();
+    openActionsSettingsModal();
+    return;
+  }
 
   if (e.key === 'c' || e.key === 'C') {
     if (document.getElementById('cameras-modal')?.classList.contains('open')) return;

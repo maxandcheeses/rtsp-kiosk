@@ -4,6 +4,25 @@
 let _mqttClient = null;
 let _extraSubscriptions = []; // { topic, callback } registered before connection
 
+let _mqttConnected   = false;
+let _mqttReconnDelay = 1000;
+let _mqttReconnTimer = null;
+let _mqttPublishQueue = [];
+const _MQTT_QUEUE_MAX = 20;
+const _MQTT_DELAY_MAX = 30000;
+
+function _mqttScheduleReconnect() {
+  if (_mqttReconnTimer) return;
+  _mqttReconnTimer = setTimeout(() => {
+    _mqttReconnTimer = null;
+    if (_mqttClient) {
+      console.log(`MQTT: reconnecting (backoff ${_mqttReconnDelay}ms)`);
+      _mqttClient.reconnect();
+    }
+    _mqttReconnDelay = Math.min(_mqttReconnDelay * 2, _MQTT_DELAY_MAX);
+  }, _mqttReconnDelay);
+}
+
 function startMQTT() {
   if (typeof mqtt === 'undefined') {
     console.warn('MQTT: mqtt.js not loaded');
@@ -28,7 +47,7 @@ function startMQTT() {
   const opts     = {
     clientId:        'rtsp-kiosk-' + Math.random().toString(16).slice(2, 8),
     clean:           true,
-    reconnectPeriod: 5000,
+    reconnectPeriod: 0,
   };
   if (MQTT_USERNAME) opts.username = MQTT_USERNAME;
   if (MQTT_PASSWORD) opts.password = MQTT_PASSWORD;
@@ -37,14 +56,29 @@ function startMQTT() {
   _mqttClient = mqtt.connect(url, opts);
 
   _mqttClient.on('connect', () => {
+    _mqttConnected = true;
+    _mqttReconnDelay = 1000;
+    if (_mqttReconnTimer) { clearTimeout(_mqttReconnTimer); _mqttReconnTimer = null; }
+    const queued = _mqttPublishQueue.splice(0);
+    queued.forEach(q => _mqttClient.publish(q.topic, q.payload, { qos: 1 }));
+    if (queued.length) console.log(`MQTT: flushed ${queued.length} queued publish(es)`);
+    _updateMqttStatusIndicator();
     console.log('MQTT: connected');
     _mqttClient.subscribe(MQTT_TOPIC_STREAM,           { qos: 1 });
     _mqttClient.subscribe(cfg.topicBase + '/view',     { qos: 1 });
     _extraSubscriptions.forEach(sub => _mqttClient.subscribe(sub.topic, { qos: 1 }));
   });
 
-  _mqttClient.on('error',     err => console.error('MQTT error:', err));
-  _mqttClient.on('reconnect', ()  => console.log('MQTT: reconnecting...'));
+  _mqttClient.on('error', err => {
+    console.error('MQTT error:', err);
+    _mqttConnected = false;
+    _updateMqttStatusIndicator();
+  });
+  _mqttClient.on('close', () => {
+    _mqttConnected = false;
+    _updateMqttStatusIndicator();
+    _mqttScheduleReconnect();
+  });
 
   _mqttClient.on('message', (topic, payload) => {
     let data;
@@ -109,16 +143,30 @@ function startMQTT() {
 
 // Subscribe to an arbitrary topic and call callback(topic, payloadString) on message.
 // Safe to call before MQTT connects — will subscribe on connect.
+// Returns an unsubscribe function — call it to stop receiving messages.
 function mqttSubscribe(topic, callback) {
-  _extraSubscriptions.push({ topic, callback });
+  const entry = { topic, callback };
+  _extraSubscriptions.push(entry);
   if (_mqttClient && _mqttClient.connected) {
     _mqttClient.subscribe(topic, { qos: 1 });
   }
+  return function unsubscribe() {
+    const idx = _extraSubscriptions.indexOf(entry);
+    if (idx >= 0) _extraSubscriptions.splice(idx, 1);
+    // Note: intentionally does NOT call _mqttClient.unsubscribe — suppressing
+    // at the callback level is sufficient and avoids unsubscribing shared topics.
+  };
 }
 
-// Publish a message. Returns true if sent, false if not connected.
+// Publish a message. Returns true if sent, false if not connected (queues the message).
 function mqttPublish(topic, payload) {
-  if (!_mqttClient || !_mqttClient.connected) return false;
+  if (!_mqttClient || !_mqttClient.connected) {
+    if (_mqttPublishQueue.length < _MQTT_QUEUE_MAX) {
+      _mqttPublishQueue.push({ topic, payload });
+      console.log(`MQTT: queued publish to ${topic} (disconnected)`);
+    }
+    return false;
+  }
   _mqttClient.publish(topic, payload, { qos: 1 });
   return true;
 }
@@ -170,5 +218,17 @@ function applyStreamUpdates(updates) {
   if (layoutChanged) {
     const currentLayout = document.getElementById('wall').dataset.layout;
     if (currentLayout) applyLayout(currentLayout);
+  }
+}
+
+function _updateMqttStatusIndicator() {
+  const el = document.getElementById('actions-mqtt-status');
+  if (!el) return;
+  if (_mqttConnected) {
+    el.textContent = '● MQTT';
+    el.style.color = 'rgba(74,222,128,0.7)';
+  } else {
+    el.textContent = '● MQTT';
+    el.style.color = 'rgba(248,113,113,0.5)';
   }
 }

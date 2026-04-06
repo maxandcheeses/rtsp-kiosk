@@ -7,6 +7,16 @@ const path = require('path');
 const PORT = 9998;
 const STREAMS_FILE = process.env.STREAMS_FILE || '/data/streams.json';
 const VIEWS_FILE = process.env.VIEWS_FILE || '/data/views.json';
+const ACTIONS_FILE = process.env.ACTIONS_FILE || '/data/actions.json';
+
+function readActions() {
+  return JSON.parse(fs.readFileSync(ACTIONS_FILE, 'utf8'));
+}
+
+function writeActions(data) {
+  fs.writeFileSync(ACTIONS_FILE, JSON.stringify(data, null, 2));
+}
+
 const MEDIAMTX_API_URL = (process.env.MEDIAMTX_API_URL || 'http://mediamtx:9997').replace(/\/$/, '');
 const API_KEY = process.env.STREAMS_API_KEY || '';
 
@@ -184,6 +194,32 @@ const server = http.createServer(async (req, res) => {
           console.warn(`MediaMTX sync failed (streams saved): ${e.message}`);
         });
       } catch (e) {
+        send(res, 400, { error: `Invalid request: ${e.message}` });
+      }
+      return;
+    }
+  }
+
+  if (url.pathname === '/actions') {
+    if (req.method === 'GET') {
+      try {
+        send(res, 200, readActions());
+      } catch(e) {
+        send(res, 500, { error: `Failed to read actions: ${e.message}` });
+      }
+      return;
+    }
+    if (req.method === 'PUT') {
+      try {
+        const raw = await readBody(req);
+        const body = JSON.parse(raw);
+        if (!body || typeof body !== 'object' || !Array.isArray(body.actions) || !Array.isArray(body.groups)) {
+          send(res, 400, { error: 'Body must be { mqtt?, actions, groups }' });
+          return;
+        }
+        writeActions(body);
+        send(res, 200, { ok: true });
+      } catch(e) {
         send(res, 400, { error: `Invalid request: ${e.message}` });
       }
       return;

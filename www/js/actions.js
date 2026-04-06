@@ -7,8 +7,18 @@ let ACTION_GROUPS = {};  // id → group object
 let ACTION_STATES = {};  // state topic → last payload string
 let ACTIONS_MODAL_OPEN = false;
 let _actionsSlotIndex  = null; // which slot triggered the modal
+let _actMqttReconnDelay = 1000;
+let _actMqttReconnTimer = null;
+let _actionUnsubscribers = [];
 
 async function loadActionsConfig() {
+  // Clean up any previous subscriptions from a prior load
+  _actionUnsubscribers.forEach(fn => fn());
+  _actionUnsubscribers = [];
+  ACTIONS       = {};
+  ACTION_GROUPS = {};
+  // Keep ACTION_STATES — values are still valid if topics haven't changed
+
   try {
     const res = await fetch('/actions.json');
     if (!res.ok) { console.log('Actions: no actions.json found, skipping'); return; }
@@ -27,10 +37,11 @@ async function loadActionsConfig() {
       if (a.state && a.state.topic) stateTopics.add(a.state.topic);
     });
     stateTopics.forEach(topic => {
-      mqttSubscribe(topic, (t, payload) => {
+      const unsub = mqttSubscribe(topic, (t, payload) => {
         ACTION_STATES[t] = payload;
         if (ACTIONS_MODAL_OPEN) _refreshActionButtons();
       });
+      _actionUnsubscribers.push(unsub);
     });
     console.log(`Actions: loaded ${Object.keys(ACTIONS).length} actions, ${Object.keys(ACTION_GROUPS).length} groups`);
   } catch(e) {
@@ -64,6 +75,7 @@ function openActionsModal(slotIndex) {
   }
 
   modal.style.display = '';
+  _updateMqttStatusIndicator();
   backdrop.style.display = '';
   ACTIONS_MODAL_OPEN = true;
 }
@@ -156,7 +168,7 @@ function _startActionsMqtt(mqttCfg) {
   const opts = {
     clientId: 'rtsp-kiosk-' + Math.random().toString(16).slice(2, 8),
     clean: true,
-    reconnectPeriod: 5000,
+    reconnectPeriod: 0,
   };
   if (mqttCfg.username) opts.username = mqttCfg.username;
   if (mqttCfg.password) opts.password = mqttCfg.password;
@@ -165,11 +177,34 @@ function _startActionsMqtt(mqttCfg) {
   _mqttClient = mqtt.connect(mqttCfg.broker, opts);
 
   _mqttClient.on('connect', () => {
+    _mqttConnected = true;
+    _actMqttReconnDelay = 1000;
+    if (_actMqttReconnTimer) { clearTimeout(_actMqttReconnTimer); _actMqttReconnTimer = null; }
+    const queued = _mqttPublishQueue.splice(0);
+    queued.forEach(q => _mqttClient.publish(q.topic, q.payload, { qos: 1 }));
+    if (queued.length) console.log(`Actions MQTT: flushed ${queued.length} queued publish(es)`);
+    _updateMqttStatusIndicator();
     console.log('Actions MQTT: connected');
     _extraSubscriptions.forEach(sub => _mqttClient.subscribe(sub.topic, { qos: 1 }));
   });
-  _mqttClient.on('error', err => console.error('Actions MQTT error:', err));
-  _mqttClient.on('reconnect', () => console.log('Actions MQTT: reconnecting...'));
+  _mqttClient.on('close', () => {
+    _mqttConnected = false;
+    _updateMqttStatusIndicator();
+    if (_actMqttReconnTimer) return;
+    _actMqttReconnTimer = setTimeout(() => {
+      _actMqttReconnTimer = null;
+      if (_mqttClient) {
+        console.log(`Actions MQTT: reconnecting (backoff ${_actMqttReconnDelay}ms)`);
+        _mqttClient.reconnect();
+      }
+      _actMqttReconnDelay = Math.min(_actMqttReconnDelay * 2, 30000);
+    }, _actMqttReconnDelay);
+  });
+  _mqttClient.on('error', err => {
+    console.error('Actions MQTT error:', err);
+    _mqttConnected = false;
+    _updateMqttStatusIndicator();
+  });
   _mqttClient.on('message', (topic, payload) => {
     const payloadStr = payload.toString();
     _extraSubscriptions.forEach(sub => {

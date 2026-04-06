@@ -20,6 +20,7 @@ services:
       - ./www/js/webrtc.js:/usr/share/nginx/html/js/webrtc.js:ro
       - ./www/js/mqtt.js:/usr/share/nginx/html/js/mqtt.js:ro
       - ./www/js/actions.js:/usr/share/nginx/html/js/actions.js:ro
+      - ./www/js/actions-editor.js:/usr/share/nginx/html/js/actions-editor.js:ro
       - ./www/js/ui.js:/usr/share/nginx/html/js/ui.js:ro
       - ./www/js/debug.js:/usr/share/nginx/html/js/debug.js:ro
       - ./data/streams.json:/usr/share/nginx/html/streams.json:ro

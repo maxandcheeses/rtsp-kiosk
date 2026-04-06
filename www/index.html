@@ -790,6 +790,13 @@
     }
     .cam-advanced-toggle:hover { color: rgba(255,255,255,0.7); }
 
+    /* ─── Actions settings modal ─── */
+    #actions-settings-modal { justify-content: flex-start; padding: 48px; overflow-y: auto; }
+    #actions-settings-modal h1 { margin-bottom: 8px; }
+    .ae-tab-nav { display:flex; gap:4px; margin-bottom:20px; }
+    .ae-tab-btn { padding:6px 16px; border:1px solid rgba(255,255,255,0.12); border-radius:3px; background:transparent; color:rgba(255,255,255,0.4); font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
+    .ae-tab-btn.active { border-color:rgba(255,255,255,0.35); color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.06); }
+
     /* ─── Actions modal ─── */
     .actions-grid { display:grid; gap:16px; }
     .actions-grid[data-count="1"],.actions-grid[data-count="2"] { grid-template-columns:1fr; }
@@ -837,6 +844,7 @@
     <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Audio</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="settings-mute" onchange="toggleMute()"><span class="toggle-track"></span></label></div></div>
     <div class="shortcut-row"><span class="shortcut-key" title="Pause / resume view cycling">Space</span><span>Pause / resume cycling</span></div>
     <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('cameras')" title="Open camera settings">C</button><span>Camera settings</span></div>
+    <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('actions-settings')" title="Open actions settings">A</button><span>Action settings</span></div>
 <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('views')" title="Open views">V</button><span>Views</span></div>
     <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('streams')" title="Open stream debug info">S</button><span>Stream debug info</span></div>
     <div class="shortcut-row"><button class="shortcut-key" onclick="openFromSettings('performance')" title="Open performance settings">P</button><span>Performance</span></div>
@@ -1093,6 +1101,12 @@
   <p class="modal-hint">ESC to close · changes apply to MediaMTX without restart</p>
 </div>
 
+<div id="actions-settings-modal" class="modal">
+  <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
+  <h1>ACTIONS</h1>
+  <div id="ae-content"><!-- rendered by JS --></div>
+</div>
+
 <!-- Actions modal -->
 <div id="actions-modal" style="display:none; position:fixed; background:rgba(10,10,10,0.92); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:32px 24px 48px 24px; box-shadow:0 8px 32px rgba(0,0,0,0.5); z-index:10001; min-width:280px; max-width:600px;">
   <button class="modal-close-btn" onclick="closeActionsModal()">✕</button>
@@ -1101,6 +1115,7 @@
     <input type="checkbox" id="actions-keep-open" onchange="saveKeepOpen()">
     <span style="font-size:9px; font-family:'Courier New',monospace; color:rgba(255,255,255,0.35);">Keep open</span>
   </label>
+  <span id="actions-mqtt-status" style="position:absolute; bottom:19px; right:24px; font-size:9px; font-family:'Courier New',monospace; color:rgba(248,113,113,0.5); pointer-events:none;">● MQTT</span>
 </div>
 <div id="actions-backdrop" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:10000;" onclick="closeActionsModal()"></div>
 
@@ -1114,6 +1129,7 @@
 <script src="/js/debug.js"></script>
 <script src="/js/views-editor.js"></script>
 <script src="/js/actions.js"></script>
+<script src="/js/actions-editor.js"></script>
 <script src="/js/boot.js"></script>
 </body>
 </html>
