@@ -1,7 +1,7 @@
 # Camera Field Schema
 
-> Status: `planned`
-> Last updated: 2026-04-03
+> Status: `active`
+> Last updated: 2026-04-05
 
 ## Goal
 
@@ -79,5 +79,5 @@ addCamStream() derives new stream defaults by iterating CAM_FIELD_SCHEMA.
 
 ## Open Questions
 
-1. File location: Should CAM_FIELD_SCHEMA live in a dedicated www/js/camera-schema.js or remain inline in camera-editor.js?
-2. Schema-driven validation: saveCamDrawer currently validates imperatively. A follow-up could iterate field.validate from the schema.
+1. **File location** — Resolved: stayed inline in `camera-editor.js`
+2. **Schema-driven validation** — Deferred to future follow-up; not blocking active status
