@@ -253,6 +253,7 @@ function camToggleAdvanced(btn) {
 }
 
 function openCamDrawer(path) {
+  if (CAM_OPEN_DRAWER === path) { closeCamDrawer(); return; }
   if (CAM_OPEN_DRAWER && CAM_OPEN_DRAWER !== path) closeCamDrawer();
   const stream = CAM_LOCAL_STREAMS.find(s => s.path === path);
   if (!stream) return;
