@@ -1,7 +1,7 @@
 # Panel Actions Modal
 
-> Status: `planned`
-> Last updated: 2026-04-03
+> Status: `active`
+> Last updated: 2026-04-05
 
 ## Goal
 
