@@ -15,6 +15,12 @@ async function loadActionsConfig() {
     const cfg = await res.json();
     (cfg.actions || []).forEach(a => { ACTIONS[a.id] = a; });
     (cfg.groups  || []).forEach(g => { ACTION_GROUPS[g.id] = g; });
+
+    // If global MQTT isn't running but actions.json has a broker, start a connection
+    if (cfg.mqtt && cfg.mqtt.broker && typeof mqtt !== 'undefined' && !_mqttClient) {
+      _startActionsMqtt(cfg.mqtt);
+    }
+
     // Subscribe to all unique state topics
     const stateTopics = new Set();
     (cfg.actions || []).forEach(a => {
@@ -151,4 +157,32 @@ function saveKeepOpen() {
   const el = document.getElementById('actions-keep-open');
   if (!el) return;
   try { localStorage.setItem('actionsKeepOpen', el.checked ? 'true' : 'false'); } catch(e) {}
+}
+
+// Start a dedicated MQTT connection using actions.json broker config.
+// Only called when the global MQTT client (from streams.json) isn't running.
+function _startActionsMqtt(mqttCfg) {
+  const opts = {
+    clientId: 'rtsp-kiosk-' + Math.random().toString(16).slice(2, 8),
+    clean: true,
+    reconnectPeriod: 5000,
+  };
+  if (mqttCfg.username) opts.username = mqttCfg.username;
+  if (mqttCfg.password) opts.password = mqttCfg.password;
+
+  console.log(`Actions MQTT: connecting to ${mqttCfg.broker}`);
+  _mqttClient = mqtt.connect(mqttCfg.broker, opts);
+
+  _mqttClient.on('connect', () => {
+    console.log('Actions MQTT: connected');
+    _extraSubscriptions.forEach(sub => _mqttClient.subscribe(sub.topic, { qos: 1 }));
+  });
+  _mqttClient.on('error', err => console.error('Actions MQTT error:', err));
+  _mqttClient.on('reconnect', () => console.log('Actions MQTT: reconnecting...'));
+  _mqttClient.on('message', (topic, payload) => {
+    const payloadStr = payload.toString();
+    _extraSubscriptions.forEach(sub => {
+      if (sub.topic === topic) sub.callback(topic, payloadStr);
+    });
+  });
 }
