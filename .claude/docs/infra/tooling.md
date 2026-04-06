@@ -87,6 +87,144 @@ Add entries to `data/streams.json` pointing to host port 8555:
 
 **Dependencies (inside container):** `ffmpeg`, MediaMTX v1.9.3 (downloaded at build time from GitHub releases). No host dependencies beyond Docker.
 
+### `tools/mqtt-test/`
+
+MQTT broker (Mosquitto) and dual test harnesses (browser UI + CLI) for testing the kiosk's MQTT action panel integration end-to-end without a real smart home device or external broker.
+
+**Files:**
+
+| File | Purpose |
+|------|---------|
+| `mosquitto.conf` | Eclipse Mosquitto 2.x config; enables anonymous connections, plain MQTT on 1883, WebSocket on 9001 |
+| `index.html` | Browser-based test harness; connects to `ws://localhost:9001/mqtt`; discovers state topics and publish topics from `/actions.json`; renders state toggle switches, command log, and manual publish form |
+| `index.js` | Node.js CLI tool for MQTT testing; reads `data/actions.json` dynamically; provides subscribe, publish, simulate, ping modes |
+| `package.json` | Dependencies for CLI tool (mqtt@^5.10.1) |
+| `README.md` | Usage guide for CLI tool with examples and troubleshooting |
+
+#### Browser Test Harness (index.html)
+
+**How to enable in dev:**
+
+1. Ensure `docker-compose.dev.yml` includes the `mqtt` service and nginx volume mount (already configured as of 2026-04-05):
+   ```yaml
+   mqtt:
+     image: eclipse-mosquitto:2
+     ports:
+       - "1883:1883"
+       - "9001:9001"
+     volumes:
+       - ./tools/mqtt-test/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+   ```
+
+2. Start the dev stack:
+   ```sh
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+   ```
+
+3. Enable MQTT in the kiosk by adding to `data/streams.json`:
+   ```json
+   "mqtt": { "enabled": true }
+   ```
+
+4. Open the kiosk at `http://localhost:8080`
+
+5. Open the test harness at `http://localhost:8080/mqtt-test.html`
+
+**Test Harness UI:**
+
+- **State Switches**: One toggle button per unique `state.topic` value in `actions.json`. Clicking a toggle cycles through known `onValue` values. Button glows green when current value matches an `onValue`.
+- **Command Log**: Subscribes to all `publish.topic` values from actions. Logs each message as `[HH:MM:SS] topic → payload` (max 100 rows, auto-scrolls).
+- **Manual Publish**: Topic + payload inputs + Send button for edge case testing.
+- **Status Badge**: Grey=disconnected, green=connected, red=error.
+
+**How to test:**
+
+1. Assign the `living-room` action group to a view in the views editor
+2. Click the action panel (⚡ button) in the kiosk
+3. Press "Lights On" → observe in test harness log: `[HH:MM:SS] home/living/lights/set → ON`
+4. Click the state switch on the test harness → kiosk action button should glow green
+5. Manual publish form allows arbitrary topic/payload testing for edge cases
+
+#### CLI Tool (index.js)
+
+A Node.js command-line utility for testing MQTT without a browser. Useful for CI/CD, debugging, and scripting.
+
+**Subcommands:**
+
+```sh
+node tools/mqtt-test/index.js subscribe          # Listen to all state topics
+node tools/mqtt-test/index.js publish <id>       # Publish one action
+node tools/mqtt-test/index.js simulate           # Simulate device responses
+node tools/mqtt-test/index.js ping               # Test broker connectivity
+node tools/mqtt-test/index.js --help             # Show usage
+```
+
+**Examples:**
+
+```bash
+# Test broker reachability
+node tools/mqtt-test/index.js ping
+# Output: [14:32:15] Broker: ws://localhost:9001, latency: 45ms, connected: true
+
+# Watch all state topic traffic
+node tools/mqtt-test/index.js subscribe
+
+# Publish a test action (useful for triggering kiosk responses)
+node tools/mqtt-test/index.js publish lights-on
+
+# Simulate device responses (echo state back) for testing without real devices
+node tools/mqtt-test/index.js simulate
+```
+
+**Features:**
+
+- Reads `data/actions.json` at runtime — no hardcoded topics
+- Timestamps on every output `[HH:MM:SS]`
+- Color output when running in a terminal (can be disabled by piping)
+- Credentials automatically masked as `***`
+- Graceful shutdown on SIGINT (Ctrl+C)
+
+**Dependencies:** Node.js 14+, `mqtt@^5.10.1` (included in local `package.json`).
+
+**Exit codes:** 0 on success, 1 on error (connection failed, action not found, etc.).
+
+**Setup:**
+
+```bash
+# Install dependencies
+npm install --prefix tools/mqtt-test
+
+# Or from project root (uses root mqtt package)
+npm install
+```
+
+**Common workflows:**
+
+1. **Develop actions without devices:** Run `node tools/mqtt-test/index.js simulate` in one terminal, click action buttons in the kiosk in another. The simulator will log all state changes.
+2. **Debug broker traffic:** Run `node tools/mqtt-test/index.js subscribe` to watch all state topics. In another terminal, trigger actions or manually publish with `node tools/mqtt-test/index.js publish <id>`.
+3. **Validate config:** Run `node tools/mqtt-test/index.js ping` to ensure the broker URL in `data/actions.json` is correct.
+
+**Mosquitto listener configuration:**
+
+```
+allow_anonymous true     # Dev only; auth disabled for simplicity
+
+listener 1883            # Plain MQTT/TCP; useful for mosquitto_pub/mosquitto_sub CLI tools
+listener 9001            # WebSocket MQTT; required for browser clients (MQTT.js)
+protocol websockets
+```
+
+**Dependencies:** Docker for Mosquitto container. Node.js 14+ and npm for the CLI tool.
+
+**Exit codes:** Mosquitto container exits 0 on clean shutdown, non-zero on startup failure. CLI tool exits 0 on success, 1 on error.
+
+**Notes:**
+- Both test harnesses (browser + CLI) connect to the same broker at `ws://localhost:9001` (WebSocket) or `mqtt://localhost:1883` (raw MQTT)
+- Topics are discovered dynamically from `/actions.json` on each run — no configuration needed
+- Credentials (if any) are handled by the kiosk's MQTT_DEFAULTS in `www/js/config.js` (`host: window.location.hostname, port: 9001`)
+- For production use, switch to a real broker and set credentials in `data/actions.json` and configure Mosquitto with `password_file`
+- The `simulate` mode is useful for testing UI state updates without real devices — it automatically echoes back the configured `onValue` when a SET command is published
+
 ---
 
 ## `.claude/hooks/` — Claude Code lifecycle hooks

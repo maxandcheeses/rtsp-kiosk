@@ -1,0 +1,18 @@
+{
+  "name": "mqtt-test-harness",
+  "version": "1.0.0",
+  "description": "MQTT test harness for rtsp-kiosk — publish, subscribe, simulate, and ping modes",
+  "main": "index.js",
+  "bin": {
+    "mqtt-test": "index.js"
+  },
+  "scripts": {
+    "subscribe": "node index.js subscribe",
+    "publish": "node index.js publish",
+    "simulate": "node index.js simulate",
+    "ping": "node index.js ping"
+  },
+  "dependencies": {
+    "mqtt": "^5.10.1"
+  }
+}
