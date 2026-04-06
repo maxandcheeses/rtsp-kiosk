@@ -49,7 +49,13 @@ function startMQTT() {
   _mqttClient.on('message', (topic, payload) => {
     let data;
     try { data = JSON.parse(payload.toString()); }
-    catch(e) { console.error('MQTT: invalid JSON on', topic, e); return; }
+    catch(e) {
+      // Non-JSON payloads are valid for action state topics — skip silently
+      if (!_extraSubscriptions.some(s => s.topic === topic)) {
+        console.error('MQTT: invalid JSON on', topic, e);
+      }
+      return;
+    }
 
     // View control — topic: <topicBase>/view
     const viewTopic = cfg.topicBase + '/view';
