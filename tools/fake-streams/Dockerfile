@@ -1,7 +1,7 @@
 FROM alpine:3.19
 
 # Install ffmpeg and ca-certificates
-RUN apk add --no-cache ffmpeg ca-certificates
+RUN apk add --no-cache ffmpeg ca-certificates ttf-dejavu netcat-openbsd
 
 # Download and install MediaMTX v1.9.3 for linux/amd64
 RUN wget -qO /tmp/mediamtx.tar.gz \

@@ -12,9 +12,9 @@
 | `layouts.js` | `LAYOUTS` const, `bestLayout()`, `activePCs`/`stopAll()`, `applyLayout()`, `LAYOUT_RECTS`, `LAYOUT_CELLS`, `_svgUid`, `layoutSvgWithNumbers()` |
 | `webrtc.js` | `retryDelay`/`retryPending`/`RETRY_MIN`/`RETRY_MAX`, `scheduleRetry()`, `resetRetry()`, `scheduleRefresh()`, `clearRefresh()`, `streamPCs`/`refreshTimers`/`refreshTimerStarted` globals, `attachExistingPC()`, `startWhep()` |
 | `views.js` | `activateView()`, `scheduleCycle()`, `clearCycle()`, `startCycling()`, cycle pause/resume globals, `showIndicator()`, `pauseCycle()`, `resumeCycle()`, `navigateView()`, `PRELOAD_DEFAULT`/`preloadPCs`, `PERF_DEFAULTS`/`PERF`/perf functions, storage clear functions, `preloadVideos`/`preloadTimer`, preload functions |
-| `ui.js` | `fsTimer`/`clearFsTimer()`/`toggleFS()`, `fullscreenchange` listener, `returnToSettings`, `closeAllModals()`, `openSettingsModal()`, `openFromSettings()`, `openViewsModal()`, `openStreamsModal()`, keydown listener, cursor hide/settings button |
-| `mqtt.js` | `startMQTT()`, `applyStreamUpdates()` |
-| `camera-editor.js` | `CAM_*` globals, `openCamerasModal()`, `loadCamStreams()`, all `cam*` functions |
+| `ui.js` | `fsTimer`/`clearFsTimer()`/`toggleFS()`, `fullscreenchange` listener, `_activeSettingsTab`, `closeAllModals()`, `activateSettingsTab()`, `openSettingsModal(tab?)`, `renderViewsTab()`, `openViewsModal()` (shim), `renderStreamsTab()`, `openStreamsModal()` (shim), keydown listener, cursor hide/settings button |
+| `mqtt.js` | `_mqttConnected`, `_mqttConnecting`, `_mqttReconnDelay/Timer`, `_mqttPublishQueue`, `_MQTT_QUEUE_MAX/DELAY_MAX`, `_mqttScheduleReconnect()`, `startMQTT()`, `mqttConnect()`, `mqttSubscribe()`, `mqttPublish()` (queues when disconnected), `applyStreamUpdates()`, `_updateMqttStatusIndicator()` (3-state: green/yellow/red), `mqttForceReconnect()` |
+| `camera-editor.js` | `CAM_*` globals, `renderCamerasTab()`, `openCamerasModal()` (shim), `loadCamStreams()`, all `cam*` functions |
 | `debug.js` | `globalMuted`/`userInteracted`, `markInteracted()`, `applyMute()`, `toggleMute()`, `loadMuteState()`, `debugInterval`/`cycleStartedAt`/`cycleDuration`, `startDebugTimer()`, `updateDebugOverlay()` |
 | `views-editor.js` | `_persistViews()`, views CRUD functions, drag-to-reorder for views table, view edit form functions, per-slot stream dropdowns (`_renderVeStreamPicker`, `_veSlotChange`), `cancelViewEdit()`, `toggleVePreload()`, `saveViewForm()` |
 | `boot.js` | `boot()`, `markInteracted` event listeners, backdrop-click forEach, `startMQTT()` call, `boot()` call |

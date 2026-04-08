@@ -14,8 +14,6 @@ hls: no
 webrtc: no
 srt: no
 
-# Auth disabled — local dev tool only
-authMethod: none
 
 paths:
   test-1:

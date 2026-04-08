@@ -1,7 +1,7 @@
 {
   "statusLine": {
     "type": "command",
-    "command": "uv run /Users/maxwell/Documents/development/rtsp-kiosk/.claude/status_lines/status_line.py",
+    "command": "uv run /Users/maxwell/Documents/development/rtsp-kiosk/.claude/status_lines/status_line_v9.py",
     "padding": 0
   },
   "permissions": {
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run /Users/maxwell/Documents/development/rtsp-kiosk/.claude/hooks/notification.py"
+            "command": "uv run /Users/maxwell/Documents/development/rtsp-kiosk/.claude/hooks/notification.py --notify"
           }
         ]
       }
@@ -62,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run /Users/maxwell/Documents/development/rtsp-kiosk/.claude/hooks/subagent_stop.py"
+            "command": "uv run /Users/maxwell/Documents/development/rtsp-kiosk/.claude/hooks/subagent_stop.py --notify"
           }
         ]
       }
@@ -95,7 +95,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/maxwell/Documents/development/rtsp-kiosk/.claude/hooks/notify-complete.sh"
+            "command": "uv run /Users/maxwell/Documents/development/rtsp-kiosk/.claude/hooks/stop.py --notify"
           }
         ]
       }

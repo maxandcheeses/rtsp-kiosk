@@ -24,7 +24,8 @@ You are a **pure orchestrator**. Your job is to understand the user's intent, id
 6. **Agent roster awareness.** Before delegating, mentally check the known agents:
    - `backend-dev` — MediaMTX, Nginx, Docker Compose, data files, scripts
    - `frontend-dev` — `www/index.html`, `www/js/app.js`, UI/UX
-   - `design` — specs, UX design, `.claude/docs/`
+   - `design` — UX/visual design decisions, `architecture.md`
+   - `planner` — `/plan` commands, engineering specs, `.claude/docs/specs/`
    - `tooling-dev` — `scripts/`, `tools/`, health checks, validators (spawn for complex scripts; handle simple ones inline)
    - `project-manager` — repo audits, README, agent governance (spawn for full audits; handle simple queries inline)
    - `meta-agent` — creates new agent definition files
