@@ -38,6 +38,8 @@ rtsp-kiosk/
 │   └── generate-config.sh      ← builds mediamtx.yml from streams.json at startup
 ├── www/
 │   └── index.html              ← UI (fetches streams.json at load time)
+├── tools/
+│   └── fake-streams/            ← dev tool — publishes 8 synthetic RTSP streams for testing
 ├── Dockerfile                   ← MediaMTX + FFmpeg + jq + envsubst
 ├── docker-compose.yml
 ├── nginx.conf
@@ -410,9 +412,30 @@ Press **`L`** at any time to open the layout picker.
 | 80 | TCP | UI (Nginx) |
 | 3478 | UDP/TCP | STUN (coturn) |
 | 8554 | TCP | RTSP |
+| 8555 | TCP | RTSP — `fake-streams` dev tool (host-side port) |
 | 8889 | TCP | WebRTC/WHEP signaling |
 | 8189 | UDP | WebRTC ICE media |
 | 9997 | TCP | MediaMTX API |
+
+---
+
+## Developer Tools
+
+### `tools/fake-streams/` — Synthetic RTSP streams
+
+Publishes 8 synthetic RTSP streams using FFmpeg test sources. Use this during development or testing when real cameras are not available.
+
+**Prerequisites:** Docker
+
+**Run:**
+```bash
+cd tools/fake-streams
+docker compose up --build
+```
+
+**Streams available at** `rtsp://<HOST_IP>:8555/test-1` through `rtsp://<HOST_IP>:8555/test-8`
+
+The tool binds host port `8555` (mapped from container port `8554`). Point `data/streams.json` at these URLs while developing to get live video without real camera hardware.
 
 ---
 

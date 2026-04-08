@@ -18,7 +18,7 @@ The file is served after `envsubst` replaces placeholder strings at container st
 ```
 <head>
   meta, title, favicon
-  <style>  ← all inline CSS (~750 lines)
+  <style>  ← all inline CSS
 
 <body>
   #wall                     ← CSS grid; cells injected here by applyLayout()
@@ -26,33 +26,47 @@ The file is served after `envsubst` replaces placeholder strings at container st
   #debug-overlay            ← live debug info (toggled by PERF.debugOverlay)
   #settings-btn             ← gear button, appears on hover/interaction
 
-  <!-- Modals -->
-  #picker                   ← layout picker (shown on first load if no default view)
-  #settings-modal           ← keyboard shortcuts + links to other modals
-  #performance-modal        ← PERF settings (localStorage)
-  #views-modal              ← views CRUD editor + stream picker
-  #streams-modal            ← live stream status table (debug)
+  <!-- Unified Settings Modal -->
+  #settings-modal           ← tabbed modal with sidebar nav (.settings-layout)
+    .settings-sidebar       ← vertical tab buttons
+    .settings-content       ← scrollable tab panels
+      #stab-general         ← keyboard hints, audio toggle, fs timeout, clear-data
+      #stab-views           ← views CRUD editor (renderViewsTab fills this)
+      #stab-cameras         ← camera settings (renderCamerasTab fills this)
+      #stab-actions         ← actions editor / MQTT (renderActionsTab fills this)
+      #stab-performance     ← PERF settings (static HTML)
+      #stab-streams         ← live stream status table (renderStreamsTab fills this)
+
+  <!-- Actions panel modal (separate from settings) -->
+  #actions-modal            ← triggered per-stream by action indicator button
+  #actions-backdrop
 
   <!-- Scripts -->
   <script>  ← env var constants (inline, envsubst target)
-  <script src="/js/app.js?v=2">
+  <script src="/js/...">    ← 10 module files
 ```
 
 ---
 
 ## Modals
 
-All modals share `.modal` CSS class. Visibility is controlled by adding/removing `.open`. Only one modal is open at a time — `closeAllModals()` clears them all before opening a new one.
+Only `#settings-modal` is a full-screen overlay modal. It uses `.modal.open` for visibility.
 
 | ID | Trigger | Purpose |
 |----|---------|---------|
-| `#picker` | First load (no default view), `L` key, settings link | Choose a layout to start the wall |
-| `#settings-modal` | `#settings-btn` hover click, `S` key | Shows keyboard shortcuts; links to other modals |
-| `#performance-modal` | From settings modal | Tune PERF flags stored in localStorage |
-| `#views-modal` | `V` key, settings link | Create/edit/delete named views; reorder streams |
-| `#streams-modal` | `D` key, settings link | Live connection status for each stream |
+| `#settings-modal` | `#settings-btn`, `Esc`, or any shortcut key (C/V/A/P/S) | Unified tabbed settings |
+| `#actions-modal` | Action indicator button on stream cell | Per-stream action buttons |
 
-`returnToSettings` flag in app.js: when a modal is opened via settings, closing it returns to `#settings-modal` rather than closing outright.
+`closeAllModals()` now only removes `.open` from `#settings-modal`.
+
+### Tab activation
+`openSettingsModal(tab?)` opens to a specific tab (default `'general'`). `activateSettingsTab(tab)` switches tabs without reopening. On tab switch, render functions are called lazily:
+- `cameras` → `renderCamerasTab()`
+- `views` → `renderViewsTab()`
+- `actions` → `renderActionsTab()`
+- `streams` → `renderStreamsTab()` (always runs)
+
+Keyboard shortcuts C/V/A/P/S open the modal to the corresponding tab, or close it if already on that tab.
 
 ---
 

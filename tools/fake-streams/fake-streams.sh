@@ -35,7 +35,8 @@ cleanup() {
 trap cleanup TERM INT
 
 echo "Waiting for MediaMTX to be ready..."
-sleep 2
+until nc -z localhost 8554 2>/dev/null; do sleep 0.5; done
+echo "MediaMTX is ready."
 
 start_stream() {
     stream_num="$1"
@@ -46,7 +47,7 @@ start_stream() {
     ffmpeg -hide_banner -loglevel error \
         -re \
         -f lavfi -i "color=c=${color}:size=1280x720:rate=30" \
-        -vf "drawtext=text='${label}':fontsize=200:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:font=Sans" \
+        -vf "drawtext=text='${label}':fontsize=200:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:font=DejaVu Sans" \
         -c:v libx264 \
         -preset ultrafast \
         -tune zerolatency \
