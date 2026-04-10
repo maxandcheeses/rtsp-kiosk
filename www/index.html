@@ -791,8 +791,8 @@
     .cam-advanced-toggle:hover { color: rgba(255,255,255,0.7); }
 
     /* ─── Tabbed settings layout ─── */
-    .settings-layout { display:flex; width:min(980px,92vw); max-height:80vh; background:rgb(13,13,13); border:1px solid rgba(255,255,255,0.1); border-radius:8px; box-shadow:0 24px 80px rgba(0,0,0,0.7); overflow:hidden; }
-    .settings-sidebar { width:160px; min-width:160px; min-height:0; border-right:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; gap:2px; padding:12px 8px; }
+    .settings-layout { display:flex; width:min(980px,92vw); height:min(560px,85vh); background:rgb(13,13,13); border:1px solid rgba(255,255,255,0.1); border-radius:8px; box-shadow:0 24px 80px rgba(0,0,0,0.7); overflow:hidden; }
+    .settings-sidebar { width:160px; min-width:160px; flex-shrink:0; overflow:hidden; border-right:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; gap:2px; padding:12px 8px; }
     .settings-tab-btn { width:100%; text-align:left; padding:8px 12px; background:transparent; border:1px solid transparent; border-radius:3px; color:rgba(255,255,255,0.45); font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
     .settings-tab-btn:hover { color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.04); }
     .settings-tab-btn.active { color:rgba(255,255,255,0.9); background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.2); }
