@@ -113,6 +113,14 @@ function openActionsModal(slotIndex) {
     return;
   }
 
+  // Direct action (not a group) — execute immediately, no modal
+  if (!ACTION_GROUPS[groupId] && ACTIONS[groupId]) {
+    _actionsSlotIndex = slotIndex;
+    pressAction(groupId);
+    _actionsSlotIndex = null;
+    return;
+  }
+
   _actionsSlotIndex = slotIndex;
   _renderActionButtons(groupId);
 
