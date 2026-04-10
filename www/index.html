@@ -847,6 +847,14 @@
     #focus-panel-video-wrap video {
       width:100%; height:100%; object-fit:contain; display:block;
     }
+    #focus-panel-close {
+      margin-top:16px; padding:8px 24px;
+      background:transparent; border:1px solid rgba(255,255,255,0.25); border-radius:4px;
+      color:rgba(255,255,255,0.6); font-family:'Courier New',monospace;
+      font-size:11px; letter-spacing:0.15em; text-transform:uppercase;
+      cursor:pointer; transition:color 0.15s, border-color 0.15s; white-space:nowrap;
+    }
+    #focus-panel-close:hover { color:rgba(255,255,255,0.9); border-color:rgba(255,255,255,0.5); }
     #focus-panel-countdown {
       margin-top:10px;
       font-family:'Courier New',monospace; font-size:10px;
@@ -1149,11 +1157,11 @@
   const ENABLE_PRELOAD        = ['1','on','true'].includes('$ENABLE_PRELOAD'.toLowerCase());
 </script>
 
-<div id="focus-panel-overlay">
+<div id="focus-panel-overlay" onclick="if(event.target===this)closeFocusPanel()">
   <div id="focus-panel-video-wrap">
     <video id="focus-panel-video" autoplay muted playsinline></video>
   </div>
-  <button class="modal-close-btn" style="position:static;margin-top:16px;" id="focus-panel-close" onclick="closeFocusPanel()">✕ Close</button>
+  <button id="focus-panel-close" onclick="closeFocusPanel()">✕ Close</button>
   <div id="focus-panel-countdown"></div>
 </div>
 
