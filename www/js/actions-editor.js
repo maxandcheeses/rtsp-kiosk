@@ -398,7 +398,9 @@ function _buildAeActionsTab() {
     const id  = action.id || '';
     const esc = _aeEsc(id);
     const iconHtml = action.icon ? _renderIcon(action.icon) : '';
-    const publishSummary = action.publish ? `${_aeEsc(action.publish.topic)} → ${_aeEsc(action.publish.payload)}` : '—';
+    const publishSummary = action.type === 'focus-panel'
+      ? `focus (${action.timeout > 0 ? action.timeout + 's' : 'manual close'})`
+      : (action.publish ? `${_aeEsc(action.publish.topic)} → ${_aeEsc(action.publish.payload)}` : '—');
     const isOpen = AE_OPEN_DRAWER === id;
 
     rows += `<tr id="ae-action-row-${esc}" style="cursor:pointer" onclick="(function(e){if(!e.target.closest('button'))openAeActionDrawer('${esc}')})(event)">
@@ -459,30 +461,10 @@ function _buildAeActionDrawerForm(action, isNew) {
     </div>
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Type</label>
-      <select class="views-input" id="ae-field-type" style="flex:none;width:auto">
+      <select class="views-input" id="ae-field-type" style="flex:none;width:auto" onchange="_aeTypeChanged(this.value)">
         <option value="mqtt"${type === 'mqtt' ? ' selected' : ''}>mqtt</option>
+        <option value="focus-panel"${type === 'focus-panel' ? ' selected' : ''}>focus-panel</option>
       </select>
-    </div>
-    <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">MQTT Server</label>
-      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-        ${(function() {
-          const servers = (AE_LOCAL && AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || [];
-          if (servers.length === 0) {
-            return `<select class="views-input" id="ae-field-mqttserver" style="flex:none;width:auto" disabled>
-              <option value="">— no servers configured —</option>
-            </select>`;
-          }
-          const opts = servers.map(s =>
-            `<option value="${_aeEsc(s.id)}"${s.id === mqttServer ? ' selected' : ''}>${_aeEsc(s.id)}</option>`
-          ).join('');
-          return `<select class="views-input" id="ae-field-mqttserver" style="flex:none;width:auto">
-            <option value="">— none —</option>
-            ${opts}
-          </select>`;
-        })()}
-        <div class="cam-field-error" id="ae-err-mqttserver"></div>
-      </div>
     </div>
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Icon</label>
@@ -493,32 +475,64 @@ function _buildAeActionDrawerForm(action, isNew) {
       </div>
     </div>
 
-    <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin:4px 0 -4px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">Publish</div>
-    <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Topic</label>
-      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-        <input class="views-input" id="ae-field-publish-topic" value="${_aeEsc(pTopic)}" placeholder="home/light/set">
-        <div class="cam-field-error" id="ae-err-publish-topic"></div>
+    <div id="ae-mqtt-fields" style="${type === 'focus-panel' ? 'display:none' : ''}">
+      <div class="views-form-row" style="margin-top:0">
+        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">MQTT Server</label>
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+          ${(function() {
+            const servers = (AE_LOCAL && AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || [];
+            if (servers.length === 0) {
+              return `<select class="views-input" id="ae-field-mqttserver" style="flex:none;width:auto" disabled>
+                <option value="">— no servers configured —</option>
+              </select>`;
+            }
+            const opts = servers.map(s =>
+              `<option value="${_aeEsc(s.id)}"${s.id === mqttServer ? ' selected' : ''}>${_aeEsc(s.id)}</option>`
+            ).join('');
+            return `<select class="views-input" id="ae-field-mqttserver" style="flex:none;width:auto">
+              <option value="">— none —</option>
+              ${opts}
+            </select>`;
+          })()}
+          <div class="cam-field-error" id="ae-err-mqttserver"></div>
+        </div>
       </div>
-    </div>
-    <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Payload</label>
-      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-        <input class="views-input" id="ae-field-publish-payload" value="${_aeEsc(pPay)}" placeholder="ON">
-        <div class="cam-field-error" id="ae-err-publish-payload"></div>
+      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin:4px 0 -4px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">Publish</div>
+      <div class="views-form-row">
+        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Topic</label>
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+          <input class="views-input" id="ae-field-publish-topic" value="${_aeEsc(pTopic)}" placeholder="home/light/set">
+          <div class="cam-field-error" id="ae-err-publish-topic"></div>
+        </div>
+      </div>
+      <div class="views-form-row">
+        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Payload</label>
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+          <input class="views-input" id="ae-field-publish-payload" value="${_aeEsc(pPay)}" placeholder="ON">
+          <div class="cam-field-error" id="ae-err-publish-payload"></div>
+        </div>
+      </div>
+      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin:4px 0 -4px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">State (optional)</div>
+      <div class="views-form-row">
+        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">State Topic</label>
+        <input class="views-input" id="ae-field-state-topic" value="${_aeEsc(sTopic)}" placeholder="home/light/state">
+      </div>
+      <div class="views-form-row">
+        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">On Value</label>
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+          <input class="views-input" id="ae-field-state-onvalue" value="${_aeEsc(sOnVal)}" placeholder="ON">
+          <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace">Payload string that means ON</div>
+        </div>
       </div>
     </div>
 
-    <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin:4px 0 -4px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">State (optional)</div>
-    <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">State Topic</label>
-      <input class="views-input" id="ae-field-state-topic" value="${_aeEsc(sTopic)}" placeholder="home/light/state">
-    </div>
-    <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">On Value</label>
-      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-        <input class="views-input" id="ae-field-state-onvalue" value="${_aeEsc(sOnVal)}" placeholder="ON">
-        <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace">Payload string that means ON</div>
+    <div id="ae-focus-fields" style="${type === 'focus-panel' ? '' : 'display:none'}">
+      <div class="views-form-row" style="margin-top:8px">
+        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Timeout (sec)</label>
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+          <input class="views-input" id="ae-field-timeout" type="number" min="0" value="${_aeEsc(action.timeout || '')}" placeholder="0 = keep open">
+          <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace">Seconds before auto-close. 0 or empty = stay open.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -554,6 +568,13 @@ function closeAeDrawer() {
   if (drawerEl) drawerEl.style.maxHeight = '0';
   if (rowEl) rowEl.classList.remove('cam-row-active');
   AE_OPEN_DRAWER = null;
+}
+
+function _aeTypeChanged(type) {
+  const focusFields = document.getElementById('ae-focus-fields');
+  const mqttFields = document.getElementById('ae-mqtt-fields');
+  if (focusFields) focusFields.style.display = type === 'focus-panel' ? '' : 'none';
+  if (mqttFields) mqttFields.style.display = type === 'focus-panel' ? 'none' : '';
 }
 
 function saveAeActionDrawer(originalId, isNew) {
@@ -593,30 +614,34 @@ function saveAeActionDrawer(originalId, isNew) {
     if (errLabel) errLabel.textContent = '';
   }
 
-  const errPT = document.getElementById('ae-err-publish-topic');
-  if (!pTopic) {
-    if (errPT) errPT.textContent = 'Publish topic is required';
-    valid = false;
-  } else {
-    if (errPT) errPT.textContent = '';
+  if (type === 'mqtt') {
+    const errPT = document.getElementById('ae-err-publish-topic');
+    if (!pTopic) {
+      if (errPT) errPT.textContent = 'Publish topic is required';
+      valid = false;
+    } else {
+      if (errPT) errPT.textContent = '';
+    }
+
+    const errPP = document.getElementById('ae-err-publish-payload');
+    if (!pPayload) {
+      if (errPP) errPP.textContent = 'Publish payload is required';
+      valid = false;
+    } else {
+      if (errPP) errPP.textContent = '';
+    }
+
+    const errMS = document.getElementById('ae-err-mqttserver');
+    const hasSrv = (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers || []).length > 0;
+    if (hasSrv && !mqttServer) {
+      if (errMS) errMS.textContent = 'Server is required for MQTT actions';
+      valid = false;
+    } else {
+      if (errMS) errMS.textContent = '';
+    }
   }
 
-  const errPP = document.getElementById('ae-err-publish-payload');
-  if (!pPayload) {
-    if (errPP) errPP.textContent = 'Publish payload is required';
-    valid = false;
-  } else {
-    if (errPP) errPP.textContent = '';
-  }
-
-  const errMS = document.getElementById('ae-err-mqttserver');
-  const hasSrv = (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers || []).length > 0;
-  if (type === 'mqtt' && hasSrv && !mqttServer) {
-    if (errMS) errMS.textContent = 'Server is required for MQTT actions';
-    valid = false;
-  } else {
-    if (errMS) errMS.textContent = '';
-  }
+  const timeout = parseInt((document.getElementById('ae-field-timeout') || {}).value) || 0;
 
   if (!valid) return;
 
@@ -624,10 +649,11 @@ function saveAeActionDrawer(originalId, isNew) {
     id: newId,
     type,
     label: newLabel,
-    ...(mqttServer ? { mqttServer } : {}),
     ...(icon ? { icon } : {}),
-    publish: { topic: pTopic, payload: pPayload },
-    ...(sTopic ? { state: { topic: sTopic, ...(sOnVal ? { onValue: sOnVal } : {}) } } : {}),
+    ...(type === 'mqtt' && mqttServer ? { mqttServer } : {}),
+    ...(type === 'mqtt' ? { publish: { topic: pTopic, payload: pPayload } } : {}),
+    ...(type === 'mqtt' && sTopic ? { state: { topic: sTopic, ...(sOnVal ? { onValue: sOnVal } : {}) } } : {}),
+    ...(type === 'focus-panel' && timeout > 0 ? { timeout } : {}),
   };
 
   const idx = (AE_LOCAL.actions || []).findIndex(a => a.id === originalId);
@@ -751,6 +777,12 @@ function _buildAeGroupDrawerForm(group, isNew) {
     `<option value="${_aeEsc(a.id)}">${_aeEsc(a.label || a.id)}</option>`
   ).join('');
 
+  const builtinOptsForSlot = (val) => typeof BUILTIN_ACTIONS !== 'undefined'
+    ? Object.values(BUILTIN_ACTIONS).map(a =>
+        `<option value="${_aeEsc(a.id)}"${a.id===val?' selected':''}>${_aeEsc(a.label || a.id)}</option>`
+      ).join('')
+    : '';
+
   let slotsHtml = '';
   for (let i = 0; i < numSlots; i++) {
     const val = slots[i] || '';
@@ -759,6 +791,7 @@ function _buildAeGroupDrawerForm(group, isNew) {
       <select class="views-input" id="ae-slot-${i}" style="flex:none;width:auto">
         <option value="">— none —</option>
         ${allActions.map(a => `<option value="${_aeEsc(a.id)}"${a.id===val?' selected':''}>${_aeEsc(a.label || a.id)}</option>`).join('')}
+        ${builtinOptsForSlot(val)}
       </select>
     </div>`;
   }
@@ -805,11 +838,17 @@ function _aeAddSlot(currentCount) {
   const slotRow = document.createElement('div');
   slotRow.className = 'views-form-row';
   slotRow.id = `ae-slot-row-${currentCount}`;
+  const builtinOptsAdd = typeof BUILTIN_ACTIONS !== 'undefined'
+    ? Object.values(BUILTIN_ACTIONS).map(a =>
+        `<option value="${_aeEsc(a.id)}">${_aeEsc(a.label || a.id)}</option>`
+      ).join('')
+    : '';
   slotRow.innerHTML = `
     <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Button ${currentCount + 1}</label>
     <select class="views-input" id="ae-slot-${currentCount}" style="flex:none;width:auto">
       <option value="">— none —</option>
       ${allActions.map(a => `<option value="${_aeEsc(a.id)}">${_aeEsc(a.label || a.id)}</option>`).join('')}
+      ${builtinOptsAdd}
     </select>`;
 
   if (addBtn) {

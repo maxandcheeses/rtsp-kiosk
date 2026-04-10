@@ -172,6 +172,8 @@ document.addEventListener('keydown', e => {
 
   // ── Escape — close modal or open settings ──
   if (e.key === 'Escape') {
+    const focusOverlay = document.getElementById('focus-panel-overlay');
+    if (focusOverlay && focusOverlay.classList.contains('open')) { if (typeof closeFocusPanel === 'function') closeFocusPanel(); return; }
     if (typeof closeActionsModal === 'function' && ACTIONS_MODAL_OPEN) { closeActionsModal(); return; }
     if (anyOpen) { closeAllModals(); return; }
     if (modalsEnabled) { openSettingsModal(); return; }

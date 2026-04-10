@@ -17,7 +17,7 @@
 | `camera-editor.js` | `CAM_*` globals, `renderCamerasTab()`, `openCamerasModal()` (shim), `loadCamStreams()`, all `cam*` functions |
 | `debug.js` | `globalMuted`/`userInteracted`, `markInteracted()`, `applyMute()`, `toggleMute()`, `loadMuteState()`, `debugInterval`/`cycleStartedAt`/`cycleDuration`, `startDebugTimer()`, `updateDebugOverlay()` |
 | `views-editor.js` | `_persistViews()`, views CRUD functions, drag-to-reorder for views table, view edit form functions, per-slot stream dropdowns (`_renderVeStreamPicker`, `_veSlotChange`), `cancelViewEdit()`, `toggleVePreload()`, `saveViewForm()` |
-| `actions-editor.js` | `AE_FULL/AE_LOCAL/AE_UNSAVED/AE_TAB/AE_OPEN_DRAWER` globals, `loadActionsEditorData()`, `renderActionsEditor()`, `_renderAeTabsInto()`, `switchAeTab()`. **MQTT tab**: `_buildAeMqttTab()` (CRUD table of `mqtt.servers`), `_buildAeSrvDrawerForm()`, `openAeSrvDrawer()`, `saveAeSrvDrawer()` (cascades id rename to `action.mqttServer`), `deleteAeSrv()`/`confirmDeleteAeSrv()`, `addAeSrv()`, `_initAeSrvDrag()` + handlers. **Actions tab**: `_buildAeActionsTab()`, `_buildAeActionDrawerForm()` (includes `mqttServer` dropdown), `saveAeActionDrawer()` (validates mqttServer required if servers exist), `_initAeActionDrag()` + handlers. **Groups tab**: `_buildAeGroupsTab()`, `_buildAeGroupDrawerForm()`, `saveAeGroupDrawer()`, `_initAeGroupDrag()` + handlers. `markAeUnsaved()`, `applyAeChanges()`, `discardAeChanges()`. |
+| `actions-editor.js` | `AE_FULL/AE_LOCAL/AE_UNSAVED/AE_TAB/AE_OPEN_DRAWER` globals, `loadActionsEditorData()`, `renderActionsEditor()`, `_renderAeTabsInto()`, `switchAeTab()`. **MQTT tab**: `_buildAeMqttTab()` (CRUD table of `mqtt.servers`), `_buildAeSrvDrawerForm()`, `openAeSrvDrawer()`, `saveAeSrvDrawer()` (cascades id rename to `action.mqttServer`), `deleteAeSrv()`/`confirmDeleteAeSrv()`, `addAeSrv()`, `_initAeSrvDrag()` + handlers. **Actions tab**: `_buildAeActionsTab()`, `_buildAeActionDrawerForm()` (type dropdown: `mqtt`/`focus-panel`; MQTT fields wrapped in `#ae-mqtt-fields`; focus-panel timeout in `#ae-focus-fields`; `_aeTypeChanged(type)` shows/hides sections), `saveAeActionDrawer()` (validates MQTT fields only for type=mqtt; captures timeout for focus-panel), `_initAeActionDrag()` + handlers. **Groups tab**: `_buildAeGroupsTab()`, `_buildAeGroupDrawerForm()` (slot selects include `BUILTIN_ACTIONS` entries), `_aeAddSlot()` (also includes builtins), `saveAeGroupDrawer()`, `_initAeGroupDrag()` + handlers. `markAeUnsaved()`, `applyAeChanges()`, `discardAeChanges()`. |
 | `boot.js` | `boot()`, `markInteracted` event listeners, backdrop-click forEach, `startMQTT()` call, `boot()` call |
 
 ### Load order in index.html
@@ -48,6 +48,15 @@ See `webrtc.md` for full lifecycle. The key point: index is ephemeral (DOM posit
 
 ### `scheduleRetry(index)` — webrtc.js
 Re-resolves stream index at fire time (`STREAMS.findIndex`) — the view may have changed between scheduling and firing. If the stream is no longer in the active layout, the retry is silently dropped.
+
+### `BUILTIN_ACTIONS` — actions.js
+Module-level const defining always-available actions (`__next-view`, `__prev-view`). These are merged into `ACTIONS` after each `loadActionsConfig()` call. They are never editable or deletable via the editor. `pressAction` handles them by calling `navigateView(±1)` then `closeActionsModal()`.
+
+### `openFocusPanel(slotIndex, timeout)` / `closeFocusPanel()` — actions.js
+`openFocusPanel` pauses view cycling, copies the `srcObject` (WebRTC MediaStream) from the source cell video element (`#v{slotIndex}`) to `#focus-panel-video`, shows `#focus-panel-overlay`, and starts an optional countdown timer. `closeFocusPanel` clears the timer, hides the overlay, nulls the video source, and resumes cycling. ESC key handling in `ui.js` checks the overlay first (highest z-index, must close before other modals).
+
+### `pressAction(actionId)` — actions.js
+Dispatches to three branches in order: `builtin` type → navigate view + close modal; `focus-panel` type → close modal + open focus overlay; `mqtt` type → publish via MQTT client with visual feedback. Unknown actions or mqtt actions without `publish` are silently ignored.
 
 ### `closeAllModals()` and `anyOpen` — ui.js
 Only `settings-modal` is tracked. All editor tabs (cameras, views, actions) are panels inside the unified settings modal — there is no standalone actions-settings-modal. If a new modal is added, update both the `classList.remove` block inside `closeAllModals` and the `anyOpen` array in the keydown handler.
