@@ -9,7 +9,7 @@
       "id": "lights-on",
       "type": "mqtt",
       "mqttServer": "home",
-      "label": "Lights On",
+      "description": "Lights On",
       "icon": "mdi:lightbulb",
       "publish": {
         "topic": "home/living/lights/set",
@@ -24,7 +24,7 @@
       "id": "lights-off",
       "type": "mqtt",
       "mqttServer": "home",
-      "label": "Lights Off",
+      "description": "Lights Off",
       "icon": "mdi:lightbulb-off",
       "publish": {
         "topic": "home/living/lights/set",
@@ -39,7 +39,7 @@
       "id": "fan-on",
       "type": "mqtt",
       "mqttServer": "home",
-      "label": "Fan On",
+      "description": "Fan On",
       "icon": "mdi:fan",
       "publish": {
         "topic": "home/living/fan/set",
@@ -54,7 +54,7 @@
       "id": "fan-off",
       "type": "mqtt",
       "mqttServer": "home",
-      "label": "Fan Off",
+      "description": "Fan Off",
       "icon": "mdi:fan-off",
       "publish": {
         "topic": "home/living/fan/set",
@@ -69,7 +69,7 @@
       "id": "lock-door",
       "type": "mqtt",
       "mqttServer": "home",
-      "label": "Lock",
+      "description": "Lock",
       "icon": "mdi:lock",
       "publish": {
         "topic": "home/front-door/lock/set",
@@ -84,7 +84,7 @@
       "id": "unlock-door",
       "type": "mqtt",
       "mqttServer": "home",
-      "label": "Unlock",
+      "description": "Unlock",
       "icon": "mdi:lock-open",
       "publish": {
         "topic": "home/front-door/lock/set",
@@ -98,7 +98,7 @@
     {
       "id": "focus-cam",
       "type": "focus-panel",
-      "label": "Focus",
+      "description": "Focus",
       "icon": "mdi:fullscreen",
       "timeout": 0
     }

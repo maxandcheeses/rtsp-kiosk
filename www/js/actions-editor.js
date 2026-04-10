@@ -383,12 +383,30 @@ function _onAeSrvDragEnd(e) {
 function _buildAeActionsTab() {
   const actions = (AE_LOCAL && AE_LOCAL.actions) || [];
 
+  const builtinRows = Object.values(BUILTIN_ACTIONS).map(action => {
+    const iconHtml = action.icon ? _renderIcon(action.icon) : '';
+    const badge = `<span style="font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:2px;padding:1px 5px">BUILT-IN</span>`;
+    return `<tr>
+      <td style="font-size:18px;padding:6px 10px">${iconHtml}</td>
+      <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${_aeEsc(action.id)}</td>
+      <td style="font-size:11px">${_aeEsc(action.description || '')}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+
+  const builtinSection = `
+    <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px">Built-in Actions</div>
+    <table class="streams-table" style="width:100%;margin-bottom:20px">
+      <thead><tr><th>Icon</th><th>ID</th><th>Description</th><th>Note</th></tr></thead>
+      <tbody>${builtinRows}</tbody>
+    </table>`;
+
   const addBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
     <button class="cam-add-btn" onclick="addAeAction()">+ Add Action</button>
   </div>`;
 
   if (actions.length === 0) {
-    return addBtn + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
+    return builtinSection + addBtn + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
       NO ACTIONS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Action above</span>
     </div>`;
   }
@@ -406,7 +424,7 @@ function _buildAeActionsTab() {
     rows += `<tr id="ae-action-row-${esc}" style="cursor:pointer" onclick="(function(e){if(!e.target.closest('button'))openAeActionDrawer('${esc}')})(event)">
       <td class="cam-drag-handle" style="width:32px">≡</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${_aeEsc(id)}</td>
-      <td style="font-size:11px">${_aeEsc(action.label || '')}</td>
+      <td style="font-size:11px">${_aeEsc(action.description || '')}</td>
       <td style="font-size:18px;padding:6px 10px">${iconHtml}</td>
       <td style="font-family:'Courier New',monospace;font-size:9px;color:rgba(255,255,255,0.4);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${publishSummary}</td>
       <td style="text-align:right;white-space:nowrap">
@@ -423,9 +441,9 @@ function _buildAeActionsTab() {
     </tr>`;
   });
 
-  return addBtn + `<table class="streams-table" style="width:100%">
+  return builtinSection + addBtn + `<table class="streams-table" style="width:100%">
     <thead><tr>
-      <th></th><th>ID</th><th>Label</th><th>Icon</th><th>Publish</th><th></th>
+      <th></th><th>ID</th><th>Description</th><th>Icon</th><th>Publish</th><th></th>
     </tr></thead>
     <tbody id="ae-actions-tbody">${rows}</tbody>
   </table>`;
@@ -433,7 +451,7 @@ function _buildAeActionsTab() {
 
 function _buildAeActionDrawerForm(action, isNew) {
   const id     = action.id || '';
-  const label  = action.label || '';
+  const desc   = action.description || '';
   const icon   = action.icon || '';
   const type       = action.type || 'mqtt';
   const mqttServer = action.mqttServer || '';
@@ -453,10 +471,10 @@ function _buildAeActionDrawerForm(action, isNew) {
       </div>
     </div>
     <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Label</label>
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Description</label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-        <input class="views-input" id="ae-field-label" value="${_aeEsc(label)}" placeholder="e.g. Turn On">
-        <div class="cam-field-error" id="ae-err-label"></div>
+        <input class="views-input" id="ae-field-description" value="${_aeEsc(desc)}" placeholder="e.g. Turn On">
+        <div class="cam-field-error" id="ae-err-description"></div>
       </div>
     </div>
     <div class="views-form-row">
@@ -579,12 +597,12 @@ function _aeTypeChanged(type) {
 
 function saveAeActionDrawer(originalId, isNew) {
   const idEl     = document.getElementById('ae-field-id');
-  const labelEl  = document.getElementById('ae-field-label');
+  const descEl   = document.getElementById('ae-field-description');
   const ptEl     = document.getElementById('ae-field-publish-topic');
   const ppEl     = document.getElementById('ae-field-publish-payload');
 
   const newId      = idEl    ? idEl.value.trim()    : originalId;
-  const newLabel   = labelEl ? labelEl.value.trim() : '';
+  const newDesc    = descEl  ? descEl.value.trim()  : '';
   const pTopic     = ptEl    ? ptEl.value.trim()    : '';
   const pPayload   = ppEl    ? ppEl.value.trim()    : '';
   const icon       = (document.getElementById('ae-field-icon')           || {}).value || '';
@@ -606,12 +624,12 @@ function saveAeActionDrawer(originalId, isNew) {
     if (errId) errId.textContent = '';
   }
 
-  const errLabel = document.getElementById('ae-err-label');
-  if (!newLabel) {
-    if (errLabel) errLabel.textContent = 'Label is required';
+  const errDesc = document.getElementById('ae-err-description');
+  if (!newDesc) {
+    if (errDesc) errDesc.textContent = 'Description is required';
     valid = false;
   } else {
-    if (errLabel) errLabel.textContent = '';
+    if (errDesc) errDesc.textContent = '';
   }
 
   if (type === 'mqtt') {
@@ -648,7 +666,7 @@ function saveAeActionDrawer(originalId, isNew) {
   const updated = {
     id: newId,
     type,
-    label: newLabel,
+    description: newDesc,
     ...(icon ? { icon } : {}),
     ...(type === 'mqtt' && mqttServer ? { mqttServer } : {}),
     ...(type === 'mqtt' ? { publish: { topic: pTopic, payload: pPayload } } : {}),
@@ -710,7 +728,7 @@ function addAeAction() {
   if (!AE_LOCAL.actions) AE_LOCAL.actions = [];
   let n = 1;
   while (AE_LOCAL.actions.find(a => a.id === `new-action-${n}`)) n++;
-  const newAction = { id: `new-action-${n}`, type: 'mqtt', label: '', publish: { topic: '', payload: '' } };
+  const newAction = { id: `new-action-${n}`, type: 'mqtt', description: '', publish: { topic: '', payload: '' } };
   AE_LOCAL.actions.push(newAction);
   AE_OPEN_DRAWER = newAction.id;
   const container = document.getElementById('ae-tabs-and-content');
@@ -774,12 +792,12 @@ function _buildAeGroupDrawerForm(group, isNew) {
   const allActions = (AE_LOCAL && AE_LOCAL.actions) || [];
 
   const actionOpts = allActions.map(a =>
-    `<option value="${_aeEsc(a.id)}">${_aeEsc(a.label || a.id)}</option>`
+    `<option value="${_aeEsc(a.id)}">${_aeEsc(a.description || a.id)}</option>`
   ).join('');
 
   const builtinOptsForSlot = (val) => typeof BUILTIN_ACTIONS !== 'undefined'
     ? Object.values(BUILTIN_ACTIONS).map(a =>
-        `<option value="${_aeEsc(a.id)}"${a.id===val?' selected':''}>${_aeEsc(a.label || a.id)}</option>`
+        `<option value="${_aeEsc(a.id)}"${a.id===val?' selected':''}>${_aeEsc(a.description || a.id)}</option>`
       ).join('')
     : '';
 
@@ -790,7 +808,7 @@ function _buildAeGroupDrawerForm(group, isNew) {
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Button ${i + 1}</label>
       <select class="views-input" id="ae-slot-${i}" style="flex:none;width:auto">
         <option value="">— none —</option>
-        ${allActions.map(a => `<option value="${_aeEsc(a.id)}"${a.id===val?' selected':''}>${_aeEsc(a.label || a.id)}</option>`).join('')}
+        ${allActions.map(a => `<option value="${_aeEsc(a.id)}"${a.id===val?' selected':''}>${_aeEsc(a.description || a.id)}</option>`).join('')}
         ${builtinOptsForSlot(val)}
       </select>
     </div>`;
@@ -840,14 +858,14 @@ function _aeAddSlot(currentCount) {
   slotRow.id = `ae-slot-row-${currentCount}`;
   const builtinOptsAdd = typeof BUILTIN_ACTIONS !== 'undefined'
     ? Object.values(BUILTIN_ACTIONS).map(a =>
-        `<option value="${_aeEsc(a.id)}">${_aeEsc(a.label || a.id)}</option>`
+        `<option value="${_aeEsc(a.id)}">${_aeEsc(a.description || a.id)}</option>`
       ).join('')
     : '';
   slotRow.innerHTML = `
     <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Button ${currentCount + 1}</label>
     <select class="views-input" id="ae-slot-${currentCount}" style="flex:none;width:auto">
       <option value="">— none —</option>
-      ${allActions.map(a => `<option value="${_aeEsc(a.id)}">${_aeEsc(a.label || a.id)}</option>`).join('')}
+      ${allActions.map(a => `<option value="${_aeEsc(a.id)}">${_aeEsc(a.description || a.id)}</option>`).join('')}
       ${builtinOptsAdd}
     </select>`;
 
