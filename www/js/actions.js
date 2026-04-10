@@ -10,7 +10,8 @@ let _actionsSlotIndex  = null; // which slot triggered the modal
 let _actionUnsubscribers = [];
 let _connectedServerIds = new Set();
 let _actionsConfig = null;  // full parsed config from /actions.json
-let _focusPanelTimer = null;
+let _focusPanelTimer    = null;
+let _focusReopenSlot    = null; // slot to reopen actions modal on focus close
 
 const BUILTIN_ACTIONS = {
   '__next-view': {
@@ -226,8 +227,11 @@ function pressAction(actionId) {
 
   // Handle focus-panel actions
   if (action.type === 'focus-panel') {
+    const slotForFocus = _actionsSlotIndex;
+    let keepOpen = false;
+    try { keepOpen = localStorage.getItem('actionsKeepOpen') === 'true'; } catch(e) {}
     closeActionsModal();
-    openFocusPanel(_actionsSlotIndex, action.timeout || 0);
+    openFocusPanel(slotForFocus, action.timeout || 0, keepOpen ? slotForFocus : null);
     return;
   }
 
@@ -265,7 +269,8 @@ function pressAction(actionId) {
   }, 150);
 }
 
-function openFocusPanel(slotIndex, timeout) {
+function openFocusPanel(slotIndex, timeout, reopenSlot) {
+  _focusReopenSlot = reopenSlot !== undefined ? reopenSlot : null;
   // Pause cycling if active
   if (typeof pauseCycle === 'function') pauseCycle();
 
@@ -303,6 +308,9 @@ function closeFocusPanel() {
   const destVideo = document.getElementById('focus-panel-video');
   if (destVideo) { destVideo.srcObject = null; destVideo.src = ''; }
   if (typeof resumeCycle === 'function') resumeCycle();
+  const reopen = _focusReopenSlot;
+  _focusReopenSlot = null;
+  if (reopen !== null) openActionsModal(reopen);
 }
 
 function saveKeepOpen() {
