@@ -3,6 +3,27 @@
 // ═══════════════════════════════════════════════════════
 let _mqttClient = null;
 
+// Named MQTT client pool — keyed by server id (for actions multi-server support)
+const _mqttClients = new Map();
+
+function getOrCreateMqttClient(serverId, serverCfg) {
+  if (_mqttClients.has(serverId)) return _mqttClients.get(serverId);
+  if (typeof mqtt === 'undefined') { console.warn('MQTT: mqtt.js not loaded'); return null; }
+  const client = mqtt.connect(serverCfg.broker, {
+    username: serverCfg.username || undefined,
+    password: serverCfg.password || undefined,
+    reconnectPeriod: 0,
+  });
+  _mqttClients.set(serverId, client);
+  console.log(`MQTT: connecting named client "${serverId}" to ${serverCfg.broker}`);
+  return client;
+}
+
+function disconnectMqttClient(serverId) {
+  const client = _mqttClients.get(serverId);
+  if (client) { client.end(true); _mqttClients.delete(serverId); console.log(`MQTT: disconnected named client "${serverId}"`); }
+}
+
 let _extraSubscriptions = []; // { topic, callback } registered before connection
 
 let _mqttConnected   = false;
