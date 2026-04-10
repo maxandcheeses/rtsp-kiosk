@@ -164,10 +164,8 @@
     /* ── Shared modal styles ── */
     .modal {
       position: fixed; inset: 0;
-      background: rgba(15,15,15,0.96);
-      display: none; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 32px;
+      background: rgba(0,0,0,0.65);
+      display: none; align-items: center; justify-content: center;
       z-index: 1000;
       font-family: 'Courier New', monospace;
     }
@@ -793,16 +791,17 @@
     .cam-advanced-toggle:hover { color: rgba(255,255,255,0.7); }
 
     /* ─── Tabbed settings layout ─── */
-    .settings-layout { display:flex; width:100%; height:100%; }
-    .settings-sidebar { width:160px; min-width:160px; border-right:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; gap:2px; padding:12px 8px; }
+    .settings-layout { display:flex; width:min(980px,92vw); max-height:80vh; background:rgb(13,13,13); border:1px solid rgba(255,255,255,0.1); border-radius:8px; box-shadow:0 24px 80px rgba(0,0,0,0.7); overflow:hidden; }
+    .settings-sidebar { width:160px; min-width:160px; min-height:0; border-right:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; gap:2px; padding:12px 8px; }
     .settings-tab-btn { width:100%; text-align:left; padding:8px 12px; background:transparent; border:1px solid transparent; border-radius:3px; color:rgba(255,255,255,0.45); font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
     .settings-tab-btn:hover { color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.04); }
     .settings-tab-btn.active { color:rgba(255,255,255,0.9); background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.2); }
-    .settings-content { flex:1; overflow-y:auto; padding:40px 48px; position:relative; }
+    .settings-content { flex:1; overflow-y:auto; padding:32px 40px; position:relative; min-height:0; }
 
     @media (max-width: 900px) {
-      .settings-content { padding: 24px 28px; }
-      .settings-sidebar { width: 120px; min-width: 120px; }
+      .settings-layout { width: 96vw; }
+      .settings-content { padding: 20px 24px; }
+      .settings-sidebar { width: 110px; min-width: 110px; }
     }
 
     /* ─── Actions tab ─── */
@@ -848,7 +847,7 @@
 <body>
 
 
-<div id="settings-modal" class="modal" style="padding:0;align-items:stretch;">
+<div id="settings-modal" class="modal">
   <div class="settings-layout">
     <div class="settings-sidebar">
       <button class="settings-tab-btn active" data-tab="general" onclick="activateSettingsTab('general')">General</button>
