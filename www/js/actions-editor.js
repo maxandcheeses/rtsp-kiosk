@@ -460,8 +460,17 @@ function _buildAeActionDrawerForm(action, isNew) {
   const sTopic = (action.state && action.state.topic) || '';
   const sOnVal = (action.state && action.state.onValue) || '';
 
+  const focusAuto = !!(action.timeout && action.timeout > 0);
+  const focusTimeout = focusAuto ? action.timeout : 30;
   const iconPreviewId = `ae-icon-preview-${_aeEsc(id)}`;
   return `<div class="cam-form-grid">
+    <div class="views-form-row">
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Type</label>
+      <select class="views-input" id="ae-field-type" style="flex:none;width:auto" onchange="_aeTypeChanged(this.value)">
+        <option value="mqtt"${type === 'mqtt' ? ' selected' : ''}>mqtt</option>
+        <option value="focus-panel"${type === 'focus-panel' ? ' selected' : ''}>focus-panel</option>
+      </select>
+    </div>
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">ID (slug)</label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
@@ -476,13 +485,6 @@ function _buildAeActionDrawerForm(action, isNew) {
         <input class="views-input" id="ae-field-description" value="${_aeEsc(desc)}" placeholder="e.g. Turn On">
         <div class="cam-field-error" id="ae-err-description"></div>
       </div>
-    </div>
-    <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Type</label>
-      <select class="views-input" id="ae-field-type" style="flex:none;width:auto" onchange="_aeTypeChanged(this.value)">
-        <option value="mqtt"${type === 'mqtt' ? ' selected' : ''}>mqtt</option>
-        <option value="focus-panel"${type === 'focus-panel' ? ' selected' : ''}>focus-panel</option>
-      </select>
     </div>
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Icon</label>
@@ -546,10 +548,15 @@ function _buildAeActionDrawerForm(action, isNew) {
 
     <div id="ae-focus-fields" style="${type === 'focus-panel' ? '' : 'display:none'}">
       <div class="views-form-row" style="margin-top:8px">
-        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Timeout (sec)</label>
-        <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-          <input class="views-input" id="ae-field-timeout" type="number" min="0" value="${_aeEsc(action.timeout || '')}" placeholder="0 = keep open">
-          <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace">Seconds before auto-close. 0 or empty = stay open.</div>
+        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Close behaviour</label>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer">
+            <input type="radio" name="ae-focus-close" id="ae-focus-keep" value="keep"${!focusAuto ? ' checked' : ''} onclick="_aeFocusRadioChanged()"> Keep open until closed
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer">
+            <input type="radio" name="ae-focus-close" id="ae-focus-auto" value="auto"${focusAuto ? ' checked' : ''} onclick="_aeFocusRadioChanged()"> Auto-close after
+            <input type="number" id="ae-focus-timeout" min="1" max="3600" value="${focusTimeout}"${!focusAuto ? ' disabled' : ''} style="width:60px" class="views-input"> seconds
+          </label>
         </div>
       </div>
     </div>
@@ -593,6 +600,13 @@ function _aeTypeChanged(type) {
   const mqttFields = document.getElementById('ae-mqtt-fields');
   if (focusFields) focusFields.style.display = type === 'focus-panel' ? '' : 'none';
   if (mqttFields) mqttFields.style.display = type === 'focus-panel' ? 'none' : '';
+  if (type === 'focus-panel') _aeFocusRadioChanged();
+}
+
+function _aeFocusRadioChanged() {
+  const auto = !!(document.getElementById('ae-focus-auto') && document.getElementById('ae-focus-auto').checked);
+  const timeoutEl = document.getElementById('ae-focus-timeout');
+  if (timeoutEl) timeoutEl.disabled = !auto;
 }
 
 function saveAeActionDrawer(originalId, isNew) {
@@ -659,7 +673,11 @@ function saveAeActionDrawer(originalId, isNew) {
     }
   }
 
-  const timeout = parseInt((document.getElementById('ae-field-timeout') || {}).value) || 0;
+  let timeout = 0;
+  if (type === 'focus-panel') {
+    const autoClose = !!(document.getElementById('ae-focus-auto') && document.getElementById('ae-focus-auto').checked);
+    timeout = autoClose ? (parseInt((document.getElementById('ae-focus-timeout') || {}).value, 10) || 30) : 0;
+  }
 
   if (!valid) return;
 
