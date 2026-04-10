@@ -810,9 +810,9 @@
     .ae-tab-btn.active { border-color:rgba(255,255,255,0.35); color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.06); }
 
     /* ─── Actions modal ─── */
-    .actions-grid { display:grid; gap:16px; }
-    .actions-grid[data-count="1"],.actions-grid[data-count="2"] { grid-template-columns:1fr; }
-    .actions-grid[data-count="3"],.actions-grid[data-count="4"],.actions-grid[data-count="5"],.actions-grid[data-count="6"] { grid-template-columns:1fr 1fr; }
+    .actions-grid { display:grid; gap:12px; justify-content:center; }
+    .actions-grid[data-count="1"],.actions-grid[data-count="2"] { grid-template-columns:120px; }
+    .actions-grid[data-count="3"],.actions-grid[data-count="4"],.actions-grid[data-count="5"],.actions-grid[data-count="6"] { grid-template-columns:repeat(2,120px); }
     .action-btn {
       width:120px; height:80px;
       background:rgba(255,255,255,0.06);
@@ -1126,14 +1126,18 @@
 </script>
 
 <!-- Actions modal -->
-<div id="actions-modal" style="display:none; position:fixed; background:rgba(10,10,10,0.92); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:32px 24px 48px 24px; box-shadow:0 8px 32px rgba(0,0,0,0.5); z-index:10001; min-width:280px; max-width:600px;">
-  <button class="modal-close-btn" onclick="closeActionsModal()">✕</button>
+<div id="actions-modal" style="display:none; position:fixed; background:rgba(10,10,10,0.92); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:10px 16px 12px; box-shadow:0 8px 32px rgba(0,0,0,0.5); z-index:10001;">
+  <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+    <button class="modal-close-btn" style="position:static;" onclick="closeActionsModal()">✕</button>
+  </div>
   <div id="actions-grid" class="actions-grid"></div>
-  <label style="display:flex; align-items:center; gap:8px; position:absolute; bottom:16px; left:24px; cursor:pointer;">
-    <input type="checkbox" id="actions-keep-open" onchange="saveKeepOpen()">
-    <span style="font-size:9px; font-family:'Courier New',monospace; color:rgba(255,255,255,0.35);">Keep open</span>
-  </label>
-  <span id="actions-mqtt-status" style="position:absolute; bottom:19px; right:24px; font-size:9px; font-family:'Courier New',monospace; color:rgba(248,113,113,0.7); display:none;">● MQTT</span>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; min-height:18px;">
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+      <input type="checkbox" id="actions-keep-open" onchange="saveKeepOpen()">
+      <span style="font-size:9px; font-family:'Courier New',monospace; color:rgba(255,255,255,0.35);">Keep open</span>
+    </label>
+    <span id="actions-mqtt-status" style="font-size:9px; font-family:'Courier New',monospace; color:rgba(248,113,113,0.7); display:none;">● MQTT</span>
+  </div>
 </div>
 <div id="actions-backdrop" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:10000;" onclick="closeActionsModal()"></div>
 
