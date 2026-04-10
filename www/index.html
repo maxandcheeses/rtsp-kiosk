@@ -791,7 +791,7 @@
     .cam-advanced-toggle:hover { color: rgba(255,255,255,0.7); }
 
     /* ─── Tabbed settings layout ─── */
-    .settings-layout { display:flex; width:min(980px,92vw); height:min(560px,85vh); background:rgb(13,13,13); border:1px solid rgba(255,255,255,0.1); border-radius:8px; box-shadow:0 24px 80px rgba(0,0,0,0.7); overflow:hidden; }
+    .settings-layout { display:flex; width:min(980px,92vw); height:min(560px,85vh); background:rgb(13,13,13); border:1px solid rgba(255,255,255,0.1); border-radius:8px; box-shadow:0 24px 80px rgba(0,0,0,0.7); overflow:hidden; position:relative; }
     .settings-sidebar { width:160px; min-width:160px; flex-shrink:0; overflow:hidden; border-right:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; gap:2px; padding:12px 8px; }
     .settings-tab-btn { width:100%; text-align:left; padding:8px 12px; background:transparent; border:1px solid transparent; border-radius:3px; color:rgba(255,255,255,0.45); font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
     .settings-tab-btn:hover { color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.04); }
@@ -856,8 +856,8 @@
       <button class="settings-tab-btn" data-tab="actions" onclick="activateSettingsTab('actions')">Actions</button>
       <button class="settings-tab-btn" data-tab="performance" onclick="activateSettingsTab('performance')">Performance</button>
       <button class="settings-tab-btn" data-tab="streams" onclick="activateSettingsTab('streams')">Streams</button>
-      <button class="modal-close-btn" style="position:static;margin-top:auto;align-self:center;" onclick="closeAllModals()">✕</button>
     </div>
+    <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
     <div class="settings-content">
 
       <!-- General tab -->
