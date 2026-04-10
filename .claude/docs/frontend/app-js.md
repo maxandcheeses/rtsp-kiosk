@@ -13,14 +13,15 @@
 | `webrtc.js` | `retryDelay`/`retryPending`/`RETRY_MIN`/`RETRY_MAX`, `scheduleRetry()`, `resetRetry()`, `scheduleRefresh()`, `clearRefresh()`, `streamPCs`/`refreshTimers`/`refreshTimerStarted` globals, `attachExistingPC()`, `startWhep()` |
 | `views.js` | `activateView()`, `scheduleCycle()`, `clearCycle()`, `startCycling()`, cycle pause/resume globals, `showIndicator()`, `pauseCycle()`, `resumeCycle()`, `navigateView()`, `PRELOAD_DEFAULT`/`preloadPCs`, `PERF_DEFAULTS`/`PERF`/perf functions, storage clear functions, `preloadVideos`/`preloadTimer`, preload functions |
 | `ui.js` | `fsTimer`/`clearFsTimer()`/`toggleFS()`, `fullscreenchange` listener, `_activeSettingsTab`, `closeAllModals()`, `activateSettingsTab()`, `openSettingsModal(tab?)`, `renderViewsTab()`, `openViewsModal()` (shim), `renderStreamsTab()`, `openStreamsModal()` (shim), keydown listener, cursor hide/settings button |
-| `mqtt.js` | `_mqttConnected`, `_mqttConnecting`, `_mqttReconnDelay/Timer`, `_mqttPublishQueue`, `_MQTT_QUEUE_MAX/DELAY_MAX`, `_mqttScheduleReconnect()`, `startMQTT()`, `mqttConnect()`, `mqttSubscribe()`, `mqttPublish()` (queues when disconnected), `applyStreamUpdates()`, `_updateMqttStatusIndicator()` (3-state: green/yellow/red), `mqttForceReconnect()` |
+| `mqtt.js` | `_mqttConnected`, `_mqttConnecting`, `_mqttReconnDelay/Timer`, `_mqttPublishQueue`, `_MQTT_QUEUE_MAX/DELAY_MAX`, `_mqttScheduleReconnect()`, `startMQTT()`, `mqttConnect()`, `mqttSubscribe()` (returns unsubscribe fn), `mqttPublish()` (queues when disconnected), `applyStreamUpdates()`, `_updateMqttStatusIndicator()` (3-state), `mqttForceReconnect()`. **Multi-server pool**: `_mqttClients` Map, `getOrCreateMqttClient(serverId, cfg)`, `disconnectMqttClient(serverId)`. |
 | `camera-editor.js` | `CAM_*` globals, `renderCamerasTab()`, `openCamerasModal()` (shim), `loadCamStreams()`, all `cam*` functions |
 | `debug.js` | `globalMuted`/`userInteracted`, `markInteracted()`, `applyMute()`, `toggleMute()`, `loadMuteState()`, `debugInterval`/`cycleStartedAt`/`cycleDuration`, `startDebugTimer()`, `updateDebugOverlay()` |
 | `views-editor.js` | `_persistViews()`, views CRUD functions, drag-to-reorder for views table, view edit form functions, per-slot stream dropdowns (`_renderVeStreamPicker`, `_veSlotChange`), `cancelViewEdit()`, `toggleVePreload()`, `saveViewForm()` |
+| `actions-editor.js` | `AE_FULL/AE_LOCAL/AE_UNSAVED/AE_TAB/AE_OPEN_DRAWER` globals, `loadActionsEditorData()`, `renderActionsEditor()`, `_renderAeTabsInto()`, `switchAeTab()`. **MQTT tab**: `_buildAeMqttTab()` (CRUD table of `mqtt.servers`), `_buildAeSrvDrawerForm()`, `openAeSrvDrawer()`, `saveAeSrvDrawer()` (cascades id rename to `action.mqttServer`), `deleteAeSrv()`/`confirmDeleteAeSrv()`, `addAeSrv()`, `_initAeSrvDrag()` + handlers. **Actions tab**: `_buildAeActionsTab()`, `_buildAeActionDrawerForm()` (includes `mqttServer` dropdown), `saveAeActionDrawer()` (validates mqttServer required if servers exist), `_initAeActionDrag()` + handlers. **Groups tab**: `_buildAeGroupsTab()`, `_buildAeGroupDrawerForm()`, `saveAeGroupDrawer()`, `_initAeGroupDrag()` + handlers. `markAeUnsaved()`, `applyAeChanges()`, `discardAeChanges()`. |
 | `boot.js` | `boot()`, `markInteracted` event listeners, backdrop-click forEach, `startMQTT()` call, `boot()` call |
 
 ### Load order in index.html
-`config.js` → `layouts.js` → `webrtc.js` → `views.js` → `ui.js` → `mqtt.js` → `camera-editor.js` → `debug.js` → `views-editor.js` → `boot.js`
+`config.js` → `layouts.js` → `webrtc.js` → `views.js` → `ui.js` → `mqtt.js` → `camera-editor.js` → `debug.js` → `views-editor.js` → `actions-editor.js` → `boot.js`
 
 ---
 
@@ -49,7 +50,7 @@ See `webrtc.md` for full lifecycle. The key point: index is ephemeral (DOM posit
 Re-resolves stream index at fire time (`STREAMS.findIndex`) — the view may have changed between scheduling and firing. If the stream is no longer in the active layout, the retry is silently dropped.
 
 ### `closeAllModals()` and `anyOpen` — ui.js
-Both must include every modal ID: `picker`, `streams-modal`, `views-modal`, `settings-modal`, `performance-modal`, `cameras-modal`. If a new modal is added, update both the `classList.remove` block inside `closeAllModals` and the `anyOpen` array in the keydown handler — omitting either will break Escape-to-close for that modal.
+Only `settings-modal` is tracked. All editor tabs (cameras, views, actions) are panels inside the unified settings modal — there is no standalone actions-settings-modal. If a new modal is added, update both the `classList.remove` block inside `closeAllModals` and the `anyOpen` array in the keydown handler.
 
 ### `bestLayout(count)` — layouts.js
 Simple lookup: 1→single, 2→two-col, 3→primary-right, 4→quad, 5–6→six, 7–8→eight.
