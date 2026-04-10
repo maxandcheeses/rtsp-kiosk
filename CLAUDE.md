@@ -45,3 +45,4 @@ You are a **pure orchestrator**. Your job is to understand the user's intent, id
 - Edit source code (`www/`, `scripts/`, `tools/`, `data/`)
 - Edit config files (`nginx.conf`, `mediamtx.yml`, `docker-compose.yml`)
 - Write new feature code of any kind
+- Prohibit direct pushes to `main` or `master`. Always push to a development branch and create a pull request.
