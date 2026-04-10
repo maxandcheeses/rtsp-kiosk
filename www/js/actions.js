@@ -314,11 +314,19 @@ function closeFocusPanel() {
   if (_focusPanelTimer) { clearInterval(_focusPanelTimer); _focusPanelTimer = null; }
   document.getElementById('focus-panel-overlay').classList.remove('open');
   const destVideo = document.getElementById('focus-panel-video');
-  if (destVideo) { destVideo.srcObject = null; destVideo.src = ''; }
+  if (destVideo) { try { destVideo.srcObject = null; } catch(e) {} destVideo.src = ''; }
   if (typeof resumeCycle === 'function') resumeCycle();
   const reopen = _focusReopenSlot;
   _focusReopenSlot = null;
-  if (reopen !== null) openActionsModal(reopen);
+  // Only reopen actions modal if the slot points to a GROUP (not a direct action)
+  // to prevent an infinite loop where a direct focus-panel action re-opens focus
+  if (reopen !== null) {
+    const view = typeof getView === 'function' ? getView(activeView) : null;
+    const slotGroupId = view && view.slotGroups && view.slotGroups[reopen];
+    if (slotGroupId && ACTION_GROUPS[slotGroupId]) {
+      openActionsModal(reopen);
+    }
+  }
 }
 
 function saveKeepOpen() {
