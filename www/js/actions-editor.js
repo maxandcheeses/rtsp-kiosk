@@ -5,6 +5,7 @@ let AE_LOCAL       = null;  // working copy — mutated by editor
 let AE_UNSAVED     = false;
 let AE_TAB         = 'mqtt';   // 'mqtt' | 'actions' | 'groups'
 let AE_OPEN_DRAWER = null;     // action id or group id currently open
+let AE_DRAWER_DIRTY = false;   // true if any form field has been modified since drawer opened
 
 function _aeDeepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
@@ -107,6 +108,7 @@ function _renderAeTabsInto(container) {
 function switchAeTab(tab) {
   AE_TAB         = tab;
   AE_OPEN_DRAWER = null;
+  AE_DRAWER_DIRTY = false;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
 }
@@ -196,7 +198,11 @@ function _buildAeSrvDrawerForm(srv, isNew) {
 }
 
 function openAeSrvDrawer(id) {
-  if (AE_OPEN_DRAWER && AE_OPEN_DRAWER !== id) closeAeDrawer();
+  if (AE_OPEN_DRAWER === id) {
+    if (!AE_DRAWER_DIRTY) closeAeDrawer();
+    return;
+  }
+  if (AE_OPEN_DRAWER) closeAeDrawer();
   const srv = (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers || []).find(s => s.id === id);
   if (!srv) return;
   const inner = document.getElementById(`ae-srv-drawer-inner-${id}`);
@@ -206,6 +212,9 @@ function openAeSrvDrawer(id) {
   const drawer = document.getElementById(`ae-srv-drawer-${id}`);
   if (drawer) drawer.style.maxHeight = '9999px';
   AE_OPEN_DRAWER = id;
+  AE_DRAWER_DIRTY = false;
+  inner.addEventListener('input',  () => { AE_DRAWER_DIRTY = true; });
+  inner.addEventListener('change', () => { AE_DRAWER_DIRTY = true; });
   const row = document.getElementById(`ae-srv-row-${id}`);
   if (row) row.classList.add('cam-row-active');
 }
@@ -266,6 +275,7 @@ function saveAeSrvDrawer(originalId, isNew) {
     AE_LOCAL.mqtt.servers.push(updated);
   }
 
+  AE_DRAWER_DIRTY = false;
   AE_OPEN_DRAWER = null;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
@@ -568,7 +578,11 @@ function _buildAeActionDrawerForm(action, isNew) {
 }
 
 function openAeActionDrawer(id) {
-  if (AE_OPEN_DRAWER && AE_OPEN_DRAWER !== id) closeAeDrawer();
+  if (AE_OPEN_DRAWER === id) {
+    if (!AE_DRAWER_DIRTY) closeAeDrawer();
+    return;
+  }
+  if (AE_OPEN_DRAWER) closeAeDrawer();
   const action = (AE_LOCAL.actions || []).find(a => a.id === id);
   if (!action) return;
   const inner = document.getElementById(`ae-action-drawer-inner-${id}`);
@@ -578,6 +592,9 @@ function openAeActionDrawer(id) {
   const drawer = document.getElementById(`ae-action-drawer-${id}`);
   if (drawer) drawer.style.maxHeight = '9999px';
   AE_OPEN_DRAWER = id;
+  AE_DRAWER_DIRTY = false;
+  inner.addEventListener('input',  () => { AE_DRAWER_DIRTY = true; });
+  inner.addEventListener('change', () => { AE_DRAWER_DIRTY = true; });
   const row = document.getElementById(`ae-action-row-${id}`);
   if (row) row.classList.add('cam-row-active');
 }
@@ -593,6 +610,7 @@ function closeAeDrawer() {
   if (drawerEl) drawerEl.style.maxHeight = '0';
   if (rowEl) rowEl.classList.remove('cam-row-active');
   AE_OPEN_DRAWER = null;
+  AE_DRAWER_DIRTY = false;
 }
 
 function _aeTypeChanged(type) {
@@ -708,6 +726,7 @@ function saveAeActionDrawer(originalId, isNew) {
     });
   }
 
+  AE_DRAWER_DIRTY = false;
   AE_OPEN_DRAWER = null;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
@@ -897,7 +916,11 @@ function _aeAddSlot(currentCount) {
 }
 
 function openAeGroupDrawer(id) {
-  if (AE_OPEN_DRAWER && AE_OPEN_DRAWER !== id) closeAeDrawer();
+  if (AE_OPEN_DRAWER === id) {
+    if (!AE_DRAWER_DIRTY) closeAeDrawer();
+    return;
+  }
+  if (AE_OPEN_DRAWER) closeAeDrawer();
   const group = (AE_LOCAL.groups || []).find(g => g.id === id);
   if (!group) return;
   const inner = document.getElementById(`ae-group-drawer-inner-${id}`);
@@ -907,6 +930,9 @@ function openAeGroupDrawer(id) {
   const drawer = document.getElementById(`ae-group-drawer-${id}`);
   if (drawer) drawer.style.maxHeight = '9999px';
   AE_OPEN_DRAWER = id;
+  AE_DRAWER_DIRTY = false;
+  inner.addEventListener('input',  () => { AE_DRAWER_DIRTY = true; });
+  inner.addEventListener('change', () => { AE_DRAWER_DIRTY = true; });
   const row = document.getElementById(`ae-group-row-${id}`);
   if (row) row.classList.add('cam-row-active');
 }
@@ -957,6 +983,7 @@ function saveAeGroupDrawer(originalId, isNew) {
     AE_LOCAL.groups.push(updated);
   }
 
+  AE_DRAWER_DIRTY = false;
   AE_OPEN_DRAWER = null;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
