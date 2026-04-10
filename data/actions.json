@@ -1,13 +1,14 @@
 {
   "mqtt": {
-    "broker": "ws://localhost:9001",
-    "username": "",
-    "password": ""
+    "servers": [
+      { "id": "home", "broker": "ws://localhost:9001", "username": "", "password": "" }
+    ]
   },
   "actions": [
     {
       "id": "lights-on",
       "type": "mqtt",
+      "mqttServer": "home",
       "label": "Lights On",
       "icon": "mdi:lightbulb",
       "publish": {
@@ -22,6 +23,7 @@
     {
       "id": "lights-off",
       "type": "mqtt",
+      "mqttServer": "home",
       "label": "Lights Off",
       "icon": "mdi:lightbulb-off",
       "publish": {
@@ -36,6 +38,7 @@
     {
       "id": "fan-on",
       "type": "mqtt",
+      "mqttServer": "home",
       "label": "Fan On",
       "icon": "mdi:fan",
       "publish": {
@@ -50,6 +53,7 @@
     {
       "id": "fan-off",
       "type": "mqtt",
+      "mqttServer": "home",
       "label": "Fan Off",
       "icon": "mdi:fan-off",
       "publish": {
@@ -64,6 +68,7 @@
     {
       "id": "lock-door",
       "type": "mqtt",
+      "mqttServer": "home",
       "label": "Lock",
       "icon": "mdi:lock",
       "publish": {
@@ -78,6 +83,7 @@
     {
       "id": "unlock-door",
       "type": "mqtt",
+      "mqttServer": "home",
       "label": "Unlock",
       "icon": "mdi:lock-open",
       "publish": {
@@ -88,13 +94,20 @@
         "topic": "home/front-door/lock/state",
         "onValue": "UNLOCKED"
       }
+    },
+    {
+      "id": "focus-cam",
+      "type": "focus-panel",
+      "label": "Focus",
+      "icon": "mdi:fullscreen",
+      "timeout": 0
     }
   ],
   "groups": [
     {
       "id": "living-room",
       "name": "Living Room",
-      "actions": ["lights-on", "lights-off", "fan-on", "fan-off"]
+      "actions": ["lights-on", "lights-off", "__next-view", "__prev-view", "focus-cam", "fan-on"]
     },
     {
       "id": "front-door",

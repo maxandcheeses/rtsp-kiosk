@@ -829,6 +829,30 @@
       box-shadow:0 0 12px rgba(74,222,128,0.6); color:rgba(74,222,128,0.9);
     }
     .action-btn-icon { font-size:24px; line-height:1; }
+    #focus-panel-overlay {
+      display:none; position:fixed; inset:0; z-index:10002;
+      background:rgba(0,0,0,0.88);
+      align-items:center; justify-content:center; flex-direction:column;
+    }
+    #focus-panel-overlay.open { display:flex; }
+    #focus-panel-video-wrap {
+      position:relative;
+      width:min(90vw, calc(90vh * 16/9));
+      height:min(90vh, calc(90vw * 9/16));
+      background:#000;
+      border:1px solid rgba(255,255,255,0.15);
+      border-radius:6px;
+      overflow:hidden;
+    }
+    #focus-panel-video-wrap video {
+      width:100%; height:100%; object-fit:contain; display:block;
+    }
+    #focus-panel-countdown {
+      margin-top:10px;
+      font-family:'Courier New',monospace; font-size:10px;
+      letter-spacing:0.2em; color:rgba(255,255,255,0.35);
+      text-transform:uppercase; min-height:16px;
+    }
     .action-indicator {
       position:absolute; bottom:12px; right:12px;
       width:36px; height:36px; background:rgba(10,10,10,0.7);
@@ -899,7 +923,7 @@
               <select id="views-default-sel" onchange="onViewsDefaultChange()"></select>
             </div>
             <div style="margin-left:auto;display:flex;gap:8px;">
-              <button class="perf-reset" onclick="openNewViewEditor()">+ Add View</button>
+              <button class="cam-add-btn" onclick="openNewViewEditor()">+ Add View</button>
             </div>
           </div>
           <table class="streams-table">
@@ -1124,6 +1148,14 @@
   // ENABLE_PRELOAD — set to 1/on/true to show per-view preload lead time in the views editor
   const ENABLE_PRELOAD        = ['1','on','true'].includes('$ENABLE_PRELOAD'.toLowerCase());
 </script>
+
+<div id="focus-panel-overlay">
+  <div id="focus-panel-video-wrap">
+    <video id="focus-panel-video" autoplay muted playsinline></video>
+  </div>
+  <button class="modal-close-btn" style="position:static;margin-top:16px;" id="focus-panel-close" onclick="closeFocusPanel()">✕ Close</button>
+  <div id="focus-panel-countdown"></div>
+</div>
 
 <!-- Actions modal -->
 <div id="actions-modal" style="display:none; position:fixed; background:rgba(10,10,10,0.92); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:10px 16px 12px; box-shadow:0 8px 32px rgba(0,0,0,0.5); z-index:10001;">
