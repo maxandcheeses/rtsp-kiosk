@@ -14,11 +14,11 @@ let _focusPanelTimer = null;
 
 const BUILTIN_ACTIONS = {
   '__next-view': {
-    id: '__next-view', type: 'builtin', label: 'Next View',
+    id: '__next-view', type: 'builtin', description: 'Next View',
     icon: 'mdi:chevron-right', builtin: true,
   },
   '__prev-view': {
-    id: '__prev-view', type: 'builtin', label: 'Prev View',
+    id: '__prev-view', type: 'builtin', description: 'Previous View',
     icon: 'mdi:chevron-left', builtin: true,
   },
 };
@@ -107,8 +107,8 @@ function openActionsModal(slotIndex) {
   const slotGroups = view && view.slotGroups;
   const groupId = slotGroups && slotGroups[slotIndex];
   if (!groupId) return;
-  if (!ACTION_GROUPS[groupId]) {
-    console.warn(`Actions: group "${groupId}" not found`);
+  if (!ACTION_GROUPS[groupId] && !ACTIONS[groupId]) {
+    console.warn(`Actions: "${groupId}" not found as group or action`);
     return;
   }
 
@@ -141,7 +141,11 @@ function closeActionsModal() {
 }
 
 function _renderActionButtons(groupId) {
-  const group = ACTION_GROUPS[groupId];
+  // Support direct action assignment (slotGroups can reference an action id directly)
+  let group = ACTION_GROUPS[groupId];
+  if (!group && ACTIONS[groupId]) {
+    group = { id: groupId, name: '', actions: [groupId] };
+  }
   if (!group) return;
 
   // Connect/disconnect named MQTT servers as needed for this group
@@ -188,7 +192,7 @@ function _renderActionButtons(groupId) {
     const iconHtml = _renderIcon(action.icon);
     const disabledAttr = isDisabled ? ' disabled' : '';
     const disabledClass = isDisabled ? ' disabled' : '';
-    return `<button class="action-btn${isOn ? ' on' : ''}${disabledClass}"${disabledAttr} data-action-id="${id}" onclick="pressAction('${id}')">${iconHtml}<span>${action.label || id}</span></button>`;
+    return `<button class="action-btn${isOn ? ' on' : ''}${disabledClass}"${disabledAttr} data-action-id="${id}" onclick="pressAction('${id}')">${iconHtml}<span>${action.description || id}</span></button>`;
   }).join('');
 }
 

@@ -282,13 +282,27 @@ function _renderVeStreamPicker() {
     noneOpt.textContent = '— no actions —';
     groupSel.appendChild(noneOpt);
 
+    const actionsGroup = document.createElement('optgroup');
+    actionsGroup.label = 'Actions';
+    Object.values(ACTIONS).forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = a.description || a.id;
+      if ((_editSlotGroups[i] || '') === a.id) opt.selected = true;
+      actionsGroup.appendChild(opt);
+    });
+    if (actionsGroup.children.length > 0) groupSel.appendChild(actionsGroup);
+
+    const groupsGroup = document.createElement('optgroup');
+    groupsGroup.label = 'Groups';
     Object.values(ACTION_GROUPS).forEach(g => {
       const opt = document.createElement('option');
       opt.value = g.id;
       opt.textContent = g.name;
       if ((_editSlotGroups[i] || '') === g.id) opt.selected = true;
-      groupSel.appendChild(opt);
+      groupsGroup.appendChild(opt);
     });
+    if (groupsGroup.children.length > 0) groupSel.appendChild(groupsGroup);
 
     groupSel.addEventListener('change', (function(idx) {
       return function() { _editSlotGroups[idx] = this.value || null; };
