@@ -41,7 +41,6 @@ let _activeSettingsTab = 'general';
 
 function closeAllModals() {
   document.getElementById('settings-modal').classList.remove('open');
-  document.getElementById('actions-settings-modal')?.classList.remove('open');
   // Reset clear storage confirmation state
   const confirmEl = document.getElementById('clear-storage-confirm');
   const btnEl = document.getElementById('clear-storage-btn');
@@ -169,7 +168,7 @@ document.addEventListener('keydown', e => {
   const modalsEnabled = ENABLE_MODALS &&
     !(FORCE_LAYOUT && FORCE_LAYOUT !== '$FORCE_LAYOUT' && LAYOUTS[FORCE_LAYOUT]);
 
-  const anyOpen = ['settings-modal','actions-settings-modal'].some(id => document.getElementById(id)?.classList.contains('open'));
+  const anyOpen = ['settings-modal'].some(id => document.getElementById(id)?.classList.contains('open'));
 
   // ── Escape — close modal or open settings ──
   if (e.key === 'Escape') {
@@ -198,9 +197,8 @@ document.addEventListener('keydown', e => {
   const settingsOpen = document.getElementById('settings-modal')?.classList.contains('open');
 
   if (e.key === 'a' || e.key === 'A') {
-    if (document.getElementById('actions-settings-modal')?.classList.contains('open')) { closeAllModals(); return; }
-    closeAllModals();
-    openActionsSettingsModal();
+    if (settingsOpen && _activeSettingsTab === 'actions') { closeAllModals(); return; }
+    openSettingsModal('actions');
     return;
   }
 
