@@ -335,7 +335,7 @@ function saveCamDrawer(originalPath, isNew) {
 
   CAM_OPEN_DRAWER = null;
   renderCamTable();
-  markCamUnsaved();
+  applyCamChanges();
 }
 
 function markCamUnsaved() {
@@ -422,7 +422,7 @@ function confirmDeleteCamStream(path) {
   CAM_LOCAL_STREAMS = CAM_LOCAL_STREAMS.filter(s => s.path !== path);
   if (CAM_OPEN_DRAWER === path) CAM_OPEN_DRAWER = null;
   renderCamTable();
-  markCamUnsaved();
+  applyCamChanges();
 }
 
 function addCamStream() {
