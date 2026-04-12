@@ -41,6 +41,9 @@ let _activeSettingsTab = 'general';
 
 function closeAllModals() {
   document.getElementById('settings-modal').classList.remove('open');
+  // Discard any unsaved changes in the cameras and actions editors
+  if (typeof discardCamChanges === 'function') discardCamChanges();
+  if (typeof discardAeChanges  === 'function') discardAeChanges();
   // Reset clear storage confirmation state
   const confirmEl = document.getElementById('clear-storage-confirm');
   const btnEl = document.getElementById('clear-storage-btn');

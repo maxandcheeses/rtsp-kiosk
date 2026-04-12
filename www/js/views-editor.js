@@ -287,7 +287,7 @@ function _renderVeStreamPicker() {
     Object.values(ACTIONS).forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id;
-      opt.textContent = a.description || a.id;
+      opt.textContent = a.id;
       if ((_editSlotGroups[i] || '') === a.id) opt.selected = true;
       actionsGroup.appendChild(opt);
     });
@@ -298,7 +298,7 @@ function _renderVeStreamPicker() {
     Object.values(ACTION_GROUPS).forEach(g => {
       const opt = document.createElement('option');
       opt.value = g.id;
-      opt.textContent = g.name;
+      opt.textContent = g.id;
       if ((_editSlotGroups[i] || '') === g.id) opt.selected = true;
       groupsGroup.appendChild(opt);
     });

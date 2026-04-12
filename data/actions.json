@@ -4,25 +4,30 @@
       {
         "id": "home",
         "broker": "ws://localhost:9001",
-        "username": "",
-        "password": ""
+        "autoConnect": true
       }
     ]
   },
   "actions": [
     {
-      "id": "focus-cam",
+      "id": "Focus Panel",
       "type": "focus-panel",
       "description": "Focus",
       "icon": "mdi:fullscreen",
-      "timeout": 0
+      "timeout": 5,
+      "trigger": {
+        "mqttServer": "home",
+        "topic": "home/living/lights/state",
+        "payload": "ON"
+      },
+      "stream": "test-8"
     },
     {
       "id": "lights-on",
       "type": "mqtt",
-      "mqttServer": "home",
       "description": "Lights On",
       "icon": "mdi:lightbulb",
+      "mqttServer": "home",
       "publish": {
         "topic": "home/living/lights/set",
         "payload": "ON"
@@ -35,9 +40,9 @@
     {
       "id": "lights-off",
       "type": "mqtt",
-      "mqttServer": "home",
       "description": "Lights Off",
       "icon": "mdi:lightbulb-off",
+      "mqttServer": "home",
       "publish": {
         "topic": "home/living/lights/set",
         "payload": "OFF"
@@ -110,14 +115,14 @@
   ],
   "groups": [
     {
-      "id": "living-room",
+      "id": "living-rooms",
       "name": "Living Room",
       "actions": [
         "lights-on",
         "lights-off",
-        "__next-view",
-        "__prev-view",
-        "focus-cam",
+        "Next View",
+        "Previous View",
+        "Focus Panel",
         "fan-on"
       ]
     },
