@@ -279,7 +279,7 @@ function saveAeSrvDrawer(originalId, isNew) {
   AE_OPEN_DRAWER = null;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
-  markAeUnsaved();
+  applyAeChanges();
 }
 
 function deleteAeSrv(id) {
@@ -305,7 +305,7 @@ function confirmDeleteAeSrv(id) {
   if (AE_OPEN_DRAWER === id) AE_OPEN_DRAWER = null;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
-  markAeUnsaved();
+  applyAeChanges();
 }
 
 function addAeSrv() {
@@ -459,6 +459,84 @@ function _buildAeActionsTab() {
   </table>`;
 }
 
+<<<<<<< Updated upstream
+=======
+function _refreshAeStateCells() {
+  const actions = (AE_LOCAL && AE_LOCAL.actions) || [];
+  actions.forEach(action => {
+    if (action.type !== 'mqtt' || !action.state || !action.state.topic) return;
+    const cell = document.getElementById('ae-action-state-' + _aeEsc(action.id || ''));
+    if (cell) cell.innerHTML = _aeStateHtml(action);
+  });
+}
+
+function _buildAeBuiltinTriggerDrawer(builtinAction, cfgEntry) {
+  const trigger      = (cfgEntry && cfgEntry.trigger) || {};
+  const tMqttServer  = trigger.mqttServer || '';
+  const tTopic       = trigger.topic      || '';
+  const tPayload     = trigger.payload    || '';
+  const id  = builtinAction.id;
+  const esc = _aeEsc(id);
+
+  const serverOpts = ((AE_LOCAL && AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || []).map(s =>
+    `<option value="${_aeEsc(s.id)}"${s.id === tMqttServer ? ' selected' : ''}>${_aeEsc(s.id)}</option>`
+  ).join('');
+
+  return `<div class="cam-form-grid">
+    <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:4px">MQTT Trigger &mdash; ${_aeEsc(builtinAction.description)}</div>
+    <div class="views-form-row">
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">MQTT Server</label>
+      <select class="views-input" id="ae-field-trigger-server" style="flex:none;width:auto">
+        <option value=""${!tMqttServer ? ' selected' : ''}>— disabled —</option>
+        ${serverOpts}
+      </select>
+    </div>
+    <div class="views-form-row">
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Topic</label>
+      <input class="views-input" id="ae-field-trigger-topic" value="${_aeEsc(tTopic)}" placeholder="e.g. home/kiosk/view">
+    </div>
+    <div class="views-form-row">
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Payload</label>
+      <input class="views-input" id="ae-field-trigger-payload" value="${_aeEsc(tPayload)}" placeholder="leave blank to trigger on any payload">
+    </div>
+  </div>
+  <div class="cam-drawer-footer">
+    <button class="perf-reset" onclick="closeAeDrawer()">Cancel</button>
+    <button class="cam-save-btn" onclick="saveAeBuiltinTrigger('${esc}')">Save</button>
+  </div>`;
+}
+
+function saveAeBuiltinTrigger(id) {
+  const tServer  = (document.getElementById('ae-field-trigger-server')  || {}).value || '';
+  const tTopic   = ((document.getElementById('ae-field-trigger-topic')   || {}).value || '').trim();
+  const tPayload = ((document.getElementById('ae-field-trigger-payload') || {}).value || '').trim();
+
+  if (!AE_LOCAL) return;
+  if (!AE_LOCAL.actions) AE_LOCAL.actions = [];
+
+  // Remove any existing entry for this builtin ID
+  AE_LOCAL.actions = AE_LOCAL.actions.filter(a => a.id !== id);
+
+  // If topic is set, add an entry carrying just the trigger
+  if (tTopic) {
+    AE_LOCAL.actions.push({
+      id,
+      trigger: {
+        ...(tServer ? { mqttServer: tServer } : {}),
+        topic: tTopic,
+        ...(tPayload ? { payload: tPayload } : {}),
+      },
+    });
+  }
+
+  AE_DRAWER_DIRTY = false;
+  closeAeDrawer();
+  const container = document.getElementById('ae-tabs-and-content');
+  if (container) _renderAeTabsInto(container);
+  applyAeChanges();
+}
+
+>>>>>>> Stashed changes
 function _buildAeActionDrawerForm(action, isNew) {
   const id     = action.id || '';
   const desc   = action.description || '';
@@ -467,8 +545,8 @@ function _buildAeActionDrawerForm(action, isNew) {
   const mqttServer = action.mqttServer || '';
   const pTopic = (action.publish && action.publish.topic) || '';
   const pPay   = (action.publish && action.publish.payload) || '';
-  const sTopic = (action.state && action.state.topic) || '';
-  const sOnVal = (action.state && action.state.onValue) || '';
+  const sTopic = (action.state && action.action.state.topic) || '';
+  const sOnVal = (action.state && action.action.state.onValue) || '';
 
   const focusAuto = !!(action.timeout && action.timeout > 0);
   const focusTimeout = focusAuto ? action.timeout : 30;
@@ -730,7 +808,7 @@ function saveAeActionDrawer(originalId, isNew) {
   AE_OPEN_DRAWER = null;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
-  markAeUnsaved();
+  applyAeChanges();
 }
 
 function deleteAeAction(id) {
@@ -758,7 +836,7 @@ function confirmDeleteAeAction(id) {
   if (AE_OPEN_DRAWER === id) AE_OPEN_DRAWER = null;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
-  markAeUnsaved();
+  applyAeChanges();
 }
 
 function addAeAction() {
@@ -987,7 +1065,7 @@ function saveAeGroupDrawer(originalId, isNew) {
   AE_OPEN_DRAWER = null;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
-  markAeUnsaved();
+  applyAeChanges();
 }
 
 function deleteAeGroup(id) {
@@ -1011,7 +1089,7 @@ function confirmDeleteAeGroup(id) {
   if (AE_OPEN_DRAWER === id) AE_OPEN_DRAWER = null;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
-  markAeUnsaved();
+  applyAeChanges();
 }
 
 function addAeGroup() {

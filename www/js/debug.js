@@ -162,6 +162,23 @@ function updateDebugOverlay() {
       <div class="dbg-row"><span class="dbg-key" style="padding-left:8px">refresh</span><span class="dbg-val">${refreshDisplay}</span></div>`;
   }).join('');
 
+  const mqttServers = (typeof AE_LOCAL !== 'undefined' && AE_LOCAL && AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || [];
+  let mqttRows;
+  if (mqttServers.length === 0) {
+    mqttRows = `<div class="dbg-row"><span class="dbg-key">servers</span><span class="dbg-val">no servers configured</span></div>`;
+  } else {
+    mqttRows = mqttServers.map(srv => {
+      const label = srv.label || srv.name || srv.id;
+      const client = (typeof _mqttClients !== 'undefined') ? _mqttClients.get(srv.id) : null;
+      const connected = client && client.connected;
+      const stateClass = connected ? 'dbg-live' : 'dbg-err';
+      const stateText = connected ? 'CONNECTED' : 'DISCONNECTED';
+      return `<div class="dbg-row"><span class="dbg-key">${label}</span><span class="dbg-val ${stateClass}">${stateText}</span></div>`;
+    }).join('');
+  }
+  const mqttSection = `
+    <div class="dbg-section">MQTT</div>
+    ${mqttRows}`;
   el.innerHTML = `
     <div class="dbg-section">Streams</div>
     ${streamRows}
