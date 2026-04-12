@@ -1,5 +1,31 @@
 // ── Actions settings editor ─────────────────────────────────────────────────
 
+// ── TLS cert storage (localStorage) ─────────────────────────────────────────
+const _AE_CERTS_KEY = 'mqtt_certs';
+const _AE_MQTT_PORT_DEFAULTS = { ws: 9001, wss: 8884, mqtt: 1883, mqtts: 8883 };
+
+function _aeCertsLoad()           { try { return JSON.parse(localStorage.getItem(_AE_CERTS_KEY) || '{}'); } catch(e) { return {}; } }
+function _aeCertsSave(map)        { localStorage.setItem(_AE_CERTS_KEY, JSON.stringify(map)); }
+function _aeCertsList()           { return Object.keys(_aeCertsLoad()); }
+function _aeCertsGet(name)        { return _aeCertsLoad()[name] || null; }
+function _aeCertsAdd(name, pem)   { const m = _aeCertsLoad(); m[name] = pem; _aeCertsSave(m); }
+function _aeCertsDelete(name)     { const m = _aeCertsLoad(); delete m[name]; _aeCertsSave(m); }
+
+// ── Backward-compat broker URL parser ────────────────────────────────────────
+function _aeParsesBrokerUrl(broker) {
+  try {
+    const u = new URL(broker);
+    const type = u.protocol.replace(':', '');
+    return {
+      connectionType: type,
+      host: u.hostname || '',
+      port: u.port ? parseInt(u.port, 10) : (_AE_MQTT_PORT_DEFAULTS[type] || 1883),
+    };
+  } catch(e) {
+    return { connectionType: 'ws', host: broker || '', port: 9001 };
+  }
+}
+
 let AE_FULL        = null;  // { mqtt, actions, groups } — loaded from API
 let AE_LOCAL       = null;  // working copy — mutated by editor
 let AE_UNSAVED     = false;
@@ -139,6 +165,7 @@ function _buildAeMqttTab() {
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${_aeEsc(id)}</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.4)">${_aeEsc(srv.broker || '')}</td>
       <td style="text-align:right;white-space:nowrap">
+        <button class="perf-reset" onclick="aeDisconnectServer('${esc}')" style="font-size:9px;padding:2px 6px" title="Disconnect">Disconnect</button>
         <button class="sp-btn" onclick="openAeSrvDrawer('${esc}')" title="Edit">✎</button>
         <button class="sp-btn" onclick="deleteAeSrv('${esc}')" title="Delete" style="color:rgba(248,113,113,0.6);border-color:rgba(248,113,113,0.2)">✕</button>
       </td>
@@ -162,9 +189,27 @@ function _buildAeMqttTab() {
 
 function _buildAeSrvDrawerForm(srv, isNew) {
   const id       = srv.id || '';
-  const broker   = srv.broker || '';
   const username = srv.username || '';
   const password = srv.password || '';
+
+  // Resolve structured fields — parse legacy broker URL if needed
+  let connectionType = srv.connectionType || '';
+  let host = srv.host || '';
+  let port = srv.port || '';
+  if (srv.broker && (!srv.connectionType || !srv.host)) {
+    const parsed = _aeParsesBrokerUrl(srv.broker);
+    if (!connectionType) connectionType = parsed.connectionType;
+    if (!host) host = parsed.host;
+    if (!port) port = parsed.port;
+  }
+  if (!connectionType) connectionType = 'ws';
+  if (!port) port = _AE_MQTT_PORT_DEFAULTS[connectionType] || 9001;
+  const tls = srv.tls || {};
+  const showTls = connectionType === 'wss' || connectionType === 'mqtts';
+
+  const connTypeOpts = ['ws', 'wss', 'mqtt', 'mqtts'].map(t =>
+    `<option value="${t}"${t === connectionType ? ' selected' : ''}>${t}</option>`
+  ).join('');
 
   return `<div class="cam-form-grid">
     <div class="views-form-row">
@@ -176,10 +221,21 @@ function _buildAeSrvDrawerForm(srv, isNew) {
       </div>
     </div>
     <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Broker URL</label>
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Connection Type</label>
+      <select class="views-input" id="ae-field-srv-conntype" onchange="aeOnConnTypeChange()" style="flex:none;width:auto">${connTypeOpts}</select>
+    </div>
+    <div class="views-form-row">
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Host</label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-        <input class="views-input" id="ae-field-srv-broker" value="${_aeEsc(broker)}" placeholder="ws://localhost:9001">
-        <div class="cam-field-error" id="ae-err-srv-broker"></div>
+        <input class="views-input" id="ae-field-srv-host" value="${_aeEsc(host)}" placeholder="localhost">
+        <div class="cam-field-error" id="ae-err-srv-host"></div>
+      </div>
+    </div>
+    <div class="views-form-row">
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Port</label>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <input class="views-input" id="ae-field-srv-port" type="number" min="1" max="65535" value="${_aeEsc(port)}">
+        <div class="cam-field-error" id="ae-err-srv-port"></div>
       </div>
     </div>
     <div class="views-form-row">
@@ -189,6 +245,39 @@ function _buildAeSrvDrawerForm(srv, isNew) {
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Password</label>
       <input class="views-input" type="password" id="ae-field-srv-password" value="${_aeEsc(password)}" placeholder="optional">
+    </div>
+    <div id="ae-tls-section" style="display:${showTls ? 'contents' : 'none'}">
+      <div class="views-form-row">
+        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">CA Certificate</label>
+        <select id="ae-field-srv-ca" class="views-input" style="flex:1">
+          <option value="">— none —</option>
+          ${_aeCertsList().map(f => `<option value="${_aeEsc(f)}"${tls.caFile===f?' selected':''}>${_aeEsc(f)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="views-form-row">
+        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Client Certificate</label>
+        <select id="ae-field-srv-cert" class="views-input" style="flex:1">
+          <option value="">— none —</option>
+          ${_aeCertsList().map(f => `<option value="${_aeEsc(f)}"${tls.certFile===f?' selected':''}>${_aeEsc(f)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="views-form-row">
+        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Client Key</label>
+        <select id="ae-field-srv-key" class="views-input" style="flex:1">
+          <option value="">— none —</option>
+          ${_aeCertsList().map(f => `<option value="${_aeEsc(f)}"${tls.keyFile===f?' selected':''}>${_aeEsc(f)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="views-form-row" style="flex-direction:column;gap:6px">
+        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Stored Certs</label>
+        <div id="ae-cert-files-list">${_aeBuildCertList()}</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="file" id="ae-cert-file-input" accept=".crt,.pem,.key,.cer" style="font-size:10px;flex:1">
+          <button class="perf-reset" onclick="aeUploadCert()">Upload</button>
+        </div>
+        <div id="ae-cert-upload-status" style="font-size:9px;font-family:'Courier New',monospace"></div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.25)">Certs are stored in your browser (localStorage)</div>
+      </div>
     </div>
   </div>
   <div class="cam-drawer-footer">
@@ -220,13 +309,23 @@ function openAeSrvDrawer(id) {
 }
 
 function saveAeSrvDrawer(originalId, isNew) {
-  const idEl     = document.getElementById('ae-field-srv-id');
-  const brokerEl = document.getElementById('ae-field-srv-broker');
+  const idEl         = document.getElementById('ae-field-srv-id');
+  const connTypeEl   = document.getElementById('ae-field-srv-conntype');
+  const hostEl       = document.getElementById('ae-field-srv-host');
+  const portEl       = document.getElementById('ae-field-srv-port');
+  const caEl         = document.getElementById('ae-field-srv-ca');
+  const certEl       = document.getElementById('ae-field-srv-cert');
+  const keyEl        = document.getElementById('ae-field-srv-key');
 
-  const newId      = idEl     ? idEl.value.trim()     : originalId;
-  const newBroker  = brokerEl ? brokerEl.value.trim() : '';
-  const username   = (document.getElementById('ae-field-srv-username') || {}).value || '';
-  const password   = (document.getElementById('ae-field-srv-password') || {}).value || '';
+  const newId           = idEl       ? idEl.value.trim()                   : originalId;
+  const connectionType  = connTypeEl ? connTypeEl.value                    : 'ws';
+  const host            = hostEl     ? hostEl.value.trim()                 : '';
+  const portRaw         = portEl     ? parseInt(portEl.value, 10)          : NaN;
+  const username        = (document.getElementById('ae-field-srv-username') || {}).value || '';
+  const password        = (document.getElementById('ae-field-srv-password') || {}).value || '';
+  const caFile          = caEl       ? caEl.value                          : '';
+  const certFile        = certEl     ? certEl.value                        : '';
+  const keyFile         = keyEl      ? keyEl.value                        : '';
 
   let valid = true;
 
@@ -241,15 +340,27 @@ function saveAeSrvDrawer(originalId, isNew) {
     if (errId) errId.textContent = '';
   }
 
-  const errBroker = document.getElementById('ae-err-srv-broker');
-  if (!newBroker) {
-    if (errBroker) errBroker.textContent = 'Broker URL is required';
+  const errHost = document.getElementById('ae-err-srv-host');
+  if (!host) {
+    if (errHost) errHost.textContent = 'Host is required';
     valid = false;
   } else {
-    if (errBroker) errBroker.textContent = '';
+    if (errHost) errHost.textContent = '';
+  }
+
+  const errPort = document.getElementById('ae-err-srv-port');
+  if (isNaN(portRaw) || portRaw < 1 || portRaw > 65535) {
+    if (errPort) errPort.textContent = 'Port must be 1–65535';
+    valid = false;
+  } else {
+    if (errPort) errPort.textContent = '';
   }
 
   if (!valid) return;
+
+  // Derive broker URL from structured fields
+  const suffix = (connectionType === 'ws' || connectionType === 'wss') ? '/mqtt' : '';
+  const broker = `${connectionType}://${host}:${portRaw}${suffix}`;
 
   // Cascade-update action.mqttServer references if id changed
   if (newId !== originalId) {
@@ -260,9 +371,13 @@ function saveAeSrvDrawer(originalId, isNew) {
 
   const updated = {
     id: newId,
-    broker: newBroker,
+    connectionType,
+    host,
+    port: portRaw,
+    broker,
     ...(username ? { username } : {}),
     ...(password ? { password } : {}),
+    ...(caFile || certFile || keyFile ? { tls: { caFile, certFile, keyFile } } : {}),
   };
 
   if (!AE_LOCAL.mqtt) AE_LOCAL.mqtt = { servers: [] };
@@ -316,6 +431,86 @@ function addAeSrv() {
   const newSrv = { id: `server-${n}`, broker: '', username: '', password: '' };
   AE_LOCAL.mqtt.servers.push(newSrv);
   AE_OPEN_DRAWER = newSrv.id;
+  const container = document.getElementById('ae-tabs-and-content');
+  if (container) _renderAeTabsInto(container);
+}
+
+// ── Connection type change handler ───────────────────────────────────────────
+
+function aeOnConnTypeChange() {
+  const typeEl = document.getElementById('ae-field-srv-conntype');
+  const portEl = document.getElementById('ae-field-srv-port');
+  const tlsEl  = document.getElementById('ae-tls-section');
+  if (!typeEl) return;
+  const type = typeEl.value;
+  if (portEl) {
+    const cur = parseInt(portEl.value, 10);
+    const isKnownDefault = Object.values(_AE_MQTT_PORT_DEFAULTS).includes(cur);
+    if (isKnownDefault) portEl.value = _AE_MQTT_PORT_DEFAULTS[type] || 1883;
+  }
+  if (tlsEl) tlsEl.style.display = (type === 'wss' || type === 'mqtts') ? 'contents' : 'none';
+}
+
+// ── Cert UI helpers ───────────────────────────────────────────────────────────
+
+function _aeBuildCertList() {
+  const files = _aeCertsList();
+  if (!files.length) return '<span style="font-size:9px;color:rgba(255,255,255,0.25)">No certs stored</span>';
+  return files.map(f =>
+    `<div style="display:flex;align-items:center;gap:6px;font-family:'Courier New',monospace;font-size:9px">
+      <span style="flex:1">${_aeEsc(f)}</span>
+      <button class="perf-reset" style="font-size:9px;padding:1px 5px" onclick="aeDeleteCert('${_aeEsc(f)}')">✕</button>
+    </div>`
+  ).join('');
+}
+
+function aeUploadCert() {
+  const input    = document.getElementById('ae-cert-file-input');
+  const statusEl = document.getElementById('ae-cert-upload-status');
+  if (!input || !input.files || !input.files[0]) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:rgba(248,113,113,0.9)">No file selected</span>';
+    return;
+  }
+  const file = input.files[0];
+  const name = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      _aeCertsAdd(name, e.target.result);
+      if (statusEl) statusEl.innerHTML = `<span style="color:rgba(74,222,128,0.9)">Saved: ${_aeEsc(name)}</span>`;
+      _aeRefreshCertUI();
+    } catch(err) {
+      if (statusEl) statusEl.innerHTML = `<span style="color:rgba(248,113,113,0.9)">Error: ${_aeEsc(err.message)}</span>`;
+    }
+    input.value = '';
+  };
+  reader.onerror = () => {
+    if (statusEl) statusEl.innerHTML = '<span style="color:rgba(248,113,113,0.9)">Failed to read file</span>';
+  };
+  reader.readAsText(file);
+}
+
+function aeDeleteCert(name) {
+  _aeCertsDelete(name);
+  _aeRefreshCertUI();
+}
+
+function _aeRefreshCertUI() {
+  const listEl = document.getElementById('ae-cert-files-list');
+  if (listEl) listEl.innerHTML = _aeBuildCertList();
+  for (const [id, field] of [['ae-field-srv-ca','caFile'],['ae-field-srv-cert','certFile'],['ae-field-srv-key','keyFile']]) {
+    const sel = document.getElementById(id);
+    if (!sel) continue;
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">— none —</option>` +
+      _aeCertsList().map(f => `<option value="${_aeEsc(f)}"${f===cur?' selected':''}>${_aeEsc(f)}</option>`).join('');
+  }
+}
+
+// ── Disconnect server ─────────────────────────────────────────────────────────
+
+function aeDisconnectServer(id) {
+  disconnectMqttClient(id);
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
 }

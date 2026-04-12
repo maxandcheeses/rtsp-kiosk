@@ -9,11 +9,22 @@ const _mqttClients = new Map();
 function getOrCreateMqttClient(serverId, serverCfg) {
   if (_mqttClients.has(serverId)) return _mqttClients.get(serverId);
   if (typeof mqtt === 'undefined') { console.warn('MQTT: mqtt.js not loaded'); return null; }
-  const client = mqtt.connect(serverCfg.broker, {
+
+  const opts = {
     username: serverCfg.username || undefined,
     password: serverCfg.password || undefined,
     reconnectPeriod: 0,
-  });
+  };
+
+  if (serverCfg.tls) {
+    const certs = (() => { try { return JSON.parse(localStorage.getItem('mqtt_certs') || '{}'); } catch(e) { return {}; } })();
+    const { caFile, certFile, keyFile } = serverCfg.tls;
+    if (caFile   && certs[caFile])   opts.ca   = certs[caFile];
+    if (certFile && certs[certFile]) opts.cert = certs[certFile];
+    if (keyFile  && certs[keyFile])  opts.key  = certs[keyFile];
+  }
+
+  const client = mqtt.connect(serverCfg.broker, opts);
   _mqttClients.set(serverId, client);
   console.log(`MQTT: connecting named client "${serverId}" to ${serverCfg.broker}`);
   return client;
