@@ -352,6 +352,17 @@
         row.appendChild(idEl);
         row.appendChild(urlEl);
         row.appendChild(statusEl);
+
+        // Add connect/disconnect toggle button for WS/WSS servers
+        if (server.connectionType === 'ws' || server.connectionType === 'wss') {
+          const toggleBtn = document.createElement('button');
+          toggleBtn.className = 'send';
+          toggleBtn.id = 'toggle-btn-' + server.id;
+          toggleBtn.textContent = 'Disconnect';
+          toggleBtn.onclick = () => disconnectServer(server.id);
+          row.appendChild(toggleBtn);
+        }
+
         list.appendChild(row);
       });
     }
@@ -412,12 +423,14 @@
     function connectServer(server) {
       if (!server.broker) return;
 
-      const brokerUrl = server.broker + (server.broker.endsWith('/mqtt') ? '' : '/mqtt');
+      const brokerUrl = server.connectionType === 'ws'
+        ? (server.broker.endsWith('/mqtt') ? server.broker : server.broker + '/mqtt')
+        : server.broker;
       const clientId = 'test-harness-' + server.id + '-' + Math.random().toString(16).slice(2, 8);
 
       let connectOptions = {
         clientId: clientId,
-        reconnectPeriod: 1000,
+        reconnectPeriod: 0,
         connectTimeout: 10000
       };
 
@@ -471,6 +484,14 @@
       });
     }
 
+    function disconnectServer(serverId) {
+      const server = SERVERS[serverId];
+      if (!server || !server.client) return;
+      server.client.end(true); // force close, no reconnect
+      server.client = null;
+      updateServerStatus(serverId, 'disconnected');
+    }
+
     function updateServerStatus(serverId, state) {
       SERVERS[serverId].status = state;
       const el = document.getElementById('status-' + serverId);
@@ -479,6 +500,15 @@
         if (state === 'connected') el.textContent = 'Connected';
         else if (state === 'disconnected') el.textContent = 'Disconnected';
         else if (state === 'error') el.textContent = 'Error';
+      }
+
+      // Update toggle button
+      const btn = document.getElementById('toggle-btn-' + serverId);
+      if (btn) {
+        btn.textContent = state === 'connected' ? 'Disconnect' : 'Connect';
+        btn.onclick = state === 'connected'
+          ? () => disconnectServer(serverId)
+          : () => connectServer(SERVERS[serverId]);
       }
     }
 
