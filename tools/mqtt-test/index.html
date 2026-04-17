@@ -244,6 +244,16 @@
     const CONFIG = {};
     const SERVERS = {}; // serverId → { id, connectionType, host, port, broker, client, status }
     const STATE_VALUES = {}; // serverId:topic → current value
+
+    // Preset test topics — subscribed on every server so echoes always show in the log
+    const PRESET_TOPICS = [
+      { topic: 'home/living/lights/state', payload: 'ON' },
+      { topic: 'home/living/lights/state', payload: 'OFF' },
+      { topic: 'home/living/fan/state', payload: 'ON' },
+      { topic: 'home/living/fan/state', payload: 'OFF' },
+      { topic: 'home/front-door/lock/state', payload: 'LOCKED' },
+      { topic: 'home/front-door/lock/state', payload: 'UNLOCKED' },
+    ];
     const STATE_ON_VALUES = {}; // serverId:topic → Set of known onValues
     const SERVER_ACTIONS = {}; // serverId → { stateTopics: Map, publishTopics: Set }
 
@@ -361,17 +371,9 @@
         container.appendChild(title);
 
         // Preset test buttons
-        const PRESETS = [
-          { topic: 'home/living/lights/state', payload: 'ON' },
-          { topic: 'home/living/lights/state', payload: 'OFF' },
-          { topic: 'home/living/fan/state', payload: 'ON' },
-          { topic: 'home/living/fan/state', payload: 'OFF' },
-          { topic: 'home/front-door/lock/state', payload: 'LOCKED' },
-          { topic: 'home/front-door/lock/state', payload: 'UNLOCKED' },
-        ];
         const presetDiv = document.createElement('div');
         presetDiv.className = 'switch-container';
-        PRESETS.forEach(({ topic, payload }) => {
+        PRESET_TOPICS.forEach(({ topic, payload }) => {
           const btn = document.createElement('button');
           btn.className = 'switch-btn';
           btn.innerHTML = `<span class="switch-btn-inner">${escapeHtml(payload)}</span><span class="switch-value">${escapeHtml(topic)}</span>`;
@@ -469,6 +471,13 @@
         });
         publishTopics.forEach(topic => {
           if (client) client.subscribe(topic, { qos: 0 });
+        });
+        // Always subscribe to preset topics so button publishes echo back
+        const subscribedTopics = new Set([...stateTopics.keys(), ...publishTopics]);
+        PRESET_TOPICS.forEach(({ topic }) => {
+          if (!subscribedTopics.has(topic)) {
+            if (client) client.subscribe(topic, { qos: 0 });
+          }
         });
       });
 
