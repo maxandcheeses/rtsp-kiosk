@@ -11,6 +11,15 @@ function _persistViews() {
       views:   VIEWS,
     }));
   } catch(e) {}
+
+  // Fire-and-forget persist to backend. On success the server writes data/views.json.
+  // Note: data/views-public.json (served by Nginx) is only synced from views.json at
+  // container startup via generate-config.sh — it will not reflect changes until restart.
+  fetch('/api/views', {
+    method:  'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ default: VIEWS_DEFAULT, cycle: VIEWS_CYCLE, views: VIEWS }),
+  }).catch(e => console.warn('Failed to save views to server:', e));
 }
 
 function _updateDefaultVisibility() {

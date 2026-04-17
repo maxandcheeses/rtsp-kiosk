@@ -17,6 +17,14 @@ function writeActions(data) {
   fs.writeFileSync(ACTIONS_FILE, JSON.stringify(data, null, 2));
 }
 
+function readViews() {
+  return JSON.parse(fs.readFileSync(VIEWS_FILE, 'utf8'));
+}
+
+function writeViews(data) {
+  fs.writeFileSync(VIEWS_FILE, JSON.stringify(data, null, 2));
+}
+
 const MEDIAMTX_API_URL = (process.env.MEDIAMTX_API_URL || 'http://mediamtx:9997').replace(/\/$/, '');
 const API_KEY = process.env.STREAMS_API_KEY || '';
 
@@ -218,6 +226,32 @@ const server = http.createServer(async (req, res) => {
           return;
         }
         writeActions(body);
+        send(res, 200, { ok: true });
+      } catch(e) {
+        send(res, 400, { error: `Invalid request: ${e.message}` });
+      }
+      return;
+    }
+  }
+
+  if (url.pathname === '/views') {
+    if (req.method === 'GET') {
+      try {
+        send(res, 200, readViews());
+      } catch(e) {
+        send(res, 500, { error: `Failed to read views: ${e.message}` });
+      }
+      return;
+    }
+    if (req.method === 'PUT') {
+      try {
+        const raw = await readBody(req);
+        const body = JSON.parse(raw);
+        if (!body || typeof body !== 'object' || !Array.isArray(body.views)) {
+          send(res, 400, { error: 'Body must be { default?, cycle?, views }' });
+          return;
+        }
+        writeViews(body);
         send(res, 200, { ok: true });
       } catch(e) {
         send(res, 400, { error: `Invalid request: ${e.message}` });
