@@ -284,7 +284,7 @@ function _renderVeStreamPicker() {
 
     const actionsGroup = document.createElement('optgroup');
     actionsGroup.label = 'Actions';
-    const _typeOrder = a => (a.type === 'builtin' || a.type === 'focus-panel') ? 0 : 1;
+    const _typeOrder = a => a.type === 'builtin' ? 0 : a.type === 'focus-panel' ? 1 : 2;
     Object.values(ACTIONS).sort((a, b) => _typeOrder(a) - _typeOrder(b)).forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id;
