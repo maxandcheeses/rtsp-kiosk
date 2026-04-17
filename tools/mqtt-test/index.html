@@ -28,10 +28,32 @@
       color: rgba(255,255,255,0.35);
       margin: 24px 0 12px 0;
     }
-    .header-line {
+    .server-status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       margin: 12px 0 20px 0;
+      padding: 0;
+    }
+    .server-status-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 3px;
       font-size: 11px;
+    }
+    .server-status-id {
+      font-weight: bold;
+      color: rgba(255,255,255,0.8);
+      min-width: 80px;
+    }
+    .server-status-url {
       color: rgba(255,255,255,0.5);
+      flex: 1;
+      font-size: 10px;
     }
     .status {
       display: inline-block;
@@ -39,6 +61,7 @@
       border-radius: 3px;
       font-size: 10px;
       font-weight: normal;
+      white-space: nowrap;
     }
     .status.connected {
       background: rgba(74,222,128,0.15);
@@ -54,6 +77,21 @@
       background: rgba(248,113,113,0.15);
       color: #f87171;
       border: 1px solid rgba(248,113,113,0.3);
+    }
+    .status.na {
+      background: rgba(255,255,255,0.03);
+      color: rgba(255,255,255,0.25);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .server-section {
+      margin-bottom: 24px;
+    }
+    .server-section-title {
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.25);
+      margin: 16px 0 8px 0;
     }
     .switch-container {
       display: flex;
@@ -110,6 +148,9 @@
     .log-row .time {
       opacity: 0.3;
     }
+    .log-row .server-tag {
+      color: rgba(100,200,255,0.7);
+    }
     .log-row .topic {
       color: rgba(255,255,255,0.7);
     }
@@ -122,7 +163,7 @@
       align-items: center;
       margin-bottom: 16px;
     }
-    input {
+    input, select {
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.12);
       border-radius: 3px;
@@ -132,10 +173,13 @@
       padding: 6px 10px;
       flex-shrink: 0;
     }
-    input:focus {
+    input:focus, select:focus {
       outline: none;
       border-color: rgba(74,222,128,0.4);
       background: rgba(74,222,128,0.08);
+    }
+    select {
+      cursor: pointer;
     }
     input#pub-topic {
       flex: 1;
@@ -172,20 +216,24 @@
 <body>
   <!-- To enable MQTT in the kiosk, add to data/streams.json:
        "mqtt": { "enabled": true }
-       The kiosk will connect to ws://localhost:9001 automatically
-       (MQTT_DEFAULTS uses window.location.hostname and port 9001). -->
+       The kiosk will connect based on mqtt.servers in data/actions.json -->
 
   <h1>MQTT Test Harness</h1>
-  <div class="header-line">Broker: <code>ws://localhost:9001</code> &nbsp; <span id="status" class="status disconnected">Disconnected</span></div>
+  <div id="serverStatusList" class="server-status-list">Loading actions.json…</div>
 
   <h2>State Switches</h2>
-  <div class="switch-container" id="switches">Loading actions.json…</div>
+  <div id="switchesContainer">
+    <!-- Will be populated per-server -->
+  </div>
 
   <h2>Command Log <span style="opacity:0.4;font-size:10px">(messages published by kiosk)</span></h2>
   <div id="log" class="log"></div>
 
   <h2>Manual Publish</h2>
   <div class="form-group">
+    <select id="pub-server">
+      <option value="">Select server…</option>
+    </select>
     <input id="pub-topic" placeholder="topic" />
     <input id="pub-payload" placeholder="payload" />
     <button class="send" onclick="manualPublish()">Send</button>
@@ -197,10 +245,11 @@
 
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script>
-    const BROKER = 'ws://localhost:9001/mqtt';
-    let client = null;
-    let stateValues = {}; // topic → current value
-    let stateOnValues = {}; // topic → Set of known onValues
+    const CONFIG = {};
+    const SERVERS = {}; // serverId → { id, connectionType, host, port, broker, client, status }
+    const STATE_VALUES = {}; // serverId:topic → current value
+    const STATE_ON_VALUES = {}; // serverId:topic → Set of known onValues
+    const SERVER_ACTIONS = {}; // serverId → { stateTopics: Map, publishTopics: Set }
 
     async function init() {
       // 1. Fetch actions.json
@@ -210,49 +259,181 @@
         if (!res.ok) throw new Error('HTTP ' + res.status);
         cfg = await res.json();
       } catch(e) {
-        document.getElementById('switches').textContent = 'Failed to load /actions.json: ' + e.message;
+        document.getElementById('serverStatusList').textContent = 'Failed to load /actions.json: ' + e.message;
         return;
       }
 
-      // 2. Collect state topics and their onValues
-      const stateTopics = new Map(); // topic → Set of onValues
-      const publishTopics = new Set();
-      (cfg.actions || []).forEach(a => {
-        if (a.state && a.state.topic) {
-          if (!stateTopics.has(a.state.topic)) stateTopics.set(a.state.topic, new Set());
-          if (a.state.onValue) stateTopics.get(a.state.topic).add(a.state.onValue);
-        }
-        if (a.publish && a.publish.topic) publishTopics.add(a.publish.topic);
+      Object.assign(CONFIG, cfg);
+
+      // 2. Initialize servers
+      if (!cfg.mqtt || !cfg.mqtt.servers || cfg.mqtt.servers.length === 0) {
+        document.getElementById('serverStatusList').textContent = 'No MQTT servers defined in actions.json';
+        return;
+      }
+
+      cfg.mqtt.servers.forEach(server => {
+        SERVERS[server.id] = {
+          ...server,
+          client: null,
+          status: 'disconnected'
+        };
+        SERVER_ACTIONS[server.id] = {
+          stateTopics: new Map(),
+          publishTopics: new Set()
+        };
       });
 
-      // 3. Render switch buttons
-      const switchContainer = document.getElementById('switches');
-      switchContainer.innerHTML = '';
-      if (stateTopics.size === 0) {
-        switchContainer.textContent = 'No state topics found in actions.json';
-      } else {
+      // 3. Collect state topics per server
+      (cfg.actions || []).forEach(a => {
+        const serverId = a.mqttServer;
+        if (!serverId || !SERVERS[serverId]) return;
+
+        if (a.state && a.state.topic) {
+          const key = serverId + ':' + a.state.topic;
+          if (!SERVER_ACTIONS[serverId].stateTopics.has(a.state.topic)) {
+            SERVER_ACTIONS[serverId].stateTopics.set(a.state.topic, new Set());
+          }
+          if (a.state.onValue) {
+            SERVER_ACTIONS[serverId].stateTopics.get(a.state.topic).add(a.state.onValue);
+          }
+          STATE_ON_VALUES[key] = SERVER_ACTIONS[serverId].stateTopics.get(a.state.topic);
+        }
+        if (a.publish && a.publish.topic) {
+          SERVER_ACTIONS[serverId].publishTopics.add(a.publish.topic);
+        }
+      });
+
+      // 4. Render server status list
+      renderServerStatusList();
+
+      // 5. Render switches grouped by server
+      renderSwitches();
+
+      // 6. Populate publish server dropdown
+      populatePublishServerDropdown();
+
+      // 7. Connect WebSocket servers
+      Object.values(SERVERS).forEach(server => {
+        if (server.connectionType === 'ws' || server.connectionType === 'wss') {
+          connectServer(server);
+        }
+      });
+    }
+
+    function renderServerStatusList() {
+      const list = document.getElementById('serverStatusList');
+      list.innerHTML = '';
+      Object.values(SERVERS).forEach(server => {
+        const row = document.createElement('div');
+        row.className = 'server-status-row';
+
+        const idEl = document.createElement('div');
+        idEl.className = 'server-status-id';
+        idEl.textContent = server.id;
+
+        const urlEl = document.createElement('div');
+        urlEl.className = 'server-status-url';
+        if (server.connectionType === 'tcp') {
+          urlEl.textContent = server.host + ':' + server.port + ' (TCP)';
+        } else {
+          urlEl.textContent = (server.broker || server.connectionType + '://' + server.host + ':' + server.port);
+        }
+
+        const statusEl = document.createElement('span');
+        statusEl.className = 'status disconnected';
+        statusEl.id = 'status-' + server.id;
+        if (server.connectionType === 'tcp') {
+          statusEl.className = 'status na';
+          statusEl.textContent = 'N/A (TCP only)';
+        } else {
+          statusEl.textContent = 'Disconnected';
+        }
+
+        row.appendChild(idEl);
+        row.appendChild(urlEl);
+        row.appendChild(statusEl);
+        list.appendChild(row);
+      });
+    }
+
+    function renderSwitches() {
+      const container = document.getElementById('switchesContainer');
+      container.innerHTML = '';
+
+      Object.values(SERVERS).forEach(server => {
+        const stateTopics = SERVER_ACTIONS[server.id].stateTopics;
+        if (stateTopics.size === 0) return;
+
+        // Server section header
+        const title = document.createElement('div');
+        title.className = 'server-section-title';
+        title.textContent = 'Server: ' + server.id;
+        container.appendChild(title);
+
+        // Switches for this server
+        const switchesDiv = document.createElement('div');
+        switchesDiv.className = 'switch-container';
+
         stateTopics.forEach((onValues, topic) => {
-          stateOnValues[topic] = onValues;
+          const key = server.id + ':' + topic;
+          STATE_ON_VALUES[key] = onValues;
+
           const btn = document.createElement('button');
           btn.className = 'switch-btn';
-          btn.id = 'sw-' + topic.replace(/\//g, '-').replace(/[^a-z0-9-]/gi, '');
+          btn.id = 'sw-' + server.id + '-' + topic.replace(/\//g, '-').replace(/[^a-z0-9-]/gi, '');
+          btn.dataset.serverId = server.id;
           btn.dataset.topic = topic;
           btn.dataset.onValues = JSON.stringify([...onValues]);
           btn.innerHTML = `<span class="switch-btn-inner">${escapeHtml(topic)}</span><span class="switch-value" id="val-${btn.id}">—</span>`;
-          btn.onclick = () => toggleSwitch(topic, onValues);
-          switchContainer.appendChild(btn);
+          btn.onclick = () => toggleSwitch(server.id, topic, onValues);
+          switchesDiv.appendChild(btn);
         });
-      }
 
-      // 4. Connect MQTT
-      client = mqtt.connect(BROKER, {
-        clientId: 'test-harness-' + Math.random().toString(16).slice(2, 8),
-        reconnectPeriod: 1000,
-        connectTimeout: 10000
+        container.appendChild(switchesDiv);
       });
 
+      if (container.children.length === 0) {
+        container.textContent = 'No state topics found in actions.json';
+      }
+    }
+
+    function populatePublishServerDropdown() {
+      const select = document.getElementById('pub-server');
+      Object.values(SERVERS).forEach(server => {
+        if (server.connectionType === 'ws' || server.connectionType === 'wss') {
+          const opt = document.createElement('option');
+          opt.value = server.id;
+          opt.textContent = server.id + ' (' + server.host + ':' + server.port + ')';
+          select.appendChild(opt);
+        }
+      });
+    }
+
+    function connectServer(server) {
+      if (!server.broker) return;
+
+      const brokerUrl = server.broker + (server.broker.endsWith('/mqtt') ? '' : '/mqtt');
+      const clientId = 'test-harness-' + server.id + '-' + Math.random().toString(16).slice(2, 8);
+
+      let connectOptions = {
+        clientId: clientId,
+        reconnectPeriod: 1000,
+        connectTimeout: 10000
+      };
+
+      // For WSS (self-signed cert), disable certificate validation
+      if (server.connectionType === 'wss') {
+        connectOptions.rejectUnauthorized = false;
+      }
+
+      const client = mqtt.connect(brokerUrl, connectOptions);
+      server.client = client;
+
       client.on('connect', () => {
-        setStatus('connected');
+        updateServerStatus(server.id, 'connected');
+        const stateTopics = SERVER_ACTIONS[server.id].stateTopics;
+        const publishTopics = SERVER_ACTIONS[server.id].publishTopics;
+
         stateTopics.forEach((_, topic) => {
           if (client) client.subscribe(topic, { qos: 0 });
         });
@@ -262,36 +443,55 @@
       });
 
       client.on('error', (err) => {
-        console.error('MQTT error:', err);
-        setStatus('error');
+        console.error('MQTT error on ' + server.id + ':', err);
+        updateServerStatus(server.id, 'error');
       });
 
-      client.on('close', () => setStatus('disconnected'));
+      client.on('close', () => {
+        updateServerStatus(server.id, 'disconnected');
+      });
 
       client.on('message', (topic, payload) => {
         const val = payload.toString();
+        const key = server.id + ':' + topic;
+
         // Update switch if it's a state topic
-        const btnId = 'sw-' + topic.replace(/\//g, '-').replace(/[^a-z0-9-]/gi, '');
+        const btnId = 'sw-' + server.id + '-' + topic.replace(/\//g, '-').replace(/[^a-z0-9-]/gi, '');
         const btn = document.getElementById(btnId);
         if (btn) {
-          stateValues[topic] = val;
-          const isOn = (stateOnValues[topic] || new Set()).has(val);
+          STATE_VALUES[key] = val;
+          const isOn = (STATE_ON_VALUES[key] || new Set()).has(val);
           btn.classList.toggle('on', isOn);
           const valEl = document.getElementById('val-' + btnId);
           if (valEl) valEl.textContent = escapeHtml(val);
         }
-        // Always log
-        appendLog(topic, val);
+
+        // Always log with server tag
+        appendLog(server.id, topic, val);
       });
     }
 
-    function toggleSwitch(topic, onValues) {
-      if (!client || !client.connected) {
-        alert('Not connected to broker');
+    function updateServerStatus(serverId, state) {
+      SERVERS[serverId].status = state;
+      const el = document.getElementById('status-' + serverId);
+      if (el) {
+        el.className = 'status ' + state;
+        if (state === 'connected') el.textContent = 'Connected';
+        else if (state === 'disconnected') el.textContent = 'Disconnected';
+        else if (state === 'error') el.textContent = 'Error';
+      }
+    }
+
+    function toggleSwitch(serverId, topic, onValues) {
+      const server = SERVERS[serverId];
+      if (!server || !server.client || !server.client.connected) {
+        alert('Not connected to ' + serverId);
         return;
       }
-      const current = stateValues[topic];
+      const key = serverId + ':' + topic;
+      const current = STATE_VALUES[key];
       const vals = [...onValues];
+
       // Toggle: if current matches a known value, send the next one; else send first
       let next;
       if (vals.length >= 2) {
@@ -302,10 +502,10 @@
       } else {
         next = current === 'ON' ? 'OFF' : 'ON';
       }
-      client.publish(topic, next);
+      server.client.publish(topic, next);
     }
 
-    function appendLog(topic, payload) {
+    function appendLog(serverId, topic, payload) {
       const log = document.getElementById('log');
       const now = new Date();
       const timeStr = String(now.getHours()).padStart(2, '0') + ':' +
@@ -313,30 +513,30 @@
                       String(now.getSeconds()).padStart(2, '0');
       const row = document.createElement('div');
       row.className = 'log-row';
-      row.innerHTML = `<span class="time">[${timeStr}]</span>  <span class="topic">${escapeHtml(topic)}</span>  →  <span class="payload">${escapeHtml(payload)}</span>`;
+      row.innerHTML = `<span class="time">[${timeStr}]</span>  <span class="server-tag">[${escapeHtml(serverId)}]</span>  <span class="topic">${escapeHtml(topic)}</span>  →  <span class="payload">${escapeHtml(payload)}</span>`;
       log.appendChild(row);
       while (log.children.length > 100) log.removeChild(log.firstChild);
       log.scrollTop = log.scrollHeight;
     }
 
     function manualPublish() {
-      if (!client || !client.connected) {
-        alert('Not connected to broker');
+      const serverId = document.getElementById('pub-server').value.trim();
+      if (!serverId) {
+        alert('Select a server');
+        return;
+      }
+      const server = SERVERS[serverId];
+      if (!server || !server.client || !server.client.connected) {
+        alert('Not connected to ' + serverId);
         return;
       }
       const topic = document.getElementById('pub-topic').value.trim();
       const payload = document.getElementById('pub-payload').value.trim();
       if (topic) {
-        client.publish(topic, payload);
+        server.client.publish(topic, payload);
         document.getElementById('pub-topic').value = '';
         document.getElementById('pub-payload').value = '';
       }
-    }
-
-    function setStatus(state) {
-      const el = document.getElementById('status');
-      el.className = 'status ' + state;
-      el.textContent = state.charAt(0).toUpperCase() + state.slice(1);
     }
 
     function escapeHtml(text) {

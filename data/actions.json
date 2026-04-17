@@ -12,14 +12,20 @@
         "id": "server-1",
         "connectionType": "wss",
         "host": "localhost",
-        "port": 8884,
-        "broker": "wss://localhost:8884",
+        "port": 9002,
+        "broker": "wss://localhost:9002",
         "autoConnect": true,
         "tls": {
           "caFile": "fakecrt.crt",
           "certFile": "fakecrt.crt",
           "keyFile": ""
         }
+      },
+      {
+        "id": "home-raw",
+        "connectionType": "tcp",
+        "host": "localhost",
+        "port": 1883
       }
     ]
   },
