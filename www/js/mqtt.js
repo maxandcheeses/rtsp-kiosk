@@ -24,10 +24,9 @@ function getOrCreateMqttClient(serverId, serverCfg) {
     if (keyFile  && certs[keyFile])  opts.key  = certs[keyFile];
   }
 
-  const brokerUrl = serverCfg.broker + (
-    (serverCfg.connectionType === 'ws' || serverCfg.connectionType === 'wss') &&
-    !serverCfg.broker.endsWith('/mqtt') ? '/mqtt' : ''
-  );
+  const brokerUrl = serverCfg.basepath
+    ? serverCfg.broker.replace(/\/$/, '') + serverCfg.basepath
+    : serverCfg.broker;
   const client = mqtt.connect(brokerUrl, opts);
   _mqttClients.set(serverId, client);
   console.log(`MQTT: connecting named client "${serverId}" to ${brokerUrl}`);
@@ -83,7 +82,8 @@ function startMQTT() {
   MQTT_TOPIC_STREAM = cfg.topicBase + '/+';
 
   const protocol = MQTT_TLS ? 'wss' : 'ws';
-  const url      = `${protocol}://${MQTT_HOST}:${MQTT_PORT}/mqtt`;
+  const basepath = cfg.basepath || '/mqtt';
+  const url      = `${protocol}://${MQTT_HOST}:${MQTT_PORT}${basepath}`;
   const opts     = {
     clientId:        'rtsp-kiosk-' + Math.random().toString(16).slice(2, 8),
     clean:           true,

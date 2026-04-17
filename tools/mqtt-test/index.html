@@ -229,16 +229,6 @@
   <h2>Command Log <span style="opacity:0.4;font-size:10px">(messages published by kiosk)</span></h2>
   <div id="log" class="log"></div>
 
-  <h2>Manual Publish</h2>
-  <div class="form-group">
-    <select id="pub-server">
-      <option value="">Select server…</option>
-    </select>
-    <input id="pub-topic" placeholder="topic" />
-    <input id="pub-payload" placeholder="payload" />
-    <button class="send" onclick="manualPublish()">Send</button>
-  </div>
-
   <div class="note">
     Open the kiosk at <code>http://localhost:8080</code>, add <code>"mqtt": { "enabled": true }</code> to data/streams.json, then assign <strong>living-room</strong> or <strong>front-door</strong> groups to view slots. Click action buttons in the kiosk and watch the log above.
   </div>
@@ -309,14 +299,9 @@
       // 5. Render switches grouped by server
       renderSwitches();
 
-      // 6. Populate publish server dropdown
-      populatePublishServerDropdown();
-
-      // 7. Connect WebSocket servers (mqtt:// is TCP-only, unsupported in browsers)
+      // 6. Connect all servers
       Object.values(SERVERS).forEach(server => {
-        if (server.connectionType === 'ws' || server.connectionType === 'wss') {
-          connectServer(server);
-        }
+        connectServer(server);
       });
     }
 
@@ -337,27 +322,20 @@
 
         const statusEl = document.createElement('span');
         statusEl.id = 'status-' + server.id;
-        if (server.connectionType === 'mqtt') {
-          statusEl.className = 'status na';
-          statusEl.textContent = 'TCP (browser N/A)';
-        } else {
-          statusEl.className = 'status disconnected';
-          statusEl.textContent = 'Disconnected';
-        }
+        statusEl.className = 'status disconnected';
+        statusEl.textContent = 'Disconnected';
 
         row.appendChild(idEl);
         row.appendChild(urlEl);
         row.appendChild(statusEl);
 
-        // Add connect/disconnect toggle button for WS/WSS servers only
-        if (server.connectionType === 'ws' || server.connectionType === 'wss') {
-          const toggleBtn = document.createElement('button');
-          toggleBtn.className = 'send';
-          toggleBtn.id = 'toggle-btn-' + server.id;
-          toggleBtn.textContent = 'Disconnect';
-          toggleBtn.onclick = () => disconnectServer(server.id);
-          row.appendChild(toggleBtn);
-        }
+        // Add connect/disconnect toggle button
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'send';
+        toggleBtn.id = 'toggle-btn-' + server.id;
+        toggleBtn.textContent = 'Disconnect';
+        toggleBtn.onclick = () => disconnectServer(server.id);
+        row.appendChild(toggleBtn);
 
         list.appendChild(row);
       });
@@ -397,6 +375,31 @@
         });
 
         container.appendChild(switchesDiv);
+
+        // Per-server publish form
+        const formDiv = document.createElement('div');
+        formDiv.className = 'form-group';
+        formDiv.style.marginBottom = '16px';
+
+        const topicInput = document.createElement('input');
+        topicInput.id = 'quick-topic-' + server.id;
+        topicInput.type = 'text';
+        topicInput.placeholder = 'topic';
+
+        const payloadInput = document.createElement('input');
+        payloadInput.id = 'quick-payload-' + server.id;
+        payloadInput.type = 'text';
+        payloadInput.placeholder = 'payload';
+
+        const sendBtn = document.createElement('button');
+        sendBtn.className = 'send';
+        sendBtn.textContent = 'Send';
+        sendBtn.onclick = () => quickPublish(server.id, 'quick-topic-' + server.id, 'quick-payload-' + server.id);
+
+        formDiv.appendChild(topicInput);
+        formDiv.appendChild(payloadInput);
+        formDiv.appendChild(sendBtn);
+        container.appendChild(formDiv);
       });
 
       if (container.children.length === 0) {
@@ -407,20 +410,18 @@
     function populatePublishServerDropdown() {
       const select = document.getElementById('pub-server');
       Object.values(SERVERS).forEach(server => {
-        if (server.connectionType === 'ws' || server.connectionType === 'wss') {
-          const opt = document.createElement('option');
-          opt.value = server.id;
-          opt.textContent = server.id + ' (' + server.host + ':' + server.port + ')';
-          select.appendChild(opt);
-        }
+        const opt = document.createElement('option');
+        opt.value = server.id;
+        opt.textContent = server.id + ' (' + server.host + ':' + server.port + ')';
+        select.appendChild(opt);
       });
     }
 
     function connectServer(server) {
       if (!server.broker) return;
 
-      const brokerUrl = server.connectionType === 'ws'
-        ? (server.broker.endsWith('/mqtt') ? server.broker : server.broker + '/mqtt')
+      const brokerUrl = server.basepath
+        ? server.broker.replace(/\/$/, '') + server.basepath
         : server.broker;
       const clientId = 'test-harness-' + server.id + '-' + Math.random().toString(16).slice(2, 8);
 
@@ -543,6 +544,21 @@
       log.appendChild(row);
       while (log.children.length > 100) log.removeChild(log.firstChild);
       log.scrollTop = log.scrollHeight;
+    }
+
+    function quickPublish(serverId, topicInputId, payloadInputId) {
+      const server = SERVERS[serverId];
+      if (!server || !server.client || !server.client.connected) {
+        alert('Not connected to ' + serverId);
+        return;
+      }
+      const topic = document.getElementById(topicInputId).value.trim();
+      const payload = document.getElementById(payloadInputId).value.trim();
+      if (topic) {
+        server.client.publish(topic, payload);
+        document.getElementById(topicInputId).value = '';
+        document.getElementById(payloadInputId).value = '';
+      }
     }
 
     function manualPublish() {
