@@ -211,10 +211,11 @@ function _buildAeSrvDrawerForm(srv, isNew) {
   if (!connectionType) connectionType = 'ws';
   if (!port) port = _AE_MQTT_PORT_DEFAULTS[connectionType] || 9001;
   const tls = srv.tls || {};
-  const showTls = connectionType === 'wss' || connectionType === 'mqtts';
+  const basepath = srv.basepath || '';
+  const showTls = connectionType === 'wss';
   const autoConnect = srv.autoConnect !== undefined ? srv.autoConnect : true;
 
-  const connTypeOpts = ['ws', 'wss', 'mqtt', 'mqtts'].map(t =>
+  const connTypeOpts = ['ws', 'wss'].map(t =>
     `<option value="${t}"${t === connectionType ? ' selected' : ''}>${t}</option>`
   ).join('');
 
@@ -246,6 +247,10 @@ function _buildAeSrvDrawerForm(srv, isNew) {
       </div>
     </div>
     <div class="views-form-row">
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Basepath</label>
+      <input class="views-input" id="ae-field-srv-basepath" value="${_aeEsc(basepath)}" placeholder="e.g. /mqtt (optional)">
+    </div>
+    <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Username</label>
       <input class="views-input" id="ae-field-srv-username" value="${_aeEsc(username)}" placeholder="optional">
     </div>
@@ -257,7 +262,6 @@ function _buildAeSrvDrawerForm(srv, isNew) {
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Auto Connect</label>
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
         <input type="checkbox" id="ae-field-srv-autoconnect"${autoConnect !== false ? ' checked' : ''}>
-        <span style="font-size:10px;color:rgba(255,255,255,0.5)">Connect automatically on page load</span>
       </label>
     </div>
     <div id="ae-tls-section" style="display:${showTls ? 'contents' : 'none'}">
@@ -286,11 +290,12 @@ function _buildAeSrvDrawerForm(srv, isNew) {
         <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Stored Certs</label>
         <div id="ae-cert-files-list">${_aeBuildCertList()}</div>
         <div style="display:flex;gap:6px;align-items:center">
-          <input type="file" id="ae-cert-file-input" accept=".crt,.pem,.key,.cer" style="font-size:10px;flex:1">
+          <input type="file" id="ae-cert-file-input" accept=".crt,.pem,.key,.cer,.p12,.pfx,.der,.p7b,.p7c,.ca-bundle" style="font-size:10px;flex:1">
           <button class="perf-reset" onclick="aeUploadCert()">Upload</button>
         </div>
         <div id="ae-cert-upload-status" style="font-size:9px;font-family:'Courier New',monospace"></div>
         <div style="font-size:9px;color:rgba(255,255,255,0.25)">Certs are stored in your browser (localStorage)</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.25)">Supported: .crt, .pem, .key, .cer, .p12, .pfx, .der, .p7b, .p7c, .ca-bundle</div>
       </div>
     </div>
   </div>
@@ -342,6 +347,7 @@ function saveAeSrvDrawer(originalId, isNew) {
   const keyFile         = keyEl      ? keyEl.value                        : '';
   const autoConnectEl   = document.getElementById('ae-field-srv-autoconnect');
   const autoConnect     = autoConnectEl ? autoConnectEl.checked : true;
+  const basepath        = (document.getElementById('ae-field-srv-basepath') || {}).value?.trim() || '';
 
   let valid = true;
 
@@ -391,6 +397,7 @@ function saveAeSrvDrawer(originalId, isNew) {
     port: portRaw,
     broker,
     autoConnect,
+    ...(basepath ? { basepath } : {}),
     ...(username ? { username } : {}),
     ...(password ? { password } : {}),
     ...(caFile || certFile || keyFile ? { tls: { caFile, certFile, keyFile } } : {}),
@@ -464,7 +471,7 @@ function aeOnConnTypeChange() {
     const isKnownDefault = Object.values(_AE_MQTT_PORT_DEFAULTS).includes(cur);
     if (isKnownDefault) portEl.value = _AE_MQTT_PORT_DEFAULTS[type] || 1883;
   }
-  if (tlsEl) tlsEl.style.display = (type === 'wss' || type === 'mqtts') ? 'contents' : 'none';
+  if (tlsEl) tlsEl.style.display = (type === 'wss') ? 'contents' : 'none';
 }
 
 // ── Cert UI helpers ───────────────────────────────────────────────────────────
