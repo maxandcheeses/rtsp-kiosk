@@ -773,8 +773,8 @@ function _buildAeActionDrawerForm(action, isNew) {
   const mqttServer = action.mqttServer || '';
   const pTopic = (action.publish && action.publish.topic) || '';
   const pPay   = (action.publish && action.publish.payload) || '';
-  const sTopic = (action.state && action.action.state.topic) || '';
-  const sOnVal = (action.state && action.action.state.onValue) || '';
+  const sTopic = (action.state && action.state.topic) || '';
+  const sOnVal = (action.state && action.state.onValue) || '';
 
   const focusAuto = !!(action.timeout && action.timeout > 0);
   const focusTimeout = focusAuto ? action.timeout : 30;
