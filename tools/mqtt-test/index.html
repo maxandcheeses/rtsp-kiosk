@@ -157,6 +157,12 @@
     .log-row .payload {
       color: #4ade80;
     }
+    .log-row.outgoing .topic {
+      color: rgba(255,200,100,0.7);
+    }
+    .log-row.outgoing .payload {
+      color: #fbbf24;
+    }
     .form-group {
       display: flex;
       gap: 8px;
@@ -544,17 +550,19 @@
         next = current === 'ON' ? 'OFF' : 'ON';
       }
       server.client.publish(topic, next);
+      appendLog(serverId, topic, next, 'out');
     }
 
-    function appendLog(serverId, topic, payload) {
+    function appendLog(serverId, topic, payload, direction) {
       const log = document.getElementById('log');
       const now = new Date();
       const timeStr = String(now.getHours()).padStart(2, '0') + ':' +
                       String(now.getMinutes()).padStart(2, '0') + ':' +
                       String(now.getSeconds()).padStart(2, '0');
       const row = document.createElement('div');
-      row.className = 'log-row';
-      row.innerHTML = `<span class="time">[${timeStr}]</span>  <span class="server-tag">[${escapeHtml(serverId)}]</span>  <span class="topic">${escapeHtml(topic)}</span>  →  <span class="payload">${escapeHtml(payload)}</span>`;
+      row.className = direction === 'out' ? 'log-row outgoing' : 'log-row';
+      const arrow = direction === 'out' ? '←' : '→';
+      row.innerHTML = `<span class="time">[${timeStr}]</span>  <span class="server-tag">[${escapeHtml(serverId)}]</span>  <span class="topic">${escapeHtml(topic)}</span>  ${arrow}  <span class="payload">${escapeHtml(payload)}</span>`;
       log.appendChild(row);
       while (log.children.length > 100) log.removeChild(log.firstChild);
       log.scrollTop = log.scrollHeight;
@@ -570,6 +578,7 @@
       const payload = document.getElementById(payloadInputId).value.trim();
       if (topic) {
         server.client.publish(topic, payload);
+        appendLog(serverId, topic, payload, 'out');
         document.getElementById(topicInputId).value = '';
         document.getElementById(payloadInputId).value = '';
       }
@@ -582,6 +591,7 @@
         return;
       }
       server.client.publish(topic, payload);
+      appendLog(serverId, topic, payload, 'out');
     }
 
     function escapeHtml(text) {
