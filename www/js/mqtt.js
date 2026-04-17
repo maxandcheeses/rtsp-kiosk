@@ -25,9 +25,32 @@ function getOrCreateMqttClient(serverId, serverCfg) {
   }
 
   const brokerUrl = serverCfg.basepath
-    ? serverCfg.broker.replace(/\/$/, '') + serverCfg.basepath
+    ? serverCfg.broker.replace(/\/$/, '') + '/' + serverCfg.basepath.replace(/^\//, '')
     : serverCfg.broker;
   const client = mqtt.connect(brokerUrl, opts);
+  client._reconnDelay = 1000;
+  client._reconnTimer = null;
+  client.on('connect', () => {
+    client._reconnDelay = 1000;
+    if (client._reconnTimer) { clearTimeout(client._reconnTimer); client._reconnTimer = null; }
+    console.log(`MQTT: named client "${serverId}" connected`);
+    _updateMqttStatusIndicator();
+  });
+  client.on('error', (err) => { console.log(`MQTT: named client "${serverId}" error:`, err); _updateMqttStatusIndicator(); });
+  client.on('close', () => {
+    console.log(`MQTT: named client "${serverId}" closed`);
+    _updateMqttStatusIndicator();
+    if (client._reconnTimer) return;
+    client._reconnTimer = setTimeout(() => {
+      client._reconnTimer = null;
+      if (_mqttClients.has(serverId)) {
+        console.log(`MQTT: named client "${serverId}" reconnecting (backoff ${client._reconnDelay}ms)`);
+        client.reconnect();
+        _updateMqttStatusIndicator();
+      }
+      client._reconnDelay = Math.min(client._reconnDelay * 2, _MQTT_DELAY_MAX);
+    }, client._reconnDelay);
+  });
   _mqttClients.set(serverId, client);
   console.log(`MQTT: connecting named client "${serverId}" to ${brokerUrl}`);
   return client;
@@ -35,7 +58,12 @@ function getOrCreateMqttClient(serverId, serverCfg) {
 
 function disconnectMqttClient(serverId) {
   const client = _mqttClients.get(serverId);
-  if (client) { client.end(true); _mqttClients.delete(serverId); console.log(`MQTT: disconnected named client "${serverId}"`); }
+  if (client) {
+    if (client._reconnTimer) { clearTimeout(client._reconnTimer); client._reconnTimer = null; }
+    client.end(true);
+    _mqttClients.delete(serverId);
+    console.log(`MQTT: disconnected named client "${serverId}"`);
+  }
 }
 
 let _extraSubscriptions = []; // { topic, callback } registered before connection
