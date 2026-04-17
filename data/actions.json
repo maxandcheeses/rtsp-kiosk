@@ -23,10 +23,14 @@
       },
       {
         "id": "home-raw",
-        "connectionType": "mqtt",
-        "host": "localhost",
-        "port": 1883,
-        "broker": "mqtt://localhost:1883"
+        "connectionType": "ws",
+        "host": "10.8.123.100",
+        "port": 8083,
+        "broker": "ws://10.8.123.100:8083",
+        "basepath": "/mqtt",
+        "autoConnect": true,
+        "username": "dev",
+        "password": "dev"
       }
     ]
   },
