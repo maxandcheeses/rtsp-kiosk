@@ -1134,6 +1134,8 @@ function addAeAction() {
   AE_OPEN_DRAWER = newAction.id;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
+  const idInput = document.getElementById('ae-field-id');
+  if (idInput) { idInput.focus(); idInput.select(); }
 }
 
 // ── Groups Tab ────────────────────────────────────────────────────────────────
