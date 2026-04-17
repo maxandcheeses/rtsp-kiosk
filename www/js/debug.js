@@ -45,6 +45,30 @@ function loadMuteState() {
 
 
 // ═══════════════════════════════════════════════════════
+// Debug mode — simple boolean flag persisted to localStorage
+// ═══════════════════════════════════════════════════════
+let debugMode = false;
+
+function toggleDebug() {
+  const toggle = document.getElementById('settings-debug');
+  debugMode = toggle ? toggle.checked : !debugMode;
+  window.debugMode = debugMode;
+  try { localStorage.setItem('debug', debugMode); } catch(e) {}
+}
+
+function loadDebugState() {
+  try {
+    const saved = localStorage.getItem('debug');
+    if (saved !== null) debugMode = saved === 'true';
+  } catch(e) {}
+  window.debugMode = debugMode;
+  const toggle = document.getElementById('settings-debug');
+  if (toggle) toggle.checked = debugMode;
+}
+
+
+
+// ═══════════════════════════════════════════════════════
 // Debug overlay
 // Shows live stream info + view countdown when enabled.
 // Updates every second via setInterval.
