@@ -248,7 +248,7 @@ function _buildAeSrvDrawerForm(srv, isNew) {
     </div>
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Basepath</label>
-      <input class="views-input" id="ae-field-srv-basepath" value="${_aeEsc(basepath)}" placeholder="e.g. /mqtt (optional)">
+      <input class="views-input" id="ae-field-srv-basepath" value="${_aeEsc(basepath)}" placeholder="e.g. mqtt (optional)">
     </div>
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Username</label>
@@ -265,6 +265,13 @@ function _buildAeSrvDrawerForm(srv, isNew) {
       </label>
     </div>
     <div id="ae-tls-section" style="display:${showTls ? 'contents' : 'none'}">
+      <div class="views-form-row">
+        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Trust Broker Cert</label>
+        <div style="display:flex;flex-direction:column;gap:4px;flex:1">
+          <button class="perf-reset" onclick="aeTrustBrokerCert()">Open in new tab</button>
+          <div style="font-size:9px;color:rgba(255,255,255,0.25)">If using a self-signed cert, open the broker URL in a new tab and accept the browser warning before connecting.</div>
+        </div>
+      </div>
       <div class="views-form-row">
         <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">CA Certificate</label>
         <select id="ae-field-srv-ca" class="views-input" style="flex:1">
@@ -347,7 +354,8 @@ function saveAeSrvDrawer(originalId, isNew) {
   const keyFile         = keyEl      ? keyEl.value                        : '';
   const autoConnectEl   = document.getElementById('ae-field-srv-autoconnect');
   const autoConnect     = autoConnectEl ? autoConnectEl.checked : true;
-  const basepath        = (document.getElementById('ae-field-srv-basepath') || {}).value?.trim() || '';
+  let basepath          = (document.getElementById('ae-field-srv-basepath') || {}).value?.trim() || '';
+  if (basepath && !basepath.startsWith('/')) basepath = '/' + basepath;
 
   let valid = true;
 
@@ -456,6 +464,13 @@ function addAeSrv() {
   AE_OPEN_DRAWER = newSrv.id;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
+}
+
+function aeTrustBrokerCert() {
+  const host = (document.getElementById('ae-field-srv-host') || {}).value || '';
+  const port = (document.getElementById('ae-field-srv-port') || {}).value || '';
+  if (!host) { alert('Enter a host first.'); return; }
+  window.open(`https://${host}:${port}`, '_blank');
 }
 
 // ── Connection type change handler ───────────────────────────────────────────
