@@ -163,6 +163,15 @@
     .log-row.outgoing .payload {
       color: #fbbf24;
     }
+    .log-row.obs .server-tag {
+      color: rgba(59,130,246,0.7);
+    }
+    .log-row.obs .topic {
+      color: rgba(255,255,255,0.7);
+    }
+    .log-row.obs .payload {
+      color: rgba(59,130,246,0.9);
+    }
     .form-group {
       display: flex;
       gap: 8px;
@@ -281,7 +290,9 @@
         SERVERS[server.id] = {
           ...server,
           client: null,
-          status: 'disconnected'
+          status: 'disconnected',
+          obsClient: null,
+          obsStatus: 'disconnected'
         };
         SERVER_ACTIONS[server.id] = {
           stateTopics: new Map(),
@@ -315,9 +326,10 @@
       // 5. Render switches grouped by server
       renderSwitches();
 
-      // 6. Connect all servers
+      // 6. Connect all servers and observers
       Object.values(SERVERS).forEach(server => {
         connectServer(server);
+        connectObserver(server);
       });
     }
 
@@ -341,9 +353,15 @@
         statusEl.className = 'status disconnected';
         statusEl.textContent = 'Disconnected';
 
+        const obsStatusEl = document.createElement('span');
+        obsStatusEl.id = 'obs-status-' + server.id;
+        obsStatusEl.className = 'status disconnected';
+        obsStatusEl.textContent = 'Observer: Disconnected';
+
         row.appendChild(idEl);
         row.appendChild(urlEl);
         row.appendChild(statusEl);
+        row.appendChild(obsStatusEl);
 
         // Add connect/disconnect toggle button
         const toggleBtn = document.createElement('button');
@@ -510,12 +528,80 @@
       });
     }
 
+    function connectObserver(server) {
+      if (!server.broker) return;
+
+      const brokerUrl = server.basepath
+        ? server.broker.replace(/\/$/, '') + server.basepath
+        : server.broker;
+      const clientId = 'test-harness-' + server.id + '-obs-' + Math.random().toString(16).slice(2, 8);
+
+      let connectOptions = {
+        clientId: clientId,
+        reconnectPeriod: 0,
+        connectTimeout: 10000,
+        ...(server.username && { username: server.username }),
+        ...(server.password && { password: server.password }),
+      };
+
+      if (server.connectionType === 'wss') {
+        connectOptions.rejectUnauthorized = false;
+      }
+
+      const client = mqtt.connect(brokerUrl, connectOptions);
+      server.obsClient = client;
+
+      client.on('connect', () => {
+        updateObserverStatus(server.id, 'connected');
+        const stateTopics = SERVER_ACTIONS[server.id].stateTopics;
+        const publishTopics = SERVER_ACTIONS[server.id].publishTopics;
+
+        stateTopics.forEach((_, topic) => {
+          if (client) client.subscribe(topic, { qos: 0 });
+        });
+        publishTopics.forEach(topic => {
+          if (client) client.subscribe(topic, { qos: 0 });
+        });
+        // Always subscribe to preset topics
+        const subscribedTopics = new Set([...stateTopics.keys(), ...publishTopics]);
+        PRESET_TOPICS.forEach(({ topic }) => {
+          if (!subscribedTopics.has(topic)) {
+            if (client) client.subscribe(topic, { qos: 0 });
+          }
+        });
+      });
+
+      client.on('error', (err) => {
+        console.error('MQTT observer error on ' + server.id + ':', err);
+        updateObserverStatus(server.id, 'error');
+      });
+
+      client.on('close', () => {
+        updateObserverStatus(server.id, 'disconnected');
+      });
+
+      client.on('message', (topic, payload) => {
+        const val = payload.toString();
+        // Log observer message with 'obs' direction
+        appendLog(server.id, topic, val, 'obs');
+      });
+    }
+
     function disconnectServer(serverId) {
       const server = SERVERS[serverId];
-      if (!server || !server.client) return;
-      server.client.end(true); // force close, no reconnect
-      server.client = null;
+      if (!server) return;
+
+      if (server.client) {
+        server.client.end(true);
+        server.client = null;
+      }
+      if (server.obsClient) {
+        server.obsClient.end(true);
+        server.obsClient = null;
+      }
+
       updateServerStatus(serverId, 'disconnected');
+      updateObserverStatus(serverId, 'disconnected');
     }
 
     function updateServerStatus(serverId, state) {
@@ -534,7 +620,21 @@
         btn.textContent = state === 'connected' ? 'Disconnect' : 'Connect';
         btn.onclick = state === 'connected'
           ? () => disconnectServer(serverId)
-          : () => connectServer(SERVERS[serverId]);
+          : () => {
+              connectServer(SERVERS[serverId]);
+              connectObserver(SERVERS[serverId]);
+            };
+      }
+    }
+
+    function updateObserverStatus(serverId, state) {
+      SERVERS[serverId].obsStatus = state;
+      const el = document.getElementById('obs-status-' + serverId);
+      if (el) {
+        el.className = 'status ' + state;
+        if (state === 'connected') el.textContent = 'Observer: Connected';
+        else if (state === 'disconnected') el.textContent = 'Observer: Disconnected';
+        else if (state === 'error') el.textContent = 'Observer: Error';
       }
     }
 
@@ -569,9 +669,22 @@
                       String(now.getMinutes()).padStart(2, '0') + ':' +
                       String(now.getSeconds()).padStart(2, '0');
       const row = document.createElement('div');
-      row.className = direction === 'out' ? 'log-row outgoing' : 'log-row';
-      const arrow = direction === 'out' ? '←' : '→';
-      row.innerHTML = `<span class="time">[${timeStr}]</span>  <span class="server-tag">[${escapeHtml(serverId)}]</span>  <span class="topic">${escapeHtml(topic)}</span>  ${arrow}  <span class="payload">${escapeHtml(payload)}</span>`;
+
+      let className = 'log-row';
+      let arrow = '→';
+      let serverTag = escapeHtml(serverId);
+
+      if (direction === 'out') {
+        className = 'log-row outgoing';
+        arrow = '←';
+      } else if (direction === 'obs') {
+        className = 'log-row obs';
+        arrow = '→obs';
+        serverTag = escapeHtml(serverId) + '/obs';
+      }
+
+      row.className = className;
+      row.innerHTML = `<span class="time">[${timeStr}]</span>  <span class="server-tag">[${serverTag}]</span>  <span class="topic">${escapeHtml(topic)}</span>  ${arrow}  <span class="payload">${escapeHtml(payload)}</span>`;
       log.appendChild(row);
       while (log.children.length > 100) log.removeChild(log.firstChild);
       log.scrollTop = log.scrollHeight;
