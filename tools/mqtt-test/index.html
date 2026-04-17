@@ -1203,15 +1203,18 @@
     }
 
     function connectExternalProfile(profileId) {
+      console.log('connectExternalProfile called:', profileId);
       const profiles = loadExternalProfiles();
       const profile = profiles.find(p => p.id === profileId);
 
       if (!profile) {
+        console.log('connectExternalProfile: profile not found for id', profileId);
         alert('Profile not found');
         return;
       }
 
       if (EXTERNAL_CLIENTS[profileId] && EXTERNAL_CLIENTS[profileId].connected) {
+        console.log('connectExternalProfile: already connected to', profileId);
         alert('Already connected to this profile');
         return;
       }
@@ -1225,6 +1228,7 @@
       const clientId = 'test-harness-external-' + profileId + '-' + Math.random().toString(16).slice(2, 8);
       let connectOptions = {
         clientId: clientId,
+        clean: true,
         reconnectPeriod: 0,
         connectTimeout: 10000,
         ...(profile.username && { username: profile.username }),
@@ -1233,12 +1237,12 @@
 
       // For wss connections
       if (brokerUrl.startsWith('wss://')) {
-        connectOptions.rejectUnauthorized = false;
         if (profile.caCert) connectOptions.ca = profile.caCert;
         if (profile.clientCert) connectOptions.cert = profile.clientCert;
         if (profile.clientKey) connectOptions.key = profile.clientKey;
       }
 
+      console.log('External MQTT: connecting to', brokerUrl);
       const client = mqtt.connect(brokerUrl, connectOptions);
 
       client.on('connect', () => {
@@ -1257,6 +1261,7 @@
 
       client.on('error', (err) => {
         console.error('External MQTT error on ' + profileId + ':', err);
+        if (EXTERNAL_CLIENTS[profileId]) EXTERNAL_CLIENTS[profileId].connected = false;
         updateExternalProfileStatus(profileId, 'error');
       });
 
