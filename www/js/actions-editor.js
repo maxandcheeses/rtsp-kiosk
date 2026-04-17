@@ -221,10 +221,9 @@ function _buildAeSrvDrawerForm(srv, isNew) {
 
   return `<div class="cam-form-grid">
     <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">ID (slug)</label>
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">ID</label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
         <input class="views-input" id="ae-field-srv-id" value="${_aeEsc(id)}" placeholder="home">
-        <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace">Lowercase letters, numbers, hyphens</div>
         <div class="cam-field-error" id="ae-err-srv-id"></div>
       </div>
     </div>
@@ -360,8 +359,8 @@ function saveAeSrvDrawer(originalId, isNew) {
   let valid = true;
 
   const errId = document.getElementById('ae-err-srv-id');
-  if (!/^[a-z0-9-]+$/.test(newId)) {
-    if (errId) errId.textContent = 'Lowercase letters, numbers, and hyphens only';
+  if (!newId) {
+    if (errId) errId.textContent = 'ID is required';
     valid = false;
   } else if (newId !== originalId && (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers || []).find(s => s.id === newId)) {
     if (errId) errId.textContent = 'ID already exists';
@@ -848,10 +847,9 @@ function _buildAeActionDrawerForm(action, isNew) {
       </select>
     </div>
     <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">ID (slug)</label>
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">ID</label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
         <input class="views-input" id="ae-field-id" value="${_aeEsc(id)}" placeholder="my-action">
-        <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace">Lowercase letters, numbers, hyphens</div>
         <div class="cam-field-error" id="ae-err-id"></div>
       </div>
     </div>
@@ -1012,8 +1010,8 @@ function saveAeActionDrawer(originalId, isNew) {
   let valid = true;
 
   const errId = document.getElementById('ae-err-id');
-  if (!/^[a-z0-9-]+$/.test(newId)) {
-    if (errId) errId.textContent = 'Lowercase letters, numbers, and hyphens only';
+  if (!newId) {
+    if (errId) errId.textContent = 'ID is required';
     valid = false;
   } else if (newId !== originalId && (AE_LOCAL.actions || []).find(a => a.id === newId)) {
     if (errId) errId.textContent = 'ID already exists';
@@ -1221,7 +1219,7 @@ function _buildAeGroupDrawerForm(group, isNew) {
 
   return `<div class="cam-form-grid">
     <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">ID (slug)</label>
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">ID</label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
         <input class="views-input" id="ae-field-group-id" value="${_aeEsc(id)}" placeholder="my-group">
         <div class="cam-field-error" id="ae-err-group-id"></div>
@@ -1310,8 +1308,8 @@ function saveAeGroupDrawer(originalId, isNew) {
   let valid = true;
 
   const errId = document.getElementById('ae-err-group-id');
-  if (!/^[a-z0-9-]+$/.test(newId)) {
-    if (errId) errId.textContent = 'Lowercase letters, numbers, and hyphens only';
+  if (!newId) {
+    if (errId) errId.textContent = 'ID is required';
     valid = false;
   } else if (newId !== originalId && (AE_LOCAL.groups || []).find(g => g.id === newId)) {
     if (errId) errId.textContent = 'ID already exists';
