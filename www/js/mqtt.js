@@ -312,6 +312,71 @@ function applyStreamUpdates(updates) {
 function _updateMqttStatusIndicator() {
   const el = document.getElementById('actions-mqtt-status');
   if (!el) return;
+
+  // Determine which MQTT server IDs are needed by the current modal's group
+  let neededServerIds = new Set();
+  if (typeof _actionsSlotIndex !== 'undefined' && _actionsSlotIndex !== null &&
+      typeof getView === 'function' && typeof activeView !== 'undefined') {
+    const view = getView(activeView);
+    const slotGroups = view && view.slotGroups;
+    const groupId = slotGroups && slotGroups[_actionsSlotIndex];
+    const group = groupId && typeof ACTION_GROUPS !== 'undefined' && ACTION_GROUPS[groupId];
+    if (group) {
+      (group.actions || []).forEach(actionId => {
+        const action = typeof ACTIONS !== 'undefined' && ACTIONS[actionId];
+        if (action && action.type === 'mqtt' && action.mqttServer) {
+          neededServerIds.add(action.mqttServer);
+        }
+      });
+    }
+  }
+
+  // If named servers are needed, compute status from _mqttClients
+  if (neededServerIds.size > 0) {
+    let anyDisconnected = false;
+    let anyConnecting   = false;
+    const disconnectedIds = [];
+
+    neededServerIds.forEach(id => {
+      const client = _mqttClients.get(id);
+      if (!client) {
+        anyDisconnected = true;
+        disconnectedIds.push(id);
+      } else if (!client.connected) {
+        anyConnecting = true;
+      }
+    });
+
+    el.textContent = '● MQTT';
+    if (anyDisconnected) {
+      el.style.color = 'rgba(248,113,113,0.7)';
+      el.style.pointerEvents = 'auto';
+      el.style.cursor = 'pointer';
+      el.onclick = () => {
+        const servers = (typeof _actionsConfig !== 'undefined' && _actionsConfig &&
+                         _actionsConfig.mqtt && _actionsConfig.mqtt.servers) || [];
+        disconnectedIds.forEach(id => {
+          const cfg = servers.find(s => s.id === id);
+          if (cfg) getOrCreateMqttClient(id, cfg);
+        });
+        _updateMqttStatusIndicator();
+      };
+    } else if (anyConnecting) {
+      el.style.color = 'rgba(251,191,36,0.7)';
+      el.style.pointerEvents = 'none';
+      el.style.cursor = '';
+      el.onclick = null;
+    } else {
+      // All connected
+      el.style.color = 'rgba(74,222,128,0.7)';
+      el.style.pointerEvents = 'none';
+      el.style.cursor = '';
+      el.onclick = null;
+    }
+    return;
+  }
+
+  // Fallback: legacy single-broker global state
   if (_mqttConnected) {
     el.textContent = '● MQTT';
     el.style.color = 'rgba(74,222,128,0.7)';
