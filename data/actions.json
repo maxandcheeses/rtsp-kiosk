@@ -7,6 +7,19 @@
         "host": "localhost",
         "port": 9001,
         "broker": "ws://localhost:9001"
+      },
+      {
+        "id": "server-1",
+        "connectionType": "wss",
+        "host": "localhost",
+        "port": 8884,
+        "broker": "wss://localhost:8884",
+        "autoConnect": true,
+        "tls": {
+          "caFile": "fakecrt.crt",
+          "certFile": "fakecrt.crt",
+          "keyFile": ""
+        }
       }
     ]
   },
@@ -113,6 +126,36 @@
         "topic": "home/front-door/lock/state",
         "onValue": "UNLOCKED"
       }
+    },
+    {
+      "id": "server-1-ping",
+      "type": "mqtt",
+      "mqttServer": "server-1",
+      "description": "Server 1 Ping",
+      "icon": "mdi:heart-pulse",
+      "publish": {
+        "topic": "test/server1/ping",
+        "payload": "PING"
+      },
+      "state": {
+        "topic": "test/server1/status",
+        "onValue": "PONG"
+      }
+    },
+    {
+      "id": "server-1-status",
+      "type": "mqtt",
+      "mqttServer": "server-1",
+      "description": "Server 1 Status",
+      "icon": "mdi:information-outline",
+      "publish": {
+        "topic": "test/server1/status/request",
+        "payload": "GET"
+      },
+      "state": {
+        "topic": "test/server1/status/response",
+        "onValue": "READY"
+      }
     }
   ],
   "groups": [
@@ -134,6 +177,14 @@
       "actions": [
         "lock-door",
         "unlock-door"
+      ]
+    },
+    {
+      "id": "server-1-test",
+      "name": "Server 1 Test",
+      "actions": [
+        "server-1-ping",
+        "server-1-status"
       ]
     }
   ]

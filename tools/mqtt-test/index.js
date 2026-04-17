@@ -79,11 +79,12 @@ function loadActionsConfig() {
 // MQTT Client Factory
 // ─────────────────────────────────────────────────────────────────────────
 
-function createMqttClient(brokerUrl, username, password, timeout = 5000) {
+function createMqttClient(brokerUrl, username, password, timeout = 5000, tlsOpts = {}) {
   return new Promise((resolve, reject) => {
     const opts = {
       connectTimeout: timeout,
-      reconnectPeriod: 0, // Disable auto-reconnect for CLI tools
+      reconnectPeriod: 0, // Disable auto-reconnect for CLI tools,
+      ...tlsOpts,
     };
 
     if (username) opts.username = username;
@@ -114,54 +115,98 @@ function createMqttClient(brokerUrl, username, password, timeout = 5000) {
 
 async function cmdSubscribe() {
   const config = loadActionsConfig();
-  const { broker, username = '', password = '' } = config.mqtt || {};
+  const servers = config.mqtt?.servers || [];
 
-  if (!broker) {
-    logError('No MQTT broker configured in data/actions.json');
+  if (servers.length === 0) {
+    logError('No MQTT servers configured in data/actions.json');
     process.exit(1);
   }
 
-  // Collect all state topics
-  const stateTopics = new Set();
-  (config.actions || []).forEach((action) => {
-    if (action.state && action.state.topic) {
-      stateTopics.add(action.state.topic);
-    }
+  // Build serversById map
+  const serversById = {};
+  servers.forEach((server) => {
+    serversById[server.id] = server;
   });
 
-  if (stateTopics.size === 0) {
+  // Group actions by mqttServer
+  const actionsByServer = {};
+  (config.actions || []).forEach((action) => {
+    const serverId = action.mqttServer || 'home';
+    if (!actionsByServer[serverId]) {
+      actionsByServer[serverId] = [];
+    }
+    actionsByServer[serverId].push(action);
+  });
+
+  // Collect state topics by server
+  const topicsByServer = {};
+  Object.entries(actionsByServer).forEach(([serverId, actions]) => {
+    topicsByServer[serverId] = new Set();
+    actions.forEach((action) => {
+      if (action.state && action.state.topic) {
+        topicsByServer[serverId].add(action.state.topic);
+      }
+    });
+  });
+
+  // Remove servers with no topics
+  const serversWithTopics = Object.entries(topicsByServer).filter(
+    ([, topics]) => topics.size > 0
+  );
+
+  if (serversWithTopics.length === 0) {
     logError('No state topics found in actions.json');
     process.exit(1);
   }
 
-  logSuccess(`Connecting to ${maskCredentials(broker, username, password)}...`);
+  const clients = {};
+  let connectedCount = 0;
 
-  try {
-    const client = await createMqttClient(broker, username, password);
-    logSuccess(`Connected. Listening to ${stateTopics.size} topic(s)...`);
+  // Connect to all servers
+  for (const [serverId, topics] of serversWithTopics) {
+    const server = serversById[serverId];
+    if (!server) {
+      logError(`Server not found: ${serverId}`);
+      process.exit(1);
+    }
 
-    stateTopics.forEach((topic) => {
-      client.subscribe(topic, { qos: 0 }, (err) => {
-        if (err) {
-          logError(`Failed to subscribe to ${topic}: ${err.message}`);
-        }
+    const tlsOpts = server.connectionType === 'wss' ? { tls: { rejectUnauthorized: false } } : {};
+
+    try {
+      logSuccess(`Connecting to ${maskCredentials(server.broker, '', '')} (${serverId})...`);
+      const client = await createMqttClient(server.broker, '', '', 5000, tlsOpts);
+      clients[serverId] = client;
+      connectedCount++;
+      logSuccess(`  Connected. Listening to ${topics.size} topic(s)...`);
+
+      // Subscribe to all topics on this server
+      topics.forEach((topic) => {
+        client.subscribe(topic, { qos: 0 }, (err) => {
+          if (err) {
+            logError(`Failed to subscribe to ${topic}: ${err.message}`);
+          }
+        });
       });
-    });
 
-    client.on('message', (topic, payload) => {
-      const msg = payload.toString();
-      log(`${colors.cyan}${topic}${colors.reset} → ${colors.green}${msg}${colors.reset}`);
-    });
+      client.on('message', (topic, payload) => {
+        const msg = payload.toString();
+        log(`${colors.cyan}[${serverId}] ${topic}${colors.reset} → ${colors.green}${msg}${colors.reset}`);
+      });
+    } catch (e) {
+      logError(`Failed to connect to ${serverId}: ${e.message}`);
+    }
+  }
 
-    process.on('SIGINT', () => {
-      log('Disconnecting...');
-      client.end();
-      process.exit(0);
-    });
-  } catch (e) {
-    logError(`Failed to connect: ${e.message}`);
+  if (connectedCount === 0) {
+    logError('Failed to connect to any servers');
     process.exit(1);
   }
+
+  process.on('SIGINT', () => {
+    log('Disconnecting...');
+    Object.values(clients).forEach((client) => client.end());
+    process.exit(0);
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -175,12 +220,18 @@ async function cmdPublish(actionId) {
   }
 
   const config = loadActionsConfig();
-  const { broker, username = '', password = '' } = config.mqtt || {};
+  const servers = config.mqtt?.servers || [];
 
-  if (!broker) {
-    logError('No MQTT broker configured in data/actions.json');
+  if (servers.length === 0) {
+    logError('No MQTT servers configured in data/actions.json');
     process.exit(1);
   }
+
+  // Build serversById map
+  const serversById = {};
+  servers.forEach((server) => {
+    serversById[server.id] = server;
+  });
 
   const action = (config.actions || []).find((a) => a.id === actionId);
   if (!action) {
@@ -193,12 +244,20 @@ async function cmdPublish(actionId) {
     process.exit(1);
   }
 
-  const { topic, payload } = action.publish;
+  const serverId = action.mqttServer || 'home';
+  const server = serversById[serverId];
+  if (!server) {
+    logError(`Server not found: ${serverId}`);
+    process.exit(1);
+  }
 
-  logSuccess(`Connecting to ${maskCredentials(broker, username, password)}...`);
+  const { topic, payload } = action.publish;
+  const tlsOpts = server.connectionType === 'wss' ? { tls: { rejectUnauthorized: false } } : {};
+
+  logSuccess(`Connecting to ${maskCredentials(server.broker, '', '')}...`);
 
   try {
-    const client = await createMqttClient(broker, username, password);
+    const client = await createMqttClient(server.broker, '', '', 5000, tlsOpts);
     log(`Publishing to ${colors.cyan}${topic}${colors.reset}: ${colors.green}${payload}${colors.reset}`);
 
     client.publish(topic, payload, { qos: 1 }, (err) => {
@@ -223,18 +282,28 @@ async function cmdPublish(actionId) {
 
 async function cmdSimulate() {
   const config = loadActionsConfig();
-  const { broker, username = '', password = '' } = config.mqtt || {};
+  const servers = config.mqtt?.servers || [];
 
-  if (!broker) {
-    logError('No MQTT broker configured in data/actions.json');
+  if (servers.length === 0) {
+    logError('No MQTT servers configured in data/actions.json');
     process.exit(1);
   }
 
-  // Build a map: publish.topic → { actionId, state.topic, state.onValue }
-  const topicMap = new Map();
+  // Build serversById map
+  const serversById = {};
+  servers.forEach((server) => {
+    serversById[server.id] = server;
+  });
+
+  // Group actions by mqttServer and build topic map for each server
+  const topicMapByServer = {};
   (config.actions || []).forEach((action) => {
     if (action.publish && action.publish.topic && action.state && action.state.topic) {
-      topicMap.set(action.publish.topic, {
+      const serverId = action.mqttServer || 'home';
+      if (!topicMapByServer[serverId]) {
+        topicMapByServer[serverId] = new Map();
+      }
+      topicMapByServer[serverId].set(action.publish.topic, {
         actionId: action.id,
         stateTopic: action.state.topic,
         onValue: action.state.onValue || 'ON',
@@ -242,42 +311,63 @@ async function cmdSimulate() {
     }
   });
 
-  if (topicMap.size === 0) {
+  const serversWithActions = Object.entries(topicMapByServer).filter(([, map]) => map.size > 0);
+
+  if (serversWithActions.length === 0) {
     logError('No actions with both publish and state topics found');
     process.exit(1);
   }
 
-  logSuccess(`Connecting to ${maskCredentials(broker, username, password)}...`);
+  const clients = {};
+  let connectedCount = 0;
 
-  try {
-    const client = await createMqttClient(broker, username, password);
-    logSuccess(`Connected. Simulating responses for ${topicMap.size} action(s)...`);
+  // Connect to all servers with actions
+  for (const [serverId, topicMap] of serversWithActions) {
+    const server = serversById[serverId];
+    if (!server) {
+      logError(`Server not found: ${serverId}`);
+      process.exit(1);
+    }
 
-    topicMap.forEach((_, publishTopic) => {
-      client.subscribe(publishTopic, { qos: 0 });
-    });
+    const tlsOpts = server.connectionType === 'wss' ? { tls: { rejectUnauthorized: false } } : {};
 
-    client.on('message', (topic, payload) => {
-      const mapping = topicMap.get(topic);
-      if (mapping) {
-        log(`${colors.green}${mapping.actionId}${colors.reset} set received on ${colors.cyan}${topic}${colors.reset}`);
-        // Simulate response after delay
-        setTimeout(() => {
-          client.publish(mapping.stateTopic, mapping.onValue, { qos: 1 });
-          log(`  → published ${colors.green}${mapping.onValue}${colors.reset} to ${colors.cyan}${mapping.stateTopic}${colors.reset}`);
-        }, 100);
-      }
-    });
+    try {
+      logSuccess(`Connecting to ${maskCredentials(server.broker, '', '')} (${serverId})...`);
+      const client = await createMqttClient(server.broker, '', '', 5000, tlsOpts);
+      clients[serverId] = { client, topicMap };
+      connectedCount++;
+      logSuccess(`  Connected. Simulating responses for ${topicMap.size} action(s)...`);
 
-    process.on('SIGINT', () => {
-      log('Disconnecting...');
-      client.end();
-      process.exit(0);
-    });
-  } catch (e) {
-    logError(`Failed to connect: ${e.message}`);
+      topicMap.forEach((_, publishTopic) => {
+        client.subscribe(publishTopic, { qos: 0 });
+      });
+
+      client.on('message', (topic, payload) => {
+        const mapping = topicMap.get(topic);
+        if (mapping) {
+          log(`${colors.green}${mapping.actionId}${colors.reset} set received on ${colors.cyan}[${serverId}] ${topic}${colors.reset}`);
+          // Simulate response after delay
+          setTimeout(() => {
+            client.publish(mapping.stateTopic, mapping.onValue, { qos: 1 });
+            log(`  → published ${colors.green}${mapping.onValue}${colors.reset} to ${colors.cyan}${mapping.stateTopic}${colors.reset}`);
+          }, 100);
+        }
+      });
+    } catch (e) {
+      logError(`Failed to connect to ${serverId}: ${e.message}`);
+    }
+  }
+
+  if (connectedCount === 0) {
+    logError('Failed to connect to any servers');
     process.exit(1);
   }
+
+  process.on('SIGINT', () => {
+    log('Disconnecting...');
+    Object.values(clients).forEach(({ client }) => client.end());
+    process.exit(0);
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -286,26 +376,51 @@ async function cmdSimulate() {
 
 async function cmdPing() {
   const config = loadActionsConfig();
-  const { broker, username = '', password = '' } = config.mqtt || {};
+  const servers = config.mqtt?.servers || [];
 
-  if (!broker) {
-    logError('No MQTT broker configured in data/actions.json');
+  if (servers.length === 0) {
+    logError('No MQTT servers configured in data/actions.json');
     process.exit(1);
   }
 
-  log(`Testing ${maskCredentials(broker, username, password)}...`);
+  const results = [];
+  let successCount = 0;
 
-  const startTime = Date.now();
-  try {
-    const client = await createMqttClient(broker, username, password, 5000);
-    const latency = Date.now() - startTime;
-    logSuccess(`Broker: ${maskCredentials(broker, username, password)}, latency: ${latency}ms, connected: true`);
-    client.end(() => {
-      process.exit(0);
-    });
-  } catch (e) {
-    logError(`Broker unreachable: ${e.message}`);
+  // Test each server
+  for (const server of servers) {
+    const tlsOpts = server.connectionType === 'wss' ? { tls: { rejectUnauthorized: false } } : {};
+    log(`Testing ${maskCredentials(server.broker, '', '')} (${server.id})...`);
+
+    const startTime = Date.now();
+    try {
+      const client = await createMqttClient(server.broker, '', '', 5000, tlsOpts);
+      const latency = Date.now() - startTime;
+      results.push({
+        id: server.id,
+        broker: server.broker,
+        latency,
+        connected: true,
+      });
+      successCount++;
+      logSuccess(`  ${server.id}: latency ${latency}ms, connected: true`);
+      client.end();
+    } catch (e) {
+      results.push({
+        id: server.id,
+        broker: server.broker,
+        connected: false,
+        error: e.message,
+      });
+      logError(`  ${server.id}: unreachable (${e.message})`);
+    }
+  }
+
+  if (successCount === 0) {
+    logError('All servers unreachable');
     process.exit(1);
+  } else {
+    logSuccess(`\nPing complete: ${successCount}/${servers.length} servers reachable`);
+    process.exit(0);
   }
 }
 
