@@ -165,10 +165,15 @@ function _buildAeMqttTab() {
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${_aeEsc(id)}</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.4)">${_aeEsc(srv.broker || '')}</td>
       <td style="text-align:right;white-space:nowrap">
-        <button class="perf-reset" onclick="aeConnectServer('${esc}')" style="font-size:9px;padding:2px 6px" title="Connect">Connect</button>
-        <button class="perf-reset" onclick="aeDisconnectServer('${esc}')" style="font-size:9px;padding:2px 6px" title="Disconnect">Disconnect</button>
-        <button class="sp-btn" onclick="openAeSrvDrawer('${esc}')" title="Edit">✎</button>
-        <button class="sp-btn" onclick="deleteAeSrv('${esc}')" title="Delete" style="color:rgba(248,113,113,0.6);border-color:rgba(248,113,113,0.2)">✕</button>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <div style="display:flex;gap:4px;align-items:center">
+            <button class="perf-reset" onclick="aeConnectServer('${esc}')" style="font-size:9px;padding:2px 6px" title="Connect">Connect</button>
+            <button class="perf-reset" onclick="aeDisconnectServer('${esc}')" style="font-size:9px;padding:2px 6px" title="Disconnect">Disconnect</button>
+            <button class="sp-btn" onclick="openAeSrvDrawer('${esc}')" title="Edit">✎</button>
+            <button class="sp-btn" onclick="deleteAeSrv('${esc}')" title="Delete" style="color:rgba(248,113,113,0.6);border-color:rgba(248,113,113,0.2)">✕</button>
+          </div>
+          <div id="ae-srv-status-${esc}" style="font-size:9px;font-family:'Courier New',monospace">${_aeServerStatusHtml(id)}</div>
+        </div>
       </td>
     </tr>
     <tr id="ae-srv-drawer-row-${esc}">
@@ -252,7 +257,7 @@ function _buildAeSrvDrawerForm(srv, isNew) {
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Auto Connect</label>
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
         <input type="checkbox" id="ae-field-srv-autoconnect"${autoConnect !== false ? ' checked' : ''}>
-        <span style="font-size:10px;color:rgba(255,255,255,0.5)">Connect automatically when actions modal opens</span>
+        <span style="font-size:10px;color:rgba(255,255,255,0.5)">Connect automatically on page load</span>
       </label>
     </div>
     <div id="ae-tls-section" style="display:${showTls ? 'contents' : 'none'}">
@@ -520,10 +525,24 @@ function _aeRefreshCertUI() {
 
 // ── Disconnect server ─────────────────────────────────────────────────────────
 
+function _aeServerStatusHtml(serverId) {
+  if (typeof _mqttClients === 'undefined') return '<span style="color:rgba(255,255,255,0.2)">● unknown</span>';
+  const client = _mqttClients.get(serverId);
+  if (!client) return '<span style="color:rgba(248,113,113,0.5)">● disconnected</span>';
+  if (client.connected) return '<span style="color:rgba(74,222,128,0.6)">● connected</span>';
+  return '<span style="color:rgba(251,191,36,0.6)">● connecting</span>';
+}
+
 function aeConnectServer(serverId) {
   const servers = (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || [];
   const cfg = servers.find(s => s.id === serverId);
-  if (cfg) getOrCreateMqttClient(serverId, cfg);
+  if (!cfg) return;
+  getOrCreateMqttClient(serverId, cfg);
+  // Re-render after a short delay to show updated status
+  setTimeout(() => {
+    const container = document.getElementById('ae-tabs-and-content');
+    if (container) _renderAeTabsInto(container);
+  }, 300);
 }
 
 function aeDisconnectServer(id) {

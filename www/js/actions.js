@@ -64,6 +64,15 @@ async function loadActionsConfig() {
       _actionUnsubscribers.push(unsub);
     });
 
+    // Auto-connect named MQTT servers where autoConnect !== false
+    const servers = (cfg.mqtt && cfg.mqtt.servers) || [];
+    servers.forEach(srv => {
+      if (srv.autoConnect !== false) {
+        getOrCreateMqttClient(srv.id, srv);
+        _connectedServerIds.add(srv.id);
+      }
+    });
+
     console.log(`Actions: loaded ${Object.keys(ACTIONS).length} actions, ${Object.keys(ACTION_GROUPS).length} groups`);
   } catch(e) {
     console.warn('Actions: failed to load actions.json', e);
@@ -96,7 +105,6 @@ function _connectServersForGroup(groupId) {
     if (!_connectedServerIds.has(id)) {
       const cfg = servers.find(s => s.id === id);
       if (cfg) {
-        if (cfg.autoConnect === false) return; // skip if auto-connect disabled
         getOrCreateMqttClient(id, cfg);
         _connectedServerIds.add(id);
       }
