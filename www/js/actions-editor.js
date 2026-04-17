@@ -1192,7 +1192,7 @@ function _buildAeGroupDrawerForm(group, isNew) {
   const numSlots = Math.min(slots.length + 1, 6); // show one extra empty slot unless at max
   const allActions = (AE_LOCAL && AE_LOCAL.actions) || [];
 
-  const typeOrder = a => a.type === 'builtin' ? 0 : a.type === 'focus-panel' ? 1 : 2;
+  const typeOrder = a => (a.type === 'builtin' || a.type === 'focus-panel') ? 0 : 1;
   const builtins = typeof BUILTIN_ACTIONS !== 'undefined' ? Object.values(BUILTIN_ACTIONS) : [];
   const mergedMap = new Map();
   builtins.forEach(a => mergedMap.set(a.id, a));
@@ -1206,7 +1206,7 @@ function _buildAeGroupDrawerForm(group, isNew) {
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Button ${i + 1}</label>
       <select class="views-input" id="ae-slot-${i}" style="flex:none;width:auto">
         <option value="">— none —</option>
-        ${sortedActions.map(a => `<option value="${_aeEsc(a.id)}"${a.id===val?' selected':''}>${_aeEsc(a.description || a.id)}</option>`).join('')}
+        ${sortedActions.map(a => `<option value="${_aeEsc(a.id)}"${a.id===val?' selected':''}>${_aeEsc(a.id)}</option>`).join('')}
       </select>
     </div>`;
   }
@@ -1253,7 +1253,7 @@ function _aeAddSlot(currentCount) {
   const slotRow = document.createElement('div');
   slotRow.className = 'views-form-row';
   slotRow.id = `ae-slot-row-${currentCount}`;
-  const typeOrderAdd = a => a.type === 'builtin' ? 0 : a.type === 'focus-panel' ? 1 : 2;
+  const typeOrderAdd = a => (a.type === 'builtin' || a.type === 'focus-panel') ? 0 : 1;
   const builtinsAdd = typeof BUILTIN_ACTIONS !== 'undefined' ? Object.values(BUILTIN_ACTIONS) : [];
   const mergedMapAdd = new Map();
   builtinsAdd.forEach(a => mergedMapAdd.set(a.id, a));
@@ -1263,7 +1263,7 @@ function _aeAddSlot(currentCount) {
     <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Button ${currentCount + 1}</label>
     <select class="views-input" id="ae-slot-${currentCount}" style="flex:none;width:auto">
       <option value="">— none —</option>
-      ${sortedActionsAdd.map(a => `<option value="${_aeEsc(a.id)}">${_aeEsc(a.description || a.id)}</option>`).join('')}
+      ${sortedActionsAdd.map(a => `<option value="${_aeEsc(a.id)}">${_aeEsc(a.id)}</option>`).join('')}
     </select>`;
 
   if (addBtn) {
