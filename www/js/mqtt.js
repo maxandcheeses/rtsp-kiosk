@@ -263,6 +263,15 @@ function mqttPublish(topic, payload) {
   return true;
 }
 
+// Publish to a named client by server ID (used by action buttons).
+// Returns true if the client was connected and the message was sent.
+function mqttPublishNamed(serverId, topic, payload) {
+  const client = _mqttClients.get(serverId);
+  if (!client || !client.connected) return false;
+  client.publish(topic, payload, { qos: 1 });
+  return true;
+}
+
 // Apply stream config updates from MQTT.
 // Fields explicitly set in streams.json are locked and cannot be overridden.
 function applyStreamUpdates(updates) {

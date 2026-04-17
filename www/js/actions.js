@@ -257,8 +257,10 @@ function pressAction(actionId) {
 
   const btn = document.querySelector(`[data-action-id="${actionId}"]`);
 
-  // Publish via the global MQTT client
-  const ok = mqttPublish(action.publish.topic, action.publish.payload);
+  // Publish via named client if the action specifies a server, else fall back to global client
+  const ok = action.mqttServer
+    ? mqttPublishNamed(action.mqttServer, action.publish.topic, action.publish.payload)
+    : mqttPublish(action.publish.topic, action.publish.payload);
 
   if (!ok) {
     if (btn) {
