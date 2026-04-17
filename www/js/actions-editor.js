@@ -654,8 +654,6 @@ function _buildAeActionsTab() {
   </table>`;
 }
 
-<<<<<<< Updated upstream
-=======
 function _refreshAeStateCells() {
   const actions = (AE_LOCAL && AE_LOCAL.actions) || [];
   actions.forEach(action => {
@@ -731,7 +729,6 @@ function saveAeBuiltinTrigger(id) {
   applyAeChanges();
 }
 
->>>>>>> Stashed changes
 function _buildAeActionDrawerForm(action, isNew) {
   const id     = action.id || '';
   const desc   = action.description || '';
