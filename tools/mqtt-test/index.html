@@ -312,6 +312,115 @@
     const STATE_ON_VALUES = {}; // serverId:topic → Set of known onValues
     const SERVER_ACTIONS = {}; // serverId → { stateTopics: Map, publishTopics: Set }
 
+    // Temporary storage for cert files being uploaded
+    let uploadingServerCerts = {}; // serverId → { caFile, certFile, keyFile }
+
+    function openCertUploadDialog(serverId) {
+      const server = SERVERS[serverId];
+      if (!server || !server.tls) return;
+
+      const { caFile, certFile, keyFile } = server.tls;
+
+      // Create a hidden file input wrapper to handle multiple file selections
+      if (!uploadingServerCerts[serverId]) {
+        uploadingServerCerts[serverId] = {};
+      }
+
+      // Helper to read a file and store it temporarily
+      const handleCertFile = (filename, event) => {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            uploadingServerCerts[serverId][filename] = e.target.result;
+          };
+          reader.readAsText(file);
+        }
+      };
+
+      // Create file inputs for each required cert
+      const inputs = [];
+      const needed = [];
+
+      if (caFile) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.crt,.pem';
+        input.onchange = (e) => handleCertFile(caFile, e);
+        inputs.push({ filename: caFile, label: 'CA Certificate', input });
+        needed.push(caFile);
+      }
+      if (certFile) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.crt,.pem';
+        input.onchange = (e) => handleCertFile(certFile, e);
+        inputs.push({ filename: certFile, label: 'Client Certificate', input });
+        needed.push(certFile);
+      }
+      if (keyFile) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.key,.pem';
+        input.onchange = (e) => handleCertFile(keyFile, e);
+        inputs.push({ filename: keyFile, label: 'Client Key', input });
+        needed.push(keyFile);
+      }
+
+      // Trigger file inputs sequentially and collect results
+      const collected = {};
+      let inputIdx = 0;
+
+      const triggerNextInput = () => {
+        if (inputIdx >= inputs.length) {
+          // All files collected, save to localStorage
+          saveCertsToLocalStorage(serverId, collected);
+          return;
+        }
+
+        const { filename, input } = inputs[inputIdx];
+        input.onchange = (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              collected[filename] = evt.target.result;
+              inputIdx++;
+              triggerNextInput();
+            };
+            reader.readAsText(file);
+          } else {
+            inputIdx++;
+            triggerNextInput();
+          }
+        };
+        input.click();
+      };
+
+      triggerNextInput();
+    }
+
+    function saveCertsToLocalStorage(serverId, newCerts) {
+      try {
+        const existing = JSON.parse(localStorage.getItem('mqtt_certs') || '{}');
+        const updated = Object.assign({}, existing, newCerts);
+        localStorage.setItem('mqtt_certs', JSON.stringify(updated));
+
+        // Update cert status indicator
+        const certEl = document.getElementById('cert-status-' + serverId);
+        if (certEl) {
+          const certStatus = getCertStatusText(SERVERS[serverId]);
+          certEl.className = 'status ' + (certStatus.ready ? 'connected' : 'error');
+          certEl.textContent = certStatus.text;
+        }
+
+        console.log('Certs saved for', serverId, Object.keys(newCerts));
+      } catch (e) {
+        console.error('Failed to save certs:', e);
+        alert('Failed to save certificates: ' + e.message);
+      }
+    }
+
     async function init() {
       // 1. Fetch actions.json
       let cfg;
@@ -379,6 +488,24 @@
       });
     }
 
+    function getCertStatusText(server) {
+      if (!server.tls) return null;
+
+      const certs = (() => { try { return JSON.parse(localStorage.getItem('mqtt_certs') || '{}'); } catch(e) { return {}; } })();
+      const { caFile, certFile, keyFile } = server.tls;
+      const missing = [];
+
+      if (caFile && !certs[caFile]) missing.push(caFile);
+      if (certFile && !certs[certFile]) missing.push(certFile);
+      if (keyFile && !certs[keyFile]) missing.push(keyFile);
+
+      if (missing.length === 0) {
+        return { text: 'Certs: ✓', ready: true };
+      } else {
+        return { text: 'Certs: missing ' + missing.join(', '), ready: false };
+      }
+    }
+
     function renderServerStatusList() {
       const list = document.getElementById('serverStatusList');
       list.innerHTML = '';
@@ -408,6 +535,23 @@
         row.appendChild(urlEl);
         row.appendChild(statusEl);
         row.appendChild(obsStatusEl);
+
+        // Add cert status indicator if server has TLS config
+        if (server.tls) {
+          const certStatus = getCertStatusText(server);
+          const certEl = document.createElement('span');
+          certEl.id = 'cert-status-' + server.id;
+          certEl.className = 'status ' + (certStatus.ready ? 'connected' : 'error');
+          certEl.textContent = certStatus.text;
+          row.appendChild(certEl);
+
+          // Add upload certs button
+          const uploadBtn = document.createElement('button');
+          uploadBtn.className = 'send';
+          uploadBtn.textContent = 'Upload Certs';
+          uploadBtn.onclick = () => openCertUploadDialog(server.id);
+          row.appendChild(uploadBtn);
+        }
 
         // Add connect/disconnect toggle button
         const toggleBtn = document.createElement('button');
@@ -516,9 +660,16 @@
         ...(server.password && { password: server.password }),
       };
 
-      // Browser WebSocket clients cannot present client certs via the JS API.
-      // rejectUnauthorized is Node.js-only; browsers enforce cert trust via OS/browser store.
-      if (server.connectionType === 'wss') {
+      // Load TLS certs if configured in server.tls
+      if (server.tls) {
+        const certs = (() => { try { return JSON.parse(localStorage.getItem('mqtt_certs') || '{}'); } catch(e) { return {}; } })();
+        const { caFile, certFile, keyFile } = server.tls;
+        if (caFile   && certs[caFile])   connectOptions.ca   = certs[caFile];
+        if (certFile && certs[certFile]) connectOptions.cert = certs[certFile];
+        if (keyFile  && certs[keyFile])  connectOptions.key  = certs[keyFile];
+      } else if (server.connectionType === 'wss') {
+        // Browser WebSocket clients cannot present client certs via the JS API.
+        // rejectUnauthorized is Node.js-only; browsers enforce cert trust via OS/browser store.
         connectOptions.rejectUnauthorized = false;
       }
 
@@ -590,7 +741,14 @@
         ...(server.password && { password: server.password }),
       };
 
-      if (server.connectionType === 'wss') {
+      // Load TLS certs if configured in server.tls
+      if (server.tls) {
+        const certs = (() => { try { return JSON.parse(localStorage.getItem('mqtt_certs') || '{}'); } catch(e) { return {}; } })();
+        const { caFile, certFile, keyFile } = server.tls;
+        if (caFile   && certs[caFile])   connectOptions.ca   = certs[caFile];
+        if (certFile && certs[certFile]) connectOptions.cert = certs[certFile];
+        if (keyFile  && certs[keyFile])  connectOptions.key  = certs[keyFile];
+      } else if (server.connectionType === 'wss') {
         connectOptions.rejectUnauthorized = false;
       }
 
