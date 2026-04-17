@@ -780,12 +780,14 @@
     let newProfileCaCert = null;
     let newProfileClientCert = null;
     let newProfileClientKey = null;
+    let editingProfileId = null; // profileId being edited, null if not editing
+    let editProfileCaCert = null;
+    let editProfileClientCert = null;
+    let editProfileClientKey = null;
 
-    // Initialize external servers on page load
-    document.addEventListener('DOMContentLoaded', () => {
-      renderExternalServers();
-      setupNewProfileFormListeners();
-    });
+    // Initialize external servers (called directly since script is at bottom of body)
+    renderExternalServers();
+    setupNewProfileFormListeners();
 
     function setupNewProfileFormListeners() {
       const brokerInput = document.getElementById('newProfileBrokerUrl');
@@ -874,81 +876,330 @@
       }
 
       profiles.forEach(profile => {
-        const row = document.createElement('div');
-        row.className = 'server-status-row';
+        // If editing this profile, render the edit form instead
+        if (editingProfileId === profile.id) {
+          renderProfileEditForm(container, profiles, profile);
+        } else {
+          // Normal display row
+          const row = document.createElement('div');
+          row.className = 'server-status-row';
 
-        // Editable label
-        const labelInput = document.createElement('input');
-        labelInput.type = 'text';
-        labelInput.value = profile.label || '';
-        labelInput.style.minWidth = '120px';
-        labelInput.style.marginRight = '0';
-        labelInput.onblur = () => {
-          if (labelInput.value.trim()) {
-            profile.label = labelInput.value.trim();
-            saveExternalProfiles(profiles);
-          } else {
-            labelInput.value = profile.label || '';
-          }
-        };
-        labelInput.onkeydown = (e) => {
-          if (e.key === 'Enter') {
-            labelInput.blur();
-          }
-        };
+          // Editable label
+          const labelInput = document.createElement('input');
+          labelInput.type = 'text';
+          labelInput.value = profile.label || '';
+          labelInput.style.minWidth = '120px';
+          labelInput.style.marginRight = '0';
+          labelInput.onblur = () => {
+            if (labelInput.value.trim()) {
+              profile.label = labelInput.value.trim();
+              saveExternalProfiles(profiles);
+            } else {
+              labelInput.value = profile.label || '';
+            }
+          };
+          labelInput.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+              labelInput.blur();
+            }
+          };
 
-        // Broker URL (dimmed)
-        const urlEl = document.createElement('div');
-        urlEl.className = 'server-status-url';
-        urlEl.textContent = profile.broker || '';
+          // Broker URL (dimmed)
+          const urlEl = document.createElement('div');
+          urlEl.className = 'server-status-url';
+          urlEl.textContent = profile.broker || '';
 
-        // Status badge
-        const statusEl = document.createElement('span');
-        statusEl.id = 'ext-status-' + profile.id;
-        statusEl.className = 'status disconnected';
-        statusEl.textContent = 'Disconnected';
+          // Status badge
+          const statusEl = document.createElement('span');
+          statusEl.id = 'ext-status-' + profile.id;
+          statusEl.className = 'status disconnected';
+          statusEl.textContent = 'Disconnected';
 
-        // Connect button
-        const connectBtn = document.createElement('button');
-        connectBtn.className = 'send';
-        connectBtn.textContent = 'Connect';
-        connectBtn.onclick = () => connectExternalProfile(profile.id);
+          // Connect button
+          const connectBtn = document.createElement('button');
+          connectBtn.className = 'send';
+          connectBtn.textContent = 'Connect';
+          connectBtn.onclick = () => connectExternalProfile(profile.id);
 
-        // Disconnect button (initially hidden)
-        const disconnectBtn = document.createElement('button');
-        disconnectBtn.className = 'send';
-        disconnectBtn.textContent = 'Disconnect';
-        disconnectBtn.style.display = 'none';
-        disconnectBtn.onclick = () => disconnectExternalProfile(profile.id);
+          // Disconnect button (initially hidden)
+          const disconnectBtn = document.createElement('button');
+          disconnectBtn.className = 'send';
+          disconnectBtn.textContent = 'Disconnect';
+          disconnectBtn.style.display = 'none';
+          disconnectBtn.onclick = () => disconnectExternalProfile(profile.id);
 
-        // Delete button
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'send';
-        deleteBtn.style.padding = '6px 10px';
-        deleteBtn.textContent = '×';
-        deleteBtn.onclick = () => deleteExternalProfile(profile.id);
+          // Edit button
+          const editBtn = document.createElement('button');
+          editBtn.className = 'send';
+          editBtn.textContent = 'Edit';
+          editBtn.onclick = () => {
+            editingProfileId = profile.id;
+            editProfileCaCert = profile.caCert || null;
+            editProfileClientCert = profile.clientCert || null;
+            editProfileClientKey = profile.clientKey || null;
+            renderExternalServers();
+          };
 
-        row.appendChild(labelInput);
-        row.appendChild(urlEl);
-        row.appendChild(statusEl);
-        row.appendChild(connectBtn);
-        row.appendChild(disconnectBtn);
-        row.appendChild(deleteBtn);
+          // Delete button
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'send';
+          deleteBtn.style.padding = '6px 10px';
+          deleteBtn.textContent = '×';
+          deleteBtn.onclick = () => deleteExternalProfile(profile.id);
 
-        container.appendChild(row);
+          row.appendChild(labelInput);
+          row.appendChild(urlEl);
+          row.appendChild(statusEl);
+          row.appendChild(connectBtn);
+          row.appendChild(disconnectBtn);
+          row.appendChild(editBtn);
+          row.appendChild(deleteBtn);
 
-        // Update button visibility based on connection state
-        updateExternalProfileButtonStates(profile.id, connectBtn, disconnectBtn, deleteBtn);
+          container.appendChild(row);
+
+          // Update button visibility based on connection state
+          updateExternalProfileButtonStates(profile.id, connectBtn, disconnectBtn, deleteBtn, editBtn);
+        }
       });
     }
 
-    function updateExternalProfileButtonStates(profileId, connectBtn, disconnectBtn, deleteBtn) {
+    function updateExternalProfileButtonStates(profileId, connectBtn, disconnectBtn, deleteBtn, editBtn) {
       const isConnected = EXTERNAL_CLIENTS[profileId] && EXTERNAL_CLIENTS[profileId].connected;
       connectBtn.style.display = isConnected ? 'none' : 'block';
       disconnectBtn.style.display = isConnected ? 'block' : 'none';
       deleteBtn.disabled = isConnected;
       deleteBtn.style.opacity = isConnected ? '0.5' : '1';
       deleteBtn.style.cursor = isConnected ? 'not-allowed' : 'pointer';
+      if (editBtn) {
+        editBtn.disabled = isConnected;
+        editBtn.style.opacity = isConnected ? '0.5' : '1';
+        editBtn.style.cursor = isConnected ? 'not-allowed' : 'pointer';
+      }
+    }
+
+    function renderProfileEditForm(container, profiles, profile) {
+      const isConnected = EXTERNAL_CLIENTS[profile.id] && EXTERNAL_CLIENTS[profile.id].connected;
+
+      // Wrapper for the edit form
+      const wrapper = document.createElement('div');
+      wrapper.style.marginBottom = '16px';
+
+      // Heading
+      const heading = document.createElement('div');
+      heading.style.fontSize = '11px';
+      heading.style.marginBottom = '12px';
+      heading.style.color = 'rgba(255,255,255,0.7)';
+      heading.textContent = 'Edit Server: ' + (profile.label || 'Unnamed');
+      wrapper.appendChild(heading);
+
+      // Connection warning if currently connected
+      if (isConnected) {
+        const warning = document.createElement('div');
+        warning.className = 'note';
+        warning.textContent = 'This profile is currently connected. Changes will take effect after reconnect.';
+        wrapper.appendChild(warning);
+      }
+
+      // Label field
+      const labelGroup = document.createElement('div');
+      labelGroup.className = 'form-group';
+      const labelInput = document.createElement('input');
+      labelInput.type = 'text';
+      labelInput.placeholder = 'Profile label';
+      labelInput.value = profile.label || '';
+      labelInput.style.flex = '1';
+      labelInput.style.minWidth = '200px';
+      labelGroup.appendChild(labelInput);
+      wrapper.appendChild(labelGroup);
+
+      // Broker URL field
+      const brokerGroup = document.createElement('div');
+      brokerGroup.className = 'form-group';
+      const brokerInput = document.createElement('input');
+      brokerInput.type = 'text';
+      brokerInput.placeholder = 'ws://host:port or wss://host:port';
+      brokerInput.value = profile.broker || '';
+      brokerInput.style.flex = '1';
+      brokerInput.style.minWidth = '250px';
+      brokerGroup.appendChild(brokerInput);
+      wrapper.appendChild(brokerGroup);
+
+      // Username and password fields
+      const credGroup = document.createElement('div');
+      credGroup.className = 'form-group';
+      const usernameInput = document.createElement('input');
+      usernameInput.type = 'text';
+      usernameInput.placeholder = 'username';
+      usernameInput.value = profile.username || '';
+      usernameInput.style.minWidth = '120px';
+      const passwordInput = document.createElement('input');
+      passwordInput.type = 'password';
+      passwordInput.placeholder = 'password';
+      passwordInput.value = profile.password || '';
+      passwordInput.style.minWidth = '120px';
+      credGroup.appendChild(usernameInput);
+      credGroup.appendChild(passwordInput);
+      wrapper.appendChild(credGroup);
+
+      // TLS section (shown/hidden based on broker URL)
+      const tlsSection = document.createElement('div');
+      tlsSection.id = 'edit-tls-' + profile.id;
+      tlsSection.style.display = (profile.broker && profile.broker.startsWith('wss://')) ? 'block' : 'none';
+
+      const tlsTitle = document.createElement('div');
+      tlsTitle.className = 'server-section-title';
+      tlsTitle.textContent = 'TLS Certificates';
+      tlsSection.appendChild(tlsTitle);
+
+      // CA cert file
+      const caGroup = document.createElement('div');
+      caGroup.className = 'form-group';
+      const caLabel = document.createElement('label');
+      caLabel.style.fontSize = '11px';
+      caLabel.style.color = 'rgba(255,255,255,0.5)';
+      caLabel.style.flexShrink = '0';
+      caLabel.style.width = '100px';
+      caLabel.textContent = 'CA Certificate:';
+      const caFile = document.createElement('input');
+      caFile.type = 'file';
+      caFile.accept = '.crt,.pem';
+      caFile.style.flex = '1';
+      caFile.style.minWidth = '200px';
+      caFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            editProfileCaCert = evt.target.result;
+          };
+          reader.readAsText(file);
+        }
+      });
+      caGroup.appendChild(caLabel);
+      caGroup.appendChild(caFile);
+      tlsSection.appendChild(caGroup);
+
+      // Client cert file
+      const clientCertGroup = document.createElement('div');
+      clientCertGroup.className = 'form-group';
+      const clientCertLabel = document.createElement('label');
+      clientCertLabel.style.fontSize = '11px';
+      clientCertLabel.style.color = 'rgba(255,255,255,0.5)';
+      clientCertLabel.style.flexShrink = '0';
+      clientCertLabel.style.width = '100px';
+      clientCertLabel.textContent = 'Client Cert (opt):';
+      const clientCertFile = document.createElement('input');
+      clientCertFile.type = 'file';
+      clientCertFile.accept = '.crt,.pem';
+      clientCertFile.style.flex = '1';
+      clientCertFile.style.minWidth = '200px';
+      clientCertFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            editProfileClientCert = evt.target.result;
+          };
+          reader.readAsText(file);
+        }
+      });
+      clientCertGroup.appendChild(clientCertLabel);
+      clientCertGroup.appendChild(clientCertFile);
+      tlsSection.appendChild(clientCertGroup);
+
+      // Client key file
+      const clientKeyGroup = document.createElement('div');
+      clientKeyGroup.className = 'form-group';
+      const clientKeyLabel = document.createElement('label');
+      clientKeyLabel.style.fontSize = '11px';
+      clientKeyLabel.style.color = 'rgba(255,255,255,0.5)';
+      clientKeyLabel.style.flexShrink = '0';
+      clientKeyLabel.style.width = '100px';
+      clientKeyLabel.textContent = 'Client Key (opt):';
+      const clientKeyFile = document.createElement('input');
+      clientKeyFile.type = 'file';
+      clientKeyFile.accept = '.key,.pem';
+      clientKeyFile.style.flex = '1';
+      clientKeyFile.style.minWidth = '200px';
+      clientKeyFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            editProfileClientKey = evt.target.result;
+          };
+          reader.readAsText(file);
+        }
+      });
+      clientKeyGroup.appendChild(clientKeyLabel);
+      clientKeyGroup.appendChild(clientKeyFile);
+      tlsSection.appendChild(clientKeyGroup);
+
+      wrapper.appendChild(tlsSection);
+
+      // Toggle TLS section visibility on broker input change
+      brokerInput.addEventListener('input', () => {
+        tlsSection.style.display = brokerInput.value.startsWith('wss://') ? 'block' : 'none';
+      });
+
+      // Save and Cancel buttons
+      const buttonGroup = document.createElement('div');
+      buttonGroup.className = 'form-group';
+
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'send';
+      saveBtn.textContent = 'Save Changes';
+      saveBtn.onclick = () => {
+        const updatedLabel = labelInput.value.trim();
+        const updatedBroker = brokerInput.value.trim();
+        const updatedUsername = usernameInput.value.trim();
+        const updatedPassword = passwordInput.value.trim();
+
+        if (!updatedLabel) {
+          alert('Please enter a profile label');
+          return;
+        }
+        if (!updatedBroker) {
+          alert('Please enter a broker URL');
+          return;
+        }
+
+        // Update the profile in localStorage
+        const idx = profiles.findIndex(p => p.id === profile.id);
+        if (idx >= 0) {
+          profiles[idx].label = updatedLabel;
+          profiles[idx].broker = updatedBroker;
+          profiles[idx].username = updatedUsername;
+          profiles[idx].password = updatedPassword;
+          if (editProfileCaCert) profiles[idx].caCert = editProfileCaCert;
+          if (editProfileClientCert) profiles[idx].clientCert = editProfileClientCert;
+          if (editProfileClientKey) profiles[idx].clientKey = editProfileClientKey;
+          saveExternalProfiles(profiles);
+        }
+
+        editingProfileId = null;
+        editProfileCaCert = null;
+        editProfileClientCert = null;
+        editProfileClientKey = null;
+        renderExternalServers();
+      };
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'send';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.onclick = () => {
+        editingProfileId = null;
+        editProfileCaCert = null;
+        editProfileClientCert = null;
+        editProfileClientKey = null;
+        renderExternalServers();
+      };
+
+      buttonGroup.appendChild(saveBtn);
+      buttonGroup.appendChild(cancelBtn);
+      wrapper.appendChild(buttonGroup);
+
+      container.appendChild(wrapper);
     }
 
     function connectExternalProfile(profileId) {
@@ -999,6 +1250,9 @@
         PRESET_TOPICS.forEach(({ topic }) => {
           if (client) client.subscribe(topic, { qos: 0 });
         });
+
+        // Re-render to update button states
+        renderExternalServers();
       });
 
       client.on('error', (err) => {
@@ -1009,6 +1263,9 @@
       client.on('close', () => {
         if (EXTERNAL_CLIENTS[profileId]) EXTERNAL_CLIENTS[profileId].connected = false;
         updateExternalProfileStatus(profileId, 'disconnected');
+
+        // Re-render to update button states
+        renderExternalServers();
       });
 
       client.on('message', (topic, payload) => {
@@ -1018,9 +1275,6 @@
 
       if (!EXTERNAL_CLIENTS[profileId]) EXTERNAL_CLIENTS[profileId] = {};
       EXTERNAL_CLIENTS[profileId].client = client;
-
-      // Re-render to update button states
-      renderExternalServers();
     }
 
     function disconnectExternalProfile(profileId) {
