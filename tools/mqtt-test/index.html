@@ -312,9 +312,9 @@
       // 6. Populate publish server dropdown
       populatePublishServerDropdown();
 
-      // 7. Connect WebSocket and MQTT servers
+      // 7. Connect WebSocket servers (mqtt:// is TCP-only, unsupported in browsers)
       Object.values(SERVERS).forEach(server => {
-        if (server.connectionType === 'ws' || server.connectionType === 'wss' || server.connectionType === 'mqtt') {
+        if (server.connectionType === 'ws' || server.connectionType === 'wss') {
           connectServer(server);
         }
       });
@@ -336,16 +336,21 @@
         urlEl.textContent = (server.broker || server.connectionType + '://' + server.host + ':' + server.port);
 
         const statusEl = document.createElement('span');
-        statusEl.className = 'status disconnected';
         statusEl.id = 'status-' + server.id;
-        statusEl.textContent = 'Disconnected';
+        if (server.connectionType === 'mqtt') {
+          statusEl.className = 'status na';
+          statusEl.textContent = 'TCP (browser N/A)';
+        } else {
+          statusEl.className = 'status disconnected';
+          statusEl.textContent = 'Disconnected';
+        }
 
         row.appendChild(idEl);
         row.appendChild(urlEl);
         row.appendChild(statusEl);
 
-        // Add connect/disconnect toggle button for WS/WSS/MQTT servers
-        if (server.connectionType === 'ws' || server.connectionType === 'wss' || server.connectionType === 'mqtt') {
+        // Add connect/disconnect toggle button for WS/WSS servers only
+        if (server.connectionType === 'ws' || server.connectionType === 'wss') {
           const toggleBtn = document.createElement('button');
           toggleBtn.className = 'send';
           toggleBtn.id = 'toggle-btn-' + server.id;
@@ -402,7 +407,7 @@
     function populatePublishServerDropdown() {
       const select = document.getElementById('pub-server');
       Object.values(SERVERS).forEach(server => {
-        if (server.connectionType === 'ws' || server.connectionType === 'wss' || server.connectionType === 'mqtt') {
+        if (server.connectionType === 'ws' || server.connectionType === 'wss') {
           const opt = document.createElement('option');
           opt.value = server.id;
           opt.textContent = server.id + ' (' + server.host + ':' + server.port + ')';
