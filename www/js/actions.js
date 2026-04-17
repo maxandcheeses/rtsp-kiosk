@@ -169,7 +169,8 @@ function _renderActionButtons(groupId) {
   // Connect/disconnect named MQTT servers as needed for this group
   _connectServersForGroup(groupId);
 
-  const actionIds = (group.actions || []).slice(0, 6);
+  const _typeOrder = id => { const a = ACTIONS[id]; if (!a) return 2; if (a.type === 'builtin') return 0; if (a.type === 'focus-panel') return 1; return 2; };
+  const actionIds = (group.actions || []).slice().sort((a, b) => _typeOrder(a) - _typeOrder(b)).slice(0, 6);
   const statusEl = document.getElementById('actions-mqtt-status');
   if (statusEl) {
     const hasMqtt = actionIds.some(id => ACTIONS[id] && ACTIONS[id].publish);
