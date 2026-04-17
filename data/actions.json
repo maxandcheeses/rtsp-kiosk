@@ -3,8 +3,10 @@
     "servers": [
       {
         "id": "home",
-        "broker": "ws://localhost:9001",
-        "autoConnect": true
+        "connectionType": "ws",
+        "host": "localhost",
+        "port": 9001,
+        "broker": "ws://localhost:9001"
       }
     ]
   },

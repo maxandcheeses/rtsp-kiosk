@@ -165,6 +165,7 @@ function _buildAeMqttTab() {
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${_aeEsc(id)}</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.4)">${_aeEsc(srv.broker || '')}</td>
       <td style="text-align:right;white-space:nowrap">
+        <button class="perf-reset" onclick="aeConnectServer('${esc}')" style="font-size:9px;padding:2px 6px" title="Connect">Connect</button>
         <button class="perf-reset" onclick="aeDisconnectServer('${esc}')" style="font-size:9px;padding:2px 6px" title="Disconnect">Disconnect</button>
         <button class="sp-btn" onclick="openAeSrvDrawer('${esc}')" title="Edit">✎</button>
         <button class="sp-btn" onclick="deleteAeSrv('${esc}')" title="Delete" style="color:rgba(248,113,113,0.6);border-color:rgba(248,113,113,0.2)">✕</button>
@@ -206,6 +207,7 @@ function _buildAeSrvDrawerForm(srv, isNew) {
   if (!port) port = _AE_MQTT_PORT_DEFAULTS[connectionType] || 9001;
   const tls = srv.tls || {};
   const showTls = connectionType === 'wss' || connectionType === 'mqtts';
+  const autoConnect = srv.autoConnect !== undefined ? srv.autoConnect : true;
 
   const connTypeOpts = ['ws', 'wss', 'mqtt', 'mqtts'].map(t =>
     `<option value="${t}"${t === connectionType ? ' selected' : ''}>${t}</option>`
@@ -245,6 +247,13 @@ function _buildAeSrvDrawerForm(srv, isNew) {
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Password</label>
       <input class="views-input" type="password" id="ae-field-srv-password" value="${_aeEsc(password)}" placeholder="optional">
+    </div>
+    <div class="views-form-row">
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Auto Connect</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="ae-field-srv-autoconnect"${autoConnect !== false ? ' checked' : ''}>
+        <span style="font-size:10px;color:rgba(255,255,255,0.5)">Connect automatically when actions modal opens</span>
+      </label>
     </div>
     <div id="ae-tls-section" style="display:${showTls ? 'contents' : 'none'}">
       <div class="views-form-row">
@@ -326,6 +335,8 @@ function saveAeSrvDrawer(originalId, isNew) {
   const caFile          = caEl       ? caEl.value                          : '';
   const certFile        = certEl     ? certEl.value                        : '';
   const keyFile         = keyEl      ? keyEl.value                        : '';
+  const autoConnectEl   = document.getElementById('ae-field-srv-autoconnect');
+  const autoConnect     = autoConnectEl ? autoConnectEl.checked : true;
 
   let valid = true;
 
@@ -358,9 +369,8 @@ function saveAeSrvDrawer(originalId, isNew) {
 
   if (!valid) return;
 
-  // Derive broker URL from structured fields
-  const suffix = (connectionType === 'ws' || connectionType === 'wss') ? '/mqtt' : '';
-  const broker = `${connectionType}://${host}:${portRaw}${suffix}`;
+  // Derive broker URL from structured fields (no /mqtt path — appended at connect time)
+  const broker = `${connectionType}://${host}:${portRaw}`;
 
   // Cascade-update action.mqttServer references if id changed
   if (newId !== originalId) {
@@ -375,6 +385,7 @@ function saveAeSrvDrawer(originalId, isNew) {
     host,
     port: portRaw,
     broker,
+    autoConnect,
     ...(username ? { username } : {}),
     ...(password ? { password } : {}),
     ...(caFile || certFile || keyFile ? { tls: { caFile, certFile, keyFile } } : {}),
@@ -508,6 +519,12 @@ function _aeRefreshCertUI() {
 }
 
 // ── Disconnect server ─────────────────────────────────────────────────────────
+
+function aeConnectServer(serverId) {
+  const servers = (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || [];
+  const cfg = servers.find(s => s.id === serverId);
+  if (cfg) getOrCreateMqttClient(serverId, cfg);
+}
 
 function aeDisconnectServer(id) {
   disconnectMqttClient(id);

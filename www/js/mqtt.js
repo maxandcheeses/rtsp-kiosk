@@ -24,9 +24,13 @@ function getOrCreateMqttClient(serverId, serverCfg) {
     if (keyFile  && certs[keyFile])  opts.key  = certs[keyFile];
   }
 
-  const client = mqtt.connect(serverCfg.broker, opts);
+  const brokerUrl = serverCfg.broker + (
+    (serverCfg.connectionType === 'ws' || serverCfg.connectionType === 'wss') &&
+    !serverCfg.broker.endsWith('/mqtt') ? '/mqtt' : ''
+  );
+  const client = mqtt.connect(brokerUrl, opts);
   _mqttClients.set(serverId, client);
-  console.log(`MQTT: connecting named client "${serverId}" to ${serverCfg.broker}`);
+  console.log(`MQTT: connecting named client "${serverId}" to ${brokerUrl}`);
   return client;
 }
 

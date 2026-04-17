@@ -14,12 +14,12 @@ let _focusPanelTimer    = null;
 let _focusReopenSlot    = null; // slot to reopen actions modal on focus close
 
 const BUILTIN_ACTIONS = {
-  '__next-view': {
-    id: '__next-view', type: 'builtin', description: 'Next View',
+  'Next View': {
+    id: 'Next View', type: 'builtin', description: 'Next View',
     icon: 'mdi:chevron-right', builtin: true,
   },
-  '__prev-view': {
-    id: '__prev-view', type: 'builtin', description: 'Previous View',
+  'Previous View': {
+    id: 'Previous View', type: 'builtin', description: 'Previous View',
     icon: 'mdi:chevron-left', builtin: true,
   },
 };
@@ -96,6 +96,7 @@ function _connectServersForGroup(groupId) {
     if (!_connectedServerIds.has(id)) {
       const cfg = servers.find(s => s.id === id);
       if (cfg) {
+        if (cfg.autoConnect === false) return; // skip if auto-connect disabled
         getOrCreateMqttClient(id, cfg);
         _connectedServerIds.add(id);
       }
@@ -227,8 +228,8 @@ function pressAction(actionId) {
 
   // Handle builtin actions (next/prev view)
   if (action.type === 'builtin') {
-    if (actionId === '__next-view') { if (typeof navigateView === 'function') navigateView(1); }
-    if (actionId === '__prev-view') { if (typeof navigateView === 'function') navigateView(-1); }
+    if (actionId === 'Next View') { if (typeof navigateView === 'function') navigateView(1); }
+    if (actionId === 'Previous View') { if (typeof navigateView === 'function') navigateView(-1); }
     closeActionsModal();
     return;
   }
