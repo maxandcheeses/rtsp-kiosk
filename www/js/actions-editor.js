@@ -297,7 +297,7 @@ function _buildAeSrvDrawerForm(srv, isNew) {
         <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Stored Certs</label>
         <div id="ae-cert-files-list">${_aeBuildCertList()}</div>
         <div style="display:flex;gap:6px;align-items:center">
-          <input type="file" id="ae-cert-file-input" accept=".crt,.pem,.key,.cer,.p12,.pfx,.der,.p7b,.p7c,.ca-bundle" style="font-size:10px;flex:1">
+          <input type="file" id="ae-cert-file-input" accept=".crt,.pem,.key,.cer,.p12,.pfx,.der,.p7b,.p7c,.ca-bundle" multiple style="font-size:10px;flex:1">
           <button class="perf-reset" onclick="aeUploadCert()">Upload</button>
         </div>
         <div id="ae-cert-upload-status" style="font-size:9px;font-family:'Courier New',monospace"></div>
@@ -505,27 +505,46 @@ function _aeBuildCertList() {
 function aeUploadCert() {
   const input    = document.getElementById('ae-cert-file-input');
   const statusEl = document.getElementById('ae-cert-upload-status');
-  if (!input || !input.files || !input.files[0]) {
+  if (!input || !input.files || !input.files.length) {
     if (statusEl) statusEl.innerHTML = '<span style="color:rgba(248,113,113,0.9)">No file selected</span>';
     return;
   }
-  const file = input.files[0];
-  const name = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      _aeCertsAdd(name, e.target.result);
-      if (statusEl) statusEl.innerHTML = `<span style="color:rgba(74,222,128,0.9)">Saved: ${_aeEsc(name)}</span>`;
-      _aeRefreshCertUI();
-    } catch(err) {
-      if (statusEl) statusEl.innerHTML = `<span style="color:rgba(248,113,113,0.9)">Error: ${_aeEsc(err.message)}</span>`;
-    }
+  const files = Array.from(input.files);
+  const saved = [];
+  const errors = [];
+  let pending = files.length;
+  const finish = () => {
+    _aeRefreshCertUI();
     input.value = '';
+    if (!statusEl) return;
+    const parts = [];
+    if (saved.length) {
+      const label = saved.length <= 3 ? saved.map(n => _aeEsc(n)).join(', ') : `${saved.length} files`;
+      parts.push(`<span style="color:rgba(74,222,128,0.9)">Saved: ${label}</span>`);
+    }
+    if (errors.length) {
+      parts.push(`<span style="color:rgba(248,113,113,0.9)">Failed: ${errors.map(n => _aeEsc(n)).join(', ')}</span>`);
+    }
+    statusEl.innerHTML = parts.join(' ');
   };
-  reader.onerror = () => {
-    if (statusEl) statusEl.innerHTML = '<span style="color:rgba(248,113,113,0.9)">Failed to read file</span>';
-  };
-  reader.readAsText(file);
+  files.forEach(file => {
+    const name = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        _aeCertsAdd(name, e.target.result);
+        saved.push(name);
+      } catch(err) {
+        errors.push(name);
+      }
+      if (--pending === 0) finish();
+    };
+    reader.onerror = () => {
+      errors.push(name);
+      if (--pending === 0) finish();
+    };
+    reader.readAsText(file);
+  });
 }
 
 function aeDeleteCert(name) {
