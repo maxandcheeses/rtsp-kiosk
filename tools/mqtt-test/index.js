@@ -75,6 +75,11 @@ function loadActionsConfig() {
   }
 }
 
+function buildBrokerUrl(server) {
+  if (!server.basepath) return server.broker;
+  return server.broker.replace(/\/$/, '') + '/' + server.basepath.replace(/^\//, '');
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // MQTT Client Factory
 // ─────────────────────────────────────────────────────────────────────────
@@ -174,7 +179,7 @@ async function cmdSubscribe() {
 
     try {
       logSuccess(`Connecting to ${maskCredentials(server.broker, '', '')} (${serverId})...`);
-      const client = await createMqttClient(server.broker, '', '', 5000, tlsOpts);
+      const client = await createMqttClient(buildBrokerUrl(server), '', '', 5000, tlsOpts);
       clients[serverId] = client;
       connectedCount++;
       logSuccess(`  Connected. Listening to ${topics.size} topic(s)...`);
@@ -333,7 +338,7 @@ async function cmdSimulate() {
 
     try {
       logSuccess(`Connecting to ${maskCredentials(server.broker, '', '')} (${serverId})...`);
-      const client = await createMqttClient(server.broker, '', '', 5000, tlsOpts);
+      const client = await createMqttClient(buildBrokerUrl(server), '', '', 5000, tlsOpts);
       clients[serverId] = { client, topicMap };
       connectedCount++;
       logSuccess(`  Connected. Simulating responses for ${topicMap.size} action(s)...`);
@@ -393,7 +398,7 @@ async function cmdPing() {
 
     const startTime = Date.now();
     try {
-      const client = await createMqttClient(server.broker, '', '', 5000, tlsOpts);
+      const client = await createMqttClient(buildBrokerUrl(server), '', '', 5000, tlsOpts);
       const latency = Date.now() - startTime;
       results.push({
         id: server.id,

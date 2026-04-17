@@ -458,7 +458,7 @@
       if (!server.broker) return;
 
       const brokerUrl = server.basepath
-        ? server.broker.replace(/\/$/, '') + server.basepath
+        ? server.broker.replace(/\/$/, '') + '/' + server.basepath.replace(/^\//, '')
         : server.broker;
       const clientId = 'test-harness-' + server.id + '-' + Math.random().toString(16).slice(2, 8);
 
@@ -532,7 +532,7 @@
       if (!server.broker) return;
 
       const brokerUrl = server.basepath
-        ? server.broker.replace(/\/$/, '') + server.basepath
+        ? server.broker.replace(/\/$/, '') + '/' + server.basepath.replace(/^\//, '')
         : server.broker;
       const clientId = 'test-harness-' + server.id + '-obs-' + Math.random().toString(16).slice(2, 8);
 
