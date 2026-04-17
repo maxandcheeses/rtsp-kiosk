@@ -347,7 +347,6 @@
 
       Object.values(SERVERS).forEach(server => {
         const stateTopics = SERVER_ACTIONS[server.id].stateTopics;
-        if (stateTopics.size === 0) return;
 
         // Server section header
         const title = document.createElement('div');
@@ -355,26 +354,28 @@
         title.textContent = 'Server: ' + server.id;
         container.appendChild(title);
 
-        // Switches for this server
-        const switchesDiv = document.createElement('div');
-        switchesDiv.className = 'switch-container';
+        // Switches for this server (only if there are state topics)
+        if (stateTopics.size > 0) {
+          const switchesDiv = document.createElement('div');
+          switchesDiv.className = 'switch-container';
 
-        stateTopics.forEach((onValues, topic) => {
-          const key = server.id + ':' + topic;
-          STATE_ON_VALUES[key] = onValues;
+          stateTopics.forEach((onValues, topic) => {
+            const key = server.id + ':' + topic;
+            STATE_ON_VALUES[key] = onValues;
 
-          const btn = document.createElement('button');
-          btn.className = 'switch-btn';
-          btn.id = 'sw-' + server.id + '-' + topic.replace(/\//g, '-').replace(/[^a-z0-9-]/gi, '');
-          btn.dataset.serverId = server.id;
-          btn.dataset.topic = topic;
-          btn.dataset.onValues = JSON.stringify([...onValues]);
-          btn.innerHTML = `<span class="switch-btn-inner">${escapeHtml(topic)}</span><span class="switch-value" id="val-${btn.id}">—</span>`;
-          btn.onclick = () => toggleSwitch(server.id, topic, onValues);
-          switchesDiv.appendChild(btn);
-        });
+            const btn = document.createElement('button');
+            btn.className = 'switch-btn';
+            btn.id = 'sw-' + server.id + '-' + topic.replace(/\//g, '-').replace(/[^a-z0-9-]/gi, '');
+            btn.dataset.serverId = server.id;
+            btn.dataset.topic = topic;
+            btn.dataset.onValues = JSON.stringify([...onValues]);
+            btn.innerHTML = `<span class="switch-btn-inner">${escapeHtml(topic)}</span><span class="switch-value" id="val-${btn.id}">—</span>`;
+            btn.onclick = () => toggleSwitch(server.id, topic, onValues);
+            switchesDiv.appendChild(btn);
+          });
 
-        container.appendChild(switchesDiv);
+          container.appendChild(switchesDiv);
+        }
 
         // Per-server publish form
         const formDiv = document.createElement('div');
@@ -405,16 +406,6 @@
       if (container.children.length === 0) {
         container.textContent = 'No state topics found in actions.json';
       }
-    }
-
-    function populatePublishServerDropdown() {
-      const select = document.getElementById('pub-server');
-      Object.values(SERVERS).forEach(server => {
-        const opt = document.createElement('option');
-        opt.value = server.id;
-        opt.textContent = server.id + ' (' + server.host + ':' + server.port + ')';
-        select.appendChild(opt);
-      });
     }
 
     function connectServer(server) {
@@ -561,25 +552,6 @@
       }
     }
 
-    function manualPublish() {
-      const serverId = document.getElementById('pub-server').value.trim();
-      if (!serverId) {
-        alert('Select a server');
-        return;
-      }
-      const server = SERVERS[serverId];
-      if (!server || !server.client || !server.client.connected) {
-        alert('Not connected to ' + serverId);
-        return;
-      }
-      const topic = document.getElementById('pub-topic').value.trim();
-      const payload = document.getElementById('pub-payload').value.trim();
-      if (topic) {
-        server.client.publish(topic, payload);
-        document.getElementById('pub-topic').value = '';
-        document.getElementById('pub-payload').value = '';
-      }
-    }
 
     function escapeHtml(text) {
       const map = {
