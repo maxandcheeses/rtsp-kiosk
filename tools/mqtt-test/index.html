@@ -249,6 +249,25 @@
     <input type="text" id="externalBrokerUrl" placeholder="ws://host:port or wss://host:port" style="flex: 1; min-width: 250px;">
     <button class="send" id="externalConnectBtn" onclick="connectExternalServer()">Connect</button>
   </div>
+  <div class="form-group">
+    <input type="text" id="externalUsername" placeholder="username" style="min-width: 120px;">
+    <input type="password" id="externalPassword" placeholder="password" style="min-width: 120px;">
+  </div>
+  <div id="externalTlsSection" style="display: none;">
+    <div class="server-section-title">TLS Certificates</div>
+    <div class="form-group">
+      <label style="font-size: 11px; color: rgba(255,255,255,0.5); flex-shrink: 0; width: 100px;">CA Certificate:</label>
+      <input type="file" id="externalCaFile" accept=".crt,.pem" style="flex: 1; min-width: 200px;">
+    </div>
+    <div class="form-group">
+      <label style="font-size: 11px; color: rgba(255,255,255,0.5); flex-shrink: 0; width: 100px;">Client Cert (opt):</label>
+      <input type="file" id="externalClientCertFile" accept=".crt,.pem" style="flex: 1; min-width: 200px;">
+    </div>
+    <div class="form-group">
+      <label style="font-size: 11px; color: rgba(255,255,255,0.5); flex-shrink: 0; width: 100px;">Client Key (opt):</label>
+      <input type="file" id="externalClientKeyFile" accept=".key,.pem" style="flex: 1; min-width: 200px;">
+    </div>
+  </div>
   <div id="externalStatusContainer" style="display: none;">
     <div class="server-status-row">
       <div class="server-status-id">external</div>
@@ -753,6 +772,62 @@
     // External Server functionality
     let externalClient = null;
     let externalConnected = false;
+    let externalCaCert = null;
+    let externalClientCert = null;
+    let externalClientKey = null;
+
+    // Set up external broker URL change listener for TLS section visibility
+    document.addEventListener('DOMContentLoaded', () => {
+      const brokerInput = document.getElementById('externalBrokerUrl');
+      const tlsSection = document.getElementById('externalTlsSection');
+      if (brokerInput && tlsSection) {
+        brokerInput.addEventListener('input', () => {
+          tlsSection.style.display = brokerInput.value.startsWith('wss://') ? 'block' : 'none';
+        });
+      }
+
+      // File input handlers
+      const caFile = document.getElementById('externalCaFile');
+      const clientCertFile = document.getElementById('externalClientCertFile');
+      const clientKeyFile = document.getElementById('externalClientKeyFile');
+
+      if (caFile) caFile.addEventListener('change', handleExternalCaFile);
+      if (clientCertFile) clientCertFile.addEventListener('change', handleExternalClientCertFile);
+      if (clientKeyFile) clientKeyFile.addEventListener('change', handleExternalClientKeyFile);
+    });
+
+    function handleExternalCaFile(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          externalCaCert = e.target.result;
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    function handleExternalClientCertFile(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          externalClientCert = e.target.result;
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    function handleExternalClientKeyFile(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          externalClientKey = e.target.result;
+        };
+        reader.readAsText(file);
+      }
+    }
 
     function connectExternalServer() {
       const brokerUrl = document.getElementById('externalBrokerUrl').value.trim();
@@ -766,16 +841,24 @@
         return;
       }
 
+      const username = document.getElementById('externalUsername').value.trim();
+      const password = document.getElementById('externalPassword').value.trim();
+
       const clientId = 'test-harness-external-' + Math.random().toString(16).slice(2, 8);
       let connectOptions = {
         clientId: clientId,
         reconnectPeriod: 0,
         connectTimeout: 10000,
+        ...(username && { username: username }),
+        ...(password && { password: password }),
       };
 
       // For wss connections, disable strict cert checking in browser
       if (brokerUrl.startsWith('wss://')) {
         connectOptions.rejectUnauthorized = false;
+        if (externalCaCert) connectOptions.ca = externalCaCert;
+        if (externalClientCert) connectOptions.cert = externalClientCert;
+        if (externalClientKey) connectOptions.key = externalClientKey;
       }
 
       externalClient = mqtt.connect(brokerUrl, connectOptions);
@@ -822,11 +905,22 @@
       externalClient = null;
       externalConnected = false;
 
+      // Clear cert variables
+      externalCaCert = null;
+      externalClientCert = null;
+      externalClientKey = null;
+
       updateExternalStatus('disconnected');
       document.getElementById('externalStatusContainer').style.display = 'none';
       document.getElementById('externalBrokerUrl').value = '';
       document.getElementById('externalBrokerUrl').disabled = false;
       document.getElementById('externalConnectBtn').disabled = false;
+      document.getElementById('externalUsername').value = '';
+      document.getElementById('externalPassword').value = '';
+      document.getElementById('externalCaFile').value = '';
+      document.getElementById('externalClientCertFile').value = '';
+      document.getElementById('externalClientKeyFile').value = '';
+      document.getElementById('externalTlsSection').style.display = 'none';
       document.getElementById('externalTopic').value = '';
       document.getElementById('externalPayload').value = '';
     }
