@@ -481,6 +481,8 @@ function addAeSrv() {
   AE_OPEN_DRAWER = newSrv.id;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
+  const idInput = document.getElementById('ae-field-srv-id');
+  if (idInput) { idInput.focus(); idInput.select(); }
 }
 
 function aeTrustBrokerCert() {
@@ -1385,6 +1387,8 @@ function addAeGroup() {
   AE_OPEN_DRAWER = newGroup.id;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
+  const idInput = document.getElementById('ae-field-group-id');
+  if (idInput) { idInput.focus(); idInput.select(); }
 }
 
 // ── Unsaved banner ────────────────────────────────────────────────────────────
