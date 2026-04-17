@@ -6,31 +6,19 @@
         "connectionType": "ws",
         "host": "localhost",
         "port": 9001,
-        "broker": "ws://localhost:9001"
+        "broker": "ws://localhost:9001",
+        "autoConnect": true
       },
       {
-        "id": "server-1",
+        "id": "home-raw",
         "connectionType": "wss",
         "host": "localhost",
         "port": 9002,
         "broker": "wss://localhost:9002",
         "autoConnect": true,
         "tls": {
-          "caFile": "fakecrt.crt",
-          "certFile": "fakecrt.crt",
-          "keyFile": ""
+          "caFile": "ca.crt"
         }
-      },
-      {
-        "id": "home-raw",
-        "connectionType": "ws",
-        "host": "10.8.123.100",
-        "port": 8083,
-        "broker": "ws://10.8.123.100:8083",
-        "basepath": "/mqtt",
-        "autoConnect": true,
-        "username": "dev",
-        "password": "dev"
       }
     ]
   },
@@ -53,7 +41,7 @@
       "type": "mqtt",
       "description": "Lights On",
       "icon": "mdi:lightbulb",
-      "mqttServer": "home",
+      "mqttServer": "home-raw",
       "publish": {
         "topic": "home/living/lights/set",
         "payload": "ON"
@@ -68,7 +56,7 @@
       "type": "mqtt",
       "description": "Lights Off",
       "icon": "mdi:lightbulb-off",
-      "mqttServer": "home",
+      "mqttServer": "home-raw",
       "publish": {
         "topic": "home/living/lights/set",
         "payload": "OFF"
@@ -141,7 +129,7 @@
     {
       "id": "server-1-ping",
       "type": "mqtt",
-      "mqttServer": "server-1",
+      "mqttServer": "home-raw",
       "description": "Server 1 Ping",
       "icon": "mdi:heart-pulse",
       "publish": {
@@ -156,7 +144,7 @@
     {
       "id": "server-1-status",
       "type": "mqtt",
-      "mqttServer": "server-1",
+      "mqttServer": "home-raw",
       "description": "Server 1 Status",
       "icon": "mdi:information-outline",
       "publish": {
