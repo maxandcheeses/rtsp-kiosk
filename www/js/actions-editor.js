@@ -1192,15 +1192,12 @@ function _buildAeGroupDrawerForm(group, isNew) {
   const numSlots = Math.min(slots.length + 1, 6); // show one extra empty slot unless at max
   const allActions = (AE_LOCAL && AE_LOCAL.actions) || [];
 
-  const actionOpts = allActions.map(a =>
-    `<option value="${_aeEsc(a.id)}">${_aeEsc(a.description || a.id)}</option>`
-  ).join('');
-
-  const builtinOptsForSlot = (val) => typeof BUILTIN_ACTIONS !== 'undefined'
-    ? Object.values(BUILTIN_ACTIONS).map(a =>
-        `<option value="${_aeEsc(a.id)}"${a.id===val?' selected':''}>${_aeEsc(a.description || a.id)}</option>`
-      ).join('')
-    : '';
+  const typeOrder = a => a.type === 'builtin' ? 0 : a.type === 'focus-panel' ? 1 : 2;
+  const builtins = typeof BUILTIN_ACTIONS !== 'undefined' ? Object.values(BUILTIN_ACTIONS) : [];
+  const mergedMap = new Map();
+  builtins.forEach(a => mergedMap.set(a.id, a));
+  allActions.forEach(a => { if (!mergedMap.has(a.id)) mergedMap.set(a.id, a); });
+  const sortedActions = [...mergedMap.values()].sort((a, b) => typeOrder(a) - typeOrder(b));
 
   let slotsHtml = '';
   for (let i = 0; i < numSlots; i++) {
@@ -1209,8 +1206,7 @@ function _buildAeGroupDrawerForm(group, isNew) {
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Button ${i + 1}</label>
       <select class="views-input" id="ae-slot-${i}" style="flex:none;width:auto">
         <option value="">— none —</option>
-        ${allActions.map(a => `<option value="${_aeEsc(a.id)}"${a.id===val?' selected':''}>${_aeEsc(a.description || a.id)}</option>`).join('')}
-        ${builtinOptsForSlot(val)}
+        ${sortedActions.map(a => `<option value="${_aeEsc(a.id)}"${a.id===val?' selected':''}>${_aeEsc(a.description || a.id)}</option>`).join('')}
       </select>
     </div>`;
   }
@@ -1257,17 +1253,17 @@ function _aeAddSlot(currentCount) {
   const slotRow = document.createElement('div');
   slotRow.className = 'views-form-row';
   slotRow.id = `ae-slot-row-${currentCount}`;
-  const builtinOptsAdd = typeof BUILTIN_ACTIONS !== 'undefined'
-    ? Object.values(BUILTIN_ACTIONS).map(a =>
-        `<option value="${_aeEsc(a.id)}">${_aeEsc(a.description || a.id)}</option>`
-      ).join('')
-    : '';
+  const typeOrderAdd = a => a.type === 'builtin' ? 0 : a.type === 'focus-panel' ? 1 : 2;
+  const builtinsAdd = typeof BUILTIN_ACTIONS !== 'undefined' ? Object.values(BUILTIN_ACTIONS) : [];
+  const mergedMapAdd = new Map();
+  builtinsAdd.forEach(a => mergedMapAdd.set(a.id, a));
+  allActions.forEach(a => { if (!mergedMapAdd.has(a.id)) mergedMapAdd.set(a.id, a); });
+  const sortedActionsAdd = [...mergedMapAdd.values()].sort((a, b) => typeOrderAdd(a) - typeOrderAdd(b));
   slotRow.innerHTML = `
     <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Button ${currentCount + 1}</label>
     <select class="views-input" id="ae-slot-${currentCount}" style="flex:none;width:auto">
       <option value="">— none —</option>
-      ${allActions.map(a => `<option value="${_aeEsc(a.id)}">${_aeEsc(a.description || a.id)}</option>`).join('')}
-      ${builtinOptsAdd}
+      ${sortedActionsAdd.map(a => `<option value="${_aeEsc(a.id)}">${_aeEsc(a.description || a.id)}</option>`).join('')}
     </select>`;
 
   if (addBtn) {
