@@ -423,6 +423,23 @@ function saveAeSrvDrawer(originalId, isNew) {
 
   AE_DRAWER_DIRTY = false;
   AE_OPEN_DRAWER = null;
+
+  // Connection management: if previously active, disconnect and restart;
+  // if autoConnect is enabled and not yet connected, initiate connection.
+  if (typeof _mqttClients !== 'undefined') {
+    const wasActive = _mqttClients.has(originalId) || (newId !== originalId && _mqttClients.has(newId));
+    // If ID changed, clean up old client keyed by old ID
+    if (newId !== originalId && _mqttClients.has(originalId)) {
+      disconnectMqttClient(originalId);
+    }
+    if (wasActive) {
+      disconnectMqttClient(newId);
+      getOrCreateMqttClient(newId, updated);
+    } else if (autoConnect) {
+      getOrCreateMqttClient(newId, updated);
+    }
+  }
+
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
   applyAeChanges();
