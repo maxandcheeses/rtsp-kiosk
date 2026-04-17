@@ -244,43 +244,49 @@
   <h2>Command Log <span style="opacity:0.4;font-size:10px">(messages published by kiosk)</span></h2>
   <div id="log" class="log"></div>
 
-  <h2>External Server</h2>
-  <div class="form-group">
-    <input type="text" id="externalBrokerUrl" placeholder="ws://host:port or wss://host:port" style="flex: 1; min-width: 250px;">
-    <button class="send" id="externalConnectBtn" onclick="connectExternalServer()">Connect</button>
+  <h2>External Servers</h2>
+
+  <!-- Saved servers list -->
+  <div id="externalServersList" class="server-status-list" style="margin-bottom: 24px;">
+    <!-- Populated by renderExternalServers() -->
   </div>
-  <div class="form-group">
-    <input type="text" id="externalUsername" placeholder="username" style="min-width: 120px;">
-    <input type="password" id="externalPassword" placeholder="password" style="min-width: 120px;">
-  </div>
-  <div id="externalTlsSection" style="display: none;">
-    <div class="server-section-title">TLS Certificates</div>
+
+  <!-- Add New Server section -->
+  <div class="server-section">
+    <div class="server-section-title">Add New Server</div>
+
     <div class="form-group">
-      <label style="font-size: 11px; color: rgba(255,255,255,0.5); flex-shrink: 0; width: 100px;">CA Certificate:</label>
-      <input type="file" id="externalCaFile" accept=".crt,.pem" style="flex: 1; min-width: 200px;">
+      <input type="text" id="newProfileLabel" placeholder="Profile label (e.g. My Home Broker)" style="flex: 1; min-width: 200px;">
     </div>
+
     <div class="form-group">
-      <label style="font-size: 11px; color: rgba(255,255,255,0.5); flex-shrink: 0; width: 100px;">Client Cert (opt):</label>
-      <input type="file" id="externalClientCertFile" accept=".crt,.pem" style="flex: 1; min-width: 200px;">
+      <input type="text" id="newProfileBrokerUrl" placeholder="ws://host:port or wss://host:port" style="flex: 1; min-width: 250px;">
     </div>
+
     <div class="form-group">
-      <label style="font-size: 11px; color: rgba(255,255,255,0.5); flex-shrink: 0; width: 100px;">Client Key (opt):</label>
-      <input type="file" id="externalClientKeyFile" accept=".key,.pem" style="flex: 1; min-width: 200px;">
+      <input type="text" id="newProfileUsername" placeholder="username" style="min-width: 120px;">
+      <input type="password" id="newProfilePassword" placeholder="password" style="min-width: 120px;">
     </div>
-  </div>
-  <div id="externalStatusContainer" style="display: none;">
-    <div class="server-status-row">
-      <div class="server-status-id">external</div>
-      <div class="server-status-url" id="externalUrlDisplay"></div>
-      <span id="externalStatus" class="status disconnected">Disconnected</span>
-      <button class="send" id="externalDisconnectBtn" onclick="disconnectExternalServer()">Disconnect</button>
+
+    <div id="newProfileTlsSection" style="display: none;">
+      <div class="server-section-title">TLS Certificates</div>
+      <div class="form-group">
+        <label style="font-size: 11px; color: rgba(255,255,255,0.5); flex-shrink: 0; width: 100px;">CA Certificate:</label>
+        <input type="file" id="newProfileCaFile" accept=".crt,.pem" style="flex: 1; min-width: 200px;">
+      </div>
+      <div class="form-group">
+        <label style="font-size: 11px; color: rgba(255,255,255,0.5); flex-shrink: 0; width: 100px;">Client Cert (opt):</label>
+        <input type="file" id="newProfileClientCertFile" accept=".crt,.pem" style="flex: 1; min-width: 200px;">
+      </div>
+      <div class="form-group">
+        <label style="font-size: 11px; color: rgba(255,255,255,0.5); flex-shrink: 0; width: 100px;">Client Key (opt):</label>
+        <input type="file" id="newProfileClientKeyFile" accept=".key,.pem" style="flex: 1; min-width: 200px;">
+      </div>
     </div>
-    <div class="server-section-title" style="margin-top: 16px;">Preset Topics</div>
-    <div id="externalPresetContainer" class="switch-container"></div>
+
     <div class="form-group">
-      <input type="text" id="externalTopic" placeholder="topic" style="flex: 1; min-width: 200px;">
-      <input type="text" id="externalPayload" placeholder="payload">
-      <button class="send" onclick="quickPublishExternal()">Send</button>
+      <button class="send" onclick="saveExternalProfile(false)">Save</button>
+      <button class="send" onclick="saveExternalProfile(true)">Save & Connect</button>
     </div>
   </div>
 
@@ -769,164 +775,280 @@
 
     init();
 
-    // External Server functionality
-    let externalClient = null;
-    let externalConnected = false;
-    let externalCaCert = null;
-    let externalClientCert = null;
-    let externalClientKey = null;
+    // External Server functionality with localStorage profiles
+    const EXTERNAL_CLIENTS = {}; // profileId → { client, connected }
+    let newProfileCaCert = null;
+    let newProfileClientCert = null;
+    let newProfileClientKey = null;
 
-    // Set up external broker URL change listener for TLS section visibility
+    // Initialize external servers on page load
     document.addEventListener('DOMContentLoaded', () => {
-      const brokerInput = document.getElementById('externalBrokerUrl');
-      const tlsSection = document.getElementById('externalTlsSection');
+      renderExternalServers();
+      setupNewProfileFormListeners();
+    });
+
+    function setupNewProfileFormListeners() {
+      const brokerInput = document.getElementById('newProfileBrokerUrl');
+      const tlsSection = document.getElementById('newProfileTlsSection');
+
       if (brokerInput && tlsSection) {
         brokerInput.addEventListener('input', () => {
           tlsSection.style.display = brokerInput.value.startsWith('wss://') ? 'block' : 'none';
         });
       }
 
-      // File input handlers
-      const caFile = document.getElementById('externalCaFile');
-      const clientCertFile = document.getElementById('externalClientCertFile');
-      const clientKeyFile = document.getElementById('externalClientKeyFile');
+      // File input handlers for new profile form
+      const caFile = document.getElementById('newProfileCaFile');
+      const clientCertFile = document.getElementById('newProfileClientCertFile');
+      const clientKeyFile = document.getElementById('newProfileClientKeyFile');
 
-      if (caFile) caFile.addEventListener('change', handleExternalCaFile);
-      if (clientCertFile) clientCertFile.addEventListener('change', handleExternalClientCertFile);
-      if (clientKeyFile) clientKeyFile.addEventListener('change', handleExternalClientKeyFile);
-    });
+      if (caFile) caFile.addEventListener('change', handleNewProfileCaFile);
+      if (clientCertFile) clientCertFile.addEventListener('change', handleNewProfileClientCertFile);
+      if (clientKeyFile) clientKeyFile.addEventListener('change', handleNewProfileClientKeyFile);
+    }
 
-    function handleExternalCaFile(event) {
+    function handleNewProfileCaFile(event) {
       const file = event.target.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          externalCaCert = e.target.result;
+          newProfileCaCert = e.target.result;
         };
         reader.readAsText(file);
       }
     }
 
-    function handleExternalClientCertFile(event) {
+    function handleNewProfileClientCertFile(event) {
       const file = event.target.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          externalClientCert = e.target.result;
+          newProfileClientCert = e.target.result;
         };
         reader.readAsText(file);
       }
     }
 
-    function handleExternalClientKeyFile(event) {
+    function handleNewProfileClientKeyFile(event) {
       const file = event.target.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          externalClientKey = e.target.result;
+          newProfileClientKey = e.target.result;
         };
         reader.readAsText(file);
       }
     }
 
-    function connectExternalServer() {
-      const brokerUrl = document.getElementById('externalBrokerUrl').value.trim();
+    function loadExternalProfiles() {
+      try {
+        const stored = localStorage.getItem('mqtt_external_servers');
+        return stored ? JSON.parse(stored) : [];
+      } catch (e) {
+        console.error('Failed to load external profiles:', e);
+        return [];
+      }
+    }
+
+    function saveExternalProfiles(profiles) {
+      try {
+        localStorage.setItem('mqtt_external_servers', JSON.stringify(profiles));
+      } catch (e) {
+        console.error('Failed to save external profiles:', e);
+      }
+    }
+
+    function generateProfileId() {
+      return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    function renderExternalServers() {
+      const container = document.getElementById('externalServersList');
+      const profiles = loadExternalProfiles();
+
+      container.innerHTML = '';
+
+      if (profiles.length === 0) {
+        container.textContent = 'No saved servers';
+        return;
+      }
+
+      profiles.forEach(profile => {
+        const row = document.createElement('div');
+        row.className = 'server-status-row';
+
+        // Editable label
+        const labelInput = document.createElement('input');
+        labelInput.type = 'text';
+        labelInput.value = profile.label || '';
+        labelInput.style.minWidth = '120px';
+        labelInput.style.marginRight = '0';
+        labelInput.onblur = () => {
+          if (labelInput.value.trim()) {
+            profile.label = labelInput.value.trim();
+            saveExternalProfiles(profiles);
+          } else {
+            labelInput.value = profile.label || '';
+          }
+        };
+        labelInput.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            labelInput.blur();
+          }
+        };
+
+        // Broker URL (dimmed)
+        const urlEl = document.createElement('div');
+        urlEl.className = 'server-status-url';
+        urlEl.textContent = profile.broker || '';
+
+        // Status badge
+        const statusEl = document.createElement('span');
+        statusEl.id = 'ext-status-' + profile.id;
+        statusEl.className = 'status disconnected';
+        statusEl.textContent = 'Disconnected';
+
+        // Connect button
+        const connectBtn = document.createElement('button');
+        connectBtn.className = 'send';
+        connectBtn.textContent = 'Connect';
+        connectBtn.onclick = () => connectExternalProfile(profile.id);
+
+        // Disconnect button (initially hidden)
+        const disconnectBtn = document.createElement('button');
+        disconnectBtn.className = 'send';
+        disconnectBtn.textContent = 'Disconnect';
+        disconnectBtn.style.display = 'none';
+        disconnectBtn.onclick = () => disconnectExternalProfile(profile.id);
+
+        // Delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'send';
+        deleteBtn.style.padding = '6px 10px';
+        deleteBtn.textContent = '×';
+        deleteBtn.onclick = () => deleteExternalProfile(profile.id);
+
+        row.appendChild(labelInput);
+        row.appendChild(urlEl);
+        row.appendChild(statusEl);
+        row.appendChild(connectBtn);
+        row.appendChild(disconnectBtn);
+        row.appendChild(deleteBtn);
+
+        container.appendChild(row);
+
+        // Update button visibility based on connection state
+        updateExternalProfileButtonStates(profile.id, connectBtn, disconnectBtn, deleteBtn);
+      });
+    }
+
+    function updateExternalProfileButtonStates(profileId, connectBtn, disconnectBtn, deleteBtn) {
+      const isConnected = EXTERNAL_CLIENTS[profileId] && EXTERNAL_CLIENTS[profileId].connected;
+      connectBtn.style.display = isConnected ? 'none' : 'block';
+      disconnectBtn.style.display = isConnected ? 'block' : 'none';
+      deleteBtn.disabled = isConnected;
+      deleteBtn.style.opacity = isConnected ? '0.5' : '1';
+      deleteBtn.style.cursor = isConnected ? 'not-allowed' : 'pointer';
+    }
+
+    function connectExternalProfile(profileId) {
+      const profiles = loadExternalProfiles();
+      const profile = profiles.find(p => p.id === profileId);
+
+      if (!profile) {
+        alert('Profile not found');
+        return;
+      }
+
+      if (EXTERNAL_CLIENTS[profileId] && EXTERNAL_CLIENTS[profileId].connected) {
+        alert('Already connected to this profile');
+        return;
+      }
+
+      const brokerUrl = profile.broker;
       if (!brokerUrl) {
-        alert('Please enter a broker URL');
+        alert('Broker URL is missing');
         return;
       }
 
-      if (externalClient) {
-        alert('Already connected. Disconnect first.');
-        return;
-      }
-
-      const username = document.getElementById('externalUsername').value.trim();
-      const password = document.getElementById('externalPassword').value.trim();
-
-      const clientId = 'test-harness-external-' + Math.random().toString(16).slice(2, 8);
+      const clientId = 'test-harness-external-' + profileId + '-' + Math.random().toString(16).slice(2, 8);
       let connectOptions = {
         clientId: clientId,
         reconnectPeriod: 0,
         connectTimeout: 10000,
-        ...(username && { username: username }),
-        ...(password && { password: password }),
+        ...(profile.username && { username: profile.username }),
+        ...(profile.password && { password: profile.password }),
       };
 
-      // For wss connections, disable strict cert checking in browser
+      // For wss connections
       if (brokerUrl.startsWith('wss://')) {
         connectOptions.rejectUnauthorized = false;
-        if (externalCaCert) connectOptions.ca = externalCaCert;
-        if (externalClientCert) connectOptions.cert = externalClientCert;
-        if (externalClientKey) connectOptions.key = externalClientKey;
+        if (profile.caCert) connectOptions.ca = profile.caCert;
+        if (profile.clientCert) connectOptions.cert = profile.clientCert;
+        if (profile.clientKey) connectOptions.key = profile.clientKey;
       }
 
-      externalClient = mqtt.connect(brokerUrl, connectOptions);
+      const client = mqtt.connect(brokerUrl, connectOptions);
 
-      externalClient.on('connect', () => {
-        externalConnected = true;
-        updateExternalStatus('connected');
+      client.on('connect', () => {
+        if (!EXTERNAL_CLIENTS[profileId]) EXTERNAL_CLIENTS[profileId] = {};
+        EXTERNAL_CLIENTS[profileId].connected = true;
+        updateExternalProfileStatus(profileId, 'connected');
 
         // Subscribe to preset topics
         PRESET_TOPICS.forEach(({ topic }) => {
-          if (externalClient) externalClient.subscribe(topic, { qos: 0 });
+          if (client) client.subscribe(topic, { qos: 0 });
         });
       });
 
-      externalClient.on('error', (err) => {
-        console.error('External MQTT error:', err);
-        updateExternalStatus('error');
+      client.on('error', (err) => {
+        console.error('External MQTT error on ' + profileId + ':', err);
+        updateExternalProfileStatus(profileId, 'error');
       });
 
-      externalClient.on('close', () => {
-        externalConnected = false;
-        updateExternalStatus('disconnected');
+      client.on('close', () => {
+        if (EXTERNAL_CLIENTS[profileId]) EXTERNAL_CLIENTS[profileId].connected = false;
+        updateExternalProfileStatus(profileId, 'disconnected');
       });
 
-      externalClient.on('message', (topic, payload) => {
+      client.on('message', (topic, payload) => {
         const val = payload.toString();
-        appendLog('external', topic, val);
+        appendLog('external-' + profileId, topic, val);
       });
 
-      // Show status container
-      document.getElementById('externalStatusContainer').style.display = 'block';
-      document.getElementById('externalUrlDisplay').textContent = brokerUrl;
-      document.getElementById('externalBrokerUrl').disabled = true;
-      document.getElementById('externalConnectBtn').disabled = true;
+      if (!EXTERNAL_CLIENTS[profileId]) EXTERNAL_CLIENTS[profileId] = {};
+      EXTERNAL_CLIENTS[profileId].client = client;
 
-      // Render preset buttons
-      renderExternalPresets();
+      // Re-render to update button states
+      renderExternalServers();
     }
 
-    function disconnectExternalServer() {
-      if (!externalClient) return;
+    function disconnectExternalProfile(profileId) {
+      if (EXTERNAL_CLIENTS[profileId] && EXTERNAL_CLIENTS[profileId].client) {
+        EXTERNAL_CLIENTS[profileId].client.end(true);
+        EXTERNAL_CLIENTS[profileId].client = null;
+        EXTERNAL_CLIENTS[profileId].connected = false;
+      }
 
-      externalClient.end(true);
-      externalClient = null;
-      externalConnected = false;
-
-      // Clear cert variables
-      externalCaCert = null;
-      externalClientCert = null;
-      externalClientKey = null;
-
-      updateExternalStatus('disconnected');
-      document.getElementById('externalStatusContainer').style.display = 'none';
-      document.getElementById('externalBrokerUrl').value = '';
-      document.getElementById('externalBrokerUrl').disabled = false;
-      document.getElementById('externalConnectBtn').disabled = false;
-      document.getElementById('externalUsername').value = '';
-      document.getElementById('externalPassword').value = '';
-      document.getElementById('externalCaFile').value = '';
-      document.getElementById('externalClientCertFile').value = '';
-      document.getElementById('externalClientKeyFile').value = '';
-      document.getElementById('externalTlsSection').style.display = 'none';
-      document.getElementById('externalTopic').value = '';
-      document.getElementById('externalPayload').value = '';
+      updateExternalProfileStatus(profileId, 'disconnected');
+      renderExternalServers();
     }
 
-    function updateExternalStatus(state) {
-      const el = document.getElementById('externalStatus');
+    function deleteExternalProfile(profileId) {
+      if (EXTERNAL_CLIENTS[profileId] && EXTERNAL_CLIENTS[profileId].connected) {
+        alert('Cannot delete a connected profile. Disconnect first.');
+        return;
+      }
+
+      const profiles = loadExternalProfiles();
+      const filtered = profiles.filter(p => p.id !== profileId);
+      saveExternalProfiles(filtered);
+
+      renderExternalServers();
+    }
+
+    function updateExternalProfileStatus(profileId, state) {
+      const el = document.getElementById('ext-status-' + profileId);
       if (el) {
         el.className = 'status ' + state;
         if (state === 'connected') el.textContent = 'Connected';
@@ -935,40 +1057,55 @@
       }
     }
 
-    function renderExternalPresets() {
-      const container = document.getElementById('externalPresetContainer');
-      container.innerHTML = '';
-      PRESET_TOPICS.forEach(({ topic, payload }) => {
-        const btn = document.createElement('button');
-        btn.className = 'switch-btn';
-        btn.innerHTML = `<span class="switch-btn-inner">${escapeHtml(payload)}</span><span class="switch-value">${escapeHtml(topic)}</span>`;
-        btn.onclick = () => quickPublishExternalPreset(topic, payload);
-        container.appendChild(btn);
-      });
-    }
+    function saveExternalProfile(shouldConnect) {
+      const label = document.getElementById('newProfileLabel').value.trim();
+      const broker = document.getElementById('newProfileBrokerUrl').value.trim();
+      const username = document.getElementById('newProfileUsername').value.trim();
+      const password = document.getElementById('newProfilePassword').value.trim();
 
-    function quickPublishExternal() {
-      if (!externalClient || !externalConnected) {
-        alert('Not connected to external server');
+      if (!label) {
+        alert('Please enter a profile label');
         return;
       }
-      const topic = document.getElementById('externalTopic').value.trim();
-      const payload = document.getElementById('externalPayload').value.trim();
-      if (topic) {
-        externalClient.publish(topic, payload);
-        appendLog('external', topic, payload, 'out');
-        document.getElementById('externalTopic').value = '';
-        document.getElementById('externalPayload').value = '';
-      }
-    }
 
-    function quickPublishExternalPreset(topic, payload) {
-      if (!externalClient || !externalConnected) {
-        alert('Not connected to external server');
+      if (!broker) {
+        alert('Please enter a broker URL');
         return;
       }
-      externalClient.publish(topic, payload);
-      appendLog('external', topic, payload, 'out');
+
+      const profiles = loadExternalProfiles();
+      const newProfile = {
+        id: generateProfileId(),
+        label: label,
+        broker: broker,
+        username: username || '',
+        password: password || '',
+        caCert: newProfileCaCert || '',
+        clientCert: newProfileClientCert || '',
+        clientKey: newProfileClientKey || ''
+      };
+
+      profiles.push(newProfile);
+      saveExternalProfiles(profiles);
+
+      // Clear form
+      document.getElementById('newProfileLabel').value = '';
+      document.getElementById('newProfileBrokerUrl').value = '';
+      document.getElementById('newProfileUsername').value = '';
+      document.getElementById('newProfilePassword').value = '';
+      document.getElementById('newProfileCaFile').value = '';
+      document.getElementById('newProfileClientCertFile').value = '';
+      document.getElementById('newProfileClientKeyFile').value = '';
+      document.getElementById('newProfileTlsSection').style.display = 'none';
+      newProfileCaCert = null;
+      newProfileClientCert = null;
+      newProfileClientKey = null;
+
+      renderExternalServers();
+
+      if (shouldConnect) {
+        connectExternalProfile(newProfile.id);
+      }
     }
   </script>
 </body>
