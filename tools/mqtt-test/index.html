@@ -354,6 +354,26 @@
         title.textContent = 'Server: ' + server.id;
         container.appendChild(title);
 
+        // Preset test buttons
+        const PRESETS = [
+          { topic: 'home/living/lights/state', payload: 'ON' },
+          { topic: 'home/living/lights/state', payload: 'OFF' },
+          { topic: 'home/living/fan/state', payload: 'ON' },
+          { topic: 'home/living/fan/state', payload: 'OFF' },
+          { topic: 'home/front-door/lock/state', payload: 'LOCKED' },
+          { topic: 'home/front-door/lock/state', payload: 'UNLOCKED' },
+        ];
+        const presetDiv = document.createElement('div');
+        presetDiv.className = 'switch-container';
+        PRESETS.forEach(({ topic, payload }) => {
+          const btn = document.createElement('button');
+          btn.className = 'switch-btn';
+          btn.innerHTML = `<span class="switch-btn-inner">${escapeHtml(payload)}</span><span class="switch-value">${escapeHtml(topic)}</span>`;
+          btn.onclick = () => quickPublishPreset(server.id, topic, payload);
+          presetDiv.appendChild(btn);
+        });
+        container.appendChild(presetDiv);
+
         // Switches for this server (only if there are state topics)
         if (stateTopics.size > 0) {
           const switchesDiv = document.createElement('div');
@@ -419,10 +439,13 @@
       let connectOptions = {
         clientId: clientId,
         reconnectPeriod: 0,
-        connectTimeout: 10000
+        connectTimeout: 10000,
+        ...(server.username && { username: server.username }),
+        ...(server.password && { password: server.password }),
       };
 
-      // For WSS (self-signed cert), disable certificate validation
+      // Browser WebSocket clients cannot present client certs via the JS API.
+      // rejectUnauthorized is Node.js-only; browsers enforce cert trust via OS/browser store.
       if (server.connectionType === 'wss') {
         connectOptions.rejectUnauthorized = false;
       }
@@ -552,6 +575,14 @@
       }
     }
 
+    function quickPublishPreset(serverId, topic, payload) {
+      const server = SERVERS[serverId];
+      if (!server || !server.client || !server.client.connected) {
+        alert('Not connected to ' + serverId);
+        return;
+      }
+      server.client.publish(topic, payload);
+    }
 
     function escapeHtml(text) {
       const map = {
