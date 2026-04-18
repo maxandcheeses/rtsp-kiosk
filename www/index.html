@@ -171,26 +171,26 @@
     }
     .modal.open { display: flex; }
     .modal h1 {
-      font-size: 11px; letter-spacing: 0.4em;
+      font-size: 13px; letter-spacing: 0.35em;
       color: rgba(255,255,255,0.7); text-transform: uppercase;
     }
     .modal-hint {
-      font-size: 9px; letter-spacing: 0.2em;
+      font-size: 11px; letter-spacing: 0.15em;
       color: rgba(255,255,255,0.35); text-transform: uppercase;
     }
 
     /* ── Shared modal close button ── */
     .modal-close-btn {
       position: absolute;
-      top: 14px;
-      right: 16px;
-      width: 28px;
-      height: 28px;
+      top: 10px;
+      right: 12px;
+      width: 44px;
+      height: 44px;
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.15);
       border-radius: 4px;
-      color: rgba(255,255,255,0.4);
-      font-size: 14px;
+      color: rgba(255,255,255,0.45);
+      font-size: 16px;
       font-family: 'Courier New', monospace;
       line-height: 1;
       cursor: pointer;
@@ -212,15 +212,15 @@
       width: 100%;
       max-width: 900px;
       border-collapse: collapse;
-      font-size: 11px;
+      font-size: 13px;
       color: rgba(255,255,255,0.75);
     }
     .streams-table th {
       text-align: left;
-      padding: 8px 16px;
+      padding: 10px 16px;
       border-bottom: 1px solid rgba(255,255,255,0.15);
       color: rgba(255,255,255,0.4);
-      font-size: 9px;
+      font-size: 11px;
       letter-spacing: 0.2em;
       text-transform: uppercase;
     }
@@ -270,22 +270,24 @@
 
     /* ── Shortcut hints in settings modal ── */
     .shortcut-list {
-      display: flex; flex-direction: column; gap: 10px;
+      display: flex; flex-direction: column; gap: 12px;
       font-family: 'Courier New', monospace;
       color: rgba(255,255,255,0.7);
-      font-size: 11px;
+      font-size: 13px;
     }
     .shortcut-row {
       display: flex; align-items: center; gap: 16px;
+      min-height: 44px;
     }
     .shortcut-key {
-      display: inline-block;
+      display: inline-flex; align-items: center; justify-content: center;
       background: rgba(255,255,255,0.1);
       border: 1px solid rgba(255,255,255,0.25);
       border-radius: 4px;
-      padding: 3px 10px;
-      font-size: 12px;
-      min-width: 32px;
+      padding: 6px 12px;
+      font-size: 13px;
+      min-width: 44px;
+      min-height: 36px;
       text-align: center;
       color: rgba(255,255,255,0.9);
       cursor: pointer;
@@ -308,18 +310,18 @@
       font-family: 'Courier New', monospace;
     }
     .perf-section-title {
-      font-size: 9px;
-      letter-spacing: 0.25em;
+      font-size: 11px;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: rgba(255,255,255,0.35);
-      margin-bottom: 12px;
-      padding-bottom: 6px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
       border-bottom: 1px solid rgba(255,255,255,0.1);
     }
     .perf-rows {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 18px;
       margin-bottom: 28px;
     }
     .perf-row {
@@ -327,38 +329,42 @@
       align-items: center;
       justify-content: space-between;
       gap: 24px;
+      min-height: 44px;
     }
     .perf-label {
-      font-size: 11px;
+      font-size: 13px;
       color: rgba(255,255,255,0.75);
       flex: 1;
     }
     .perf-label small {
       display: block;
-      font-size: 9px;
+      font-size: 11px;
       color: rgba(255,255,255,0.35);
-      margin-top: 2px;
+      margin-top: 3px;
     }
     /* Toggle switch */
     .toggle {
       position: relative;
-      width: 36px; height: 20px;
+      width: 46px; height: 26px;
       flex-shrink: 0;
+      /* Expand click/tap area to 44px tall via padding */
+      padding: 9px 0;
+      box-sizing: content-box;
     }
     .toggle input { opacity: 0; width: 0; height: 0; }
     .toggle-track {
-      position: absolute; inset: 0;
+      position: absolute; inset: 9px 0;
       background: rgba(255,255,255,0.12);
       border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 20px;
+      border-radius: 26px;
       cursor: pointer;
       transition: background 0.2s;
     }
     .toggle-track::after {
       content: '';
       position: absolute;
-      width: 14px; height: 14px;
-      top: 2px; left: 2px;
+      width: 18px; height: 18px;
+      top: 3px; left: 3px;
       background: rgba(255,255,255,0.5);
       border-radius: 50%;
       transition: transform 0.2s, background 0.2s;
@@ -368,19 +374,20 @@
       border-color: rgba(74,222,128,0.6);
     }
     .toggle input:checked + .toggle-track::after {
-      transform: translateX(16px);
+      transform: translateX(20px);
       background: #4ade80;
     }
     /* Number input */
     .perf-input {
-      width: 64px;
+      width: 72px;
       background: rgba(255,255,255,0.08);
       border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 3px;
+      border-radius: 4px;
       color: rgba(255,255,255,0.85);
       font-family: 'Courier New', monospace;
-      font-size: 11px;
-      padding: 4px 8px;
+      font-size: 13px;
+      padding: 10px 8px;
+      min-height: 44px;
       text-align: center;
       outline: none;
       flex-shrink: 0;
@@ -393,20 +400,25 @@
     .perf-input::-webkit-outer-spin-button { -webkit-appearance: none; }
     .perf-reset {
       font-family: 'Courier New', monospace;
-      font-size: 9px;
-      letter-spacing: 0.15em;
+      font-size: 12px;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.35);
+      color: rgba(255,255,255,0.55);
       background: none;
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 3px;
-      padding: 4px 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 4px;
+      padding: 10px 16px;
+      min-height: 44px;
       cursor: pointer;
-      transition: color 0.15s, border-color 0.15s;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     .perf-reset:hover {
-      color: rgba(255,255,255,0.7);
-      border-color: rgba(255,255,255,0.35);
+      color: rgba(255,255,255,0.85);
+      border-color: rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.05);
     }
     /* ── Views tab ── */
     .views-toolbar {
@@ -417,8 +429,9 @@
       max-width: 900px;
       margin-bottom: 12px;
       font-family: 'Courier New', monospace;
-      font-size: 11px;
+      font-size: 13px;
       color: rgba(255,255,255,0.6);
+      min-height: 44px;
     }
     .views-toolbar-group {
       display: flex;
@@ -428,11 +441,12 @@
     #views-default-sel {
       background: rgba(255,255,255,0.08);
       border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 3px;
+      border-radius: 4px;
       color: rgba(255,255,255,0.75);
       font-family: 'Courier New', monospace;
-      font-size: 10px;
-      padding: 3px 8px;
+      font-size: 13px;
+      padding: 8px 12px;
+      min-height: 44px;
       outline: none;
     }
     .views-form-grid {
@@ -445,24 +459,26 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      font-size: 11px;
+      font-size: 13px;
+      min-height: 44px;
       color: rgba(255,255,255,0.6);
     }
     .views-form-row > label {
-      width: 120px;
+      width: 130px;
       flex-shrink: 0;
-      font-size: 10px;
-      letter-spacing: 0.1em;
+      font-size: 12px;
+      letter-spacing: 0.08em;
       color: rgba(255,255,255,0.4);
     }
     .views-input {
       background: rgba(255,255,255,0.08);
       border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 3px;
+      border-radius: 4px;
       color: rgba(255,255,255,0.85);
       font-family: 'Courier New', monospace;
-      font-size: 11px;
-      padding: 4px 10px;
+      font-size: 13px;
+      padding: 10px 12px;
+      min-height: 44px;
       outline: none;
       flex: 1;
     }
@@ -485,8 +501,8 @@
       color: rgba(255,255,255,0.5);
       transition: background 0.15s, border-color 0.15s;
       font-family: 'Courier New', monospace;
-      font-size: 8px;
-      letter-spacing: 0.15em;
+      font-size: 10px;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
     }
     .ve-layout-btn:hover {
@@ -501,19 +517,19 @@
     }
     .sp-list { display: flex; flex-direction: column; gap: 4px; }
     .sp-section-label {
-      font-size: 8px;
-      letter-spacing: 0.2em;
+      font-size: 11px;
+      letter-spacing: 0.15em;
       color: rgba(255,255,255,0.25);
       text-transform: uppercase;
-      margin: 8px 0 4px;
+      margin: 10px 0 6px;
     }
     .sp-item {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 10px;
-      border-radius: 3px;
-      font-size: 10px;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
       color: rgba(255,255,255,0.7);
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.08);
@@ -523,27 +539,27 @@
       border-color: rgba(255,255,255,0.15);
     }
     .sp-num {
-      width: 18px; text-align: center;
-      font-size: 9px; color: rgba(255,255,255,0.35);
+      width: 22px; text-align: center;
+      font-size: 11px; color: rgba(255,255,255,0.35);
       background: rgba(255,255,255,0.08);
-      border-radius: 2px; padding: 1px 3px;
+      border-radius: 2px; padding: 2px 4px;
       flex-shrink: 0;
     }
     .sp-label { flex: 1; }
-    .sp-path { font-size: 9px; color: rgba(255,255,255,0.4); }
+    .sp-path { font-size: 11px; color: rgba(255,255,255,0.4); }
     .sp-btn {
       background: none;
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 3px;
-      color: rgba(255,255,255,0.4);
-      font-size: 10px;
-      width: 22px; height: 22px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 4px;
+      color: rgba(255,255,255,0.55);
+      font-size: 17px;
+      width: 44px; height: 44px;
       cursor: pointer; padding: 0;
       display: flex; align-items: center; justify-content: center;
-      transition: color 0.1s, border-color 0.1s;
+      transition: color 0.1s, border-color 0.1s, background 0.1s;
       flex-shrink: 0;
     }
-    .sp-btn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.35); }
+    .sp-btn:hover { color: rgba(255,255,255,0.9); border-color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.06); }
     .sp-btn:disabled { opacity: 0.3; cursor: default; pointer-events: none; }
     .sp-drag-handle {
       cursor: grab;
@@ -588,42 +604,18 @@
     }
     .view-drag-handle:active { cursor: grabbing; color: rgba(255,255,255,0.9); }
 
-    /* ── Views tab — touch-friendly sizing + legibility ── */
-    #stab-views .streams-table { font-size: 13px; }
-    #stab-views .streams-table th { font-size: 11px; }
-    #stab-views .views-toolbar { font-size: 13px; font-weight: 500; }
-    #stab-views .views-form-row { font-size: 13px; }
-    #stab-views .views-form-row > label { font-size: 12px; font-weight: 500; }
-    #stab-views .sp-section-label { font-size: 11px; }
-    #stab-views .sp-item { font-size: 12px; }
-    #stab-views .sp-path { font-size: 11px; }
-    #stab-views .modal-hint { font-size: 11px; }
-    #stab-views .sp-btn {
-      width: 40px; height: 40px;
-      font-size: 16px;
-      color: rgba(255,255,255,0.65);
-      border-color: rgba(255,255,255,0.2);
-    }
-    #stab-views .sp-btn:hover {
-      color: #fff;
-      border-color: rgba(255,255,255,0.55);
-      background: rgba(255,255,255,0.08);
-    }
-    #stab-views .perf-reset {
-      font-size: 12px;
-      padding: 10px 18px;
-      color: rgba(255,255,255,0.7);
-      border-color: rgba(255,255,255,0.3);
-    }
-    #stab-views .perf-reset:hover {
-      color: #fff;
-      border-color: rgba(255,255,255,0.65);
-    }
+    /* ── Views tab — font/weight overrides (base sizes are now unified) ── */
+    #stab-views .views-toolbar { font-weight: 500; }
+    #stab-views .views-form-row > label { font-weight: 500; }
     .view-delete-confirm {
       display: flex; align-items: center; gap: 8px;
-      font-size: 12px; color: rgba(255,255,255,0.7);
+      font-size: 13px; color: rgba(255,255,255,0.7);
     }
     tr.view-row-confirm td { background: rgba(248,113,113,0.06); }
+    /* Touch-friendly cycle checkbox in views table */
+    #views-tbody input[type="checkbox"] {
+      width: 22px; height: 22px; cursor: pointer; accent-color: #4ade80;
+    }
     .view-row-dragging td { opacity: 0.25; }
     tr.view-drop-before > td { box-shadow: inset 0 2px 0 rgba(74,222,128,0.8); }
     tr.view-drop-after  > td { box-shadow: inset 0 -2px 0 rgba(74,222,128,0.8); }
@@ -740,28 +732,34 @@
     /* ── Cameras tab ── */
     .cam-toolbar { display: flex; align-items: center; width: 100%; max-width: 900px; margin-bottom: 12px; }
     .cam-add-btn {
-      background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3);
-      border-radius: 3px; color: #4ade80; font-family: 'Courier New', monospace;
-      font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
-      padding: 6px 14px; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+      background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.35);
+      border-radius: 4px; color: #4ade80; font-family: 'Courier New', monospace;
+      font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 10px 18px; min-height: 44px; cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      display: inline-flex; align-items: center; justify-content: center;
     }
-    .cam-add-btn:hover { background: rgba(74,222,128,0.2); border-color: rgba(74,222,128,0.55); }
+    .cam-add-btn:hover { background: rgba(74,222,128,0.2); border-color: rgba(74,222,128,0.6); }
     .cam-drawer { overflow: hidden; max-height: 0; transition: max-height 200ms ease; }
     .cam-drawer-inner { padding: 16px 20px 20px; background: rgba(255,255,255,0.02); border-top: 1px solid rgba(255,255,255,0.08); }
     .cam-form-grid { display: flex; flex-direction: column; gap: 12px; }
     .cam-drawer-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
     .cam-save-btn {
       background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.5);
-      border-radius: 3px; color: #4ade80; font-family: 'Courier New', monospace;
-      font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
-      padding: 6px 16px; cursor: pointer; transition: background 0.15s;
+      border-radius: 4px; color: #4ade80; font-family: 'Courier New', monospace;
+      font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 10px 18px; min-height: 44px; cursor: pointer;
+      transition: background 0.15s;
+      display: inline-flex; align-items: center; justify-content: center;
     }
     .cam-save-btn:hover { background: rgba(74,222,128,0.25); }
     .cam-apply-btn {
       background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.5);
-      border-radius: 3px; color: #4ade80; font-family: 'Courier New', monospace;
-      font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
-      padding: 8px 20px; cursor: pointer; transition: background 0.15s;
+      border-radius: 4px; color: #4ade80; font-family: 'Courier New', monospace;
+      font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 10px 20px; min-height: 44px; cursor: pointer;
+      transition: background 0.15s;
+      display: inline-flex; align-items: center; justify-content: center;
     }
     .cam-apply-btn:hover { background: rgba(74,222,128,0.25); }
     .cam-apply-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
@@ -769,35 +767,36 @@
       position: sticky; bottom: 0; display: flex; align-items: center;
       justify-content: space-between; padding: 12px 20px;
       background: rgba(15,15,15,0.97); border-top: 1px solid rgba(255,255,255,0.12);
-      font-family: 'Courier New', monospace; font-size: 11px; color: rgba(255,255,255,0.7);
+      font-family: 'Courier New', monospace; font-size: 13px; color: rgba(255,255,255,0.7);
       gap: 16px; width: 100%; max-width: 900px;
     }
-    .cam-unsaved-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #facc15; margin-right: 8px; vertical-align: middle; }
+    .cam-unsaved-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #facc15; margin-right: 8px; vertical-align: middle; }
     .cam-api-notice {
       width: 100%; max-width: 900px; padding: 24px;
       background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.2);
       border-radius: 4px; font-family: 'Courier New', monospace;
-      text-align: center; color: rgba(255,255,255,0.4); font-size: 10px; line-height: 1.8;
+      text-align: center; color: rgba(255,255,255,0.4); font-size: 12px; line-height: 1.9;
     }
-    .cam-field-error { font-size: 9px; color: #f87171; margin-top: 2px; font-family: 'Courier New', monospace; }
+    .cam-field-error { font-size: 11px; color: #f87171; margin-top: 3px; font-family: 'Courier New', monospace; }
     .field-error { color: #f87171; font-size: 12px; margin-top: 4px; display: block; }
     tr.cam-row-active td { background: rgba(255,255,255,0.04); }
     tr.cam-row-confirm td { background: rgba(248,113,113,0.06); }
     .cam-advanced-toggle {
       background: none; border: none; color: rgba(255,255,255,0.35);
-      font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 0.2em;
-      text-transform: uppercase; cursor: pointer; padding: 6px 0; text-align: left; transition: color 0.15s;
+      font-family: 'Courier New', monospace; font-size: 11px; letter-spacing: 0.15em;
+      text-transform: uppercase; cursor: pointer; padding: 10px 0; text-align: left; transition: color 0.15s;
+      min-height: 36px; display: flex; align-items: center;
     }
     .cam-advanced-toggle:hover { color: rgba(255,255,255,0.7); }
 
     /* ─── Tabbed settings layout ─── */
     .settings-layout { display:flex; width:min(980px,92vw); height:min(560px,85vh); background:rgb(13,13,13); border:1px solid rgba(255,255,255,0.1); border-radius:8px; box-shadow:0 24px 80px rgba(0,0,0,0.7); overflow:hidden; position:relative; }
     .settings-sidebar { width:160px; min-width:160px; flex-shrink:0; overflow:hidden; border-right:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; gap:2px; padding:12px 8px; }
-    .settings-tab-btn { width:100%; text-align:left; padding:8px 12px; background:transparent; border:1px solid transparent; border-radius:3px; color:rgba(255,255,255,0.45); font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
+    .settings-tab-btn { width:100%; text-align:left; padding:11px 12px; min-height:44px; background:transparent; border:1px solid transparent; border-radius:4px; color:rgba(255,255,255,0.5); font-family:'Courier New',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; }
     .settings-tab-btn:hover { color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.04); }
     .settings-tab-btn.active { color:rgba(255,255,255,0.9); background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.2); }
     .settings-content { flex:1; display:flex; flex-direction:column; overflow:hidden; position:relative; min-height:0; }
-    .settings-tab-panel { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; padding:32px 56px 32px 40px; }
+    .settings-tab-panel { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; padding:32px 68px 32px 40px; }
 
     @media (max-width: 900px) {
       .settings-layout { width: 96vw; }
@@ -823,7 +822,7 @@
     #views-table-wrap { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
     /* Views edit panel scrolls on its own */
     #view-edit-panel { flex:1; overflow-y:auto; min-height:0; }
-    .ae-tab-btn { padding:6px 16px; border:1px solid rgba(255,255,255,0.12); border-radius:3px; background:transparent; color:rgba(255,255,255,0.4); font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
+    .ae-tab-btn { padding:10px 16px; min-height:44px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; background:transparent; color:rgba(255,255,255,0.5); font-family:'Courier New',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; }
     .ae-tab-btn.active { border-color:rgba(255,255,255,0.35); color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.06); }
 
     /* ─── Actions modal ─── */
@@ -891,6 +890,13 @@
       transition:background 0.15s ease, color 0.15s ease; z-index:100;
     }
     .action-indicator:hover { background:rgba(10,10,10,0.85); color:rgba(255,255,255,0.75); }
+
+    /* ── Info icon tooltips ── */
+    .info-tooltip { position: relative; display: inline-flex; align-items: center; gap: 3px; }
+    .info-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; font-size: 12px; color: #888; cursor: default; border-radius: 50%; flex-shrink: 0; }
+    .info-icon:hover, .info-icon:focus { color: #ccc; outline: none; }
+    .tooltip-bubble { visibility: hidden; opacity: 0; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #1a1a2e; color: #e0e0e0; font-size: 12px; padding: 6px 10px; border-radius: 6px; white-space: normal; width: 200px; text-align: center; z-index: 200; pointer-events: none; border: 1px solid #333; transition: opacity 0.15s; line-height: 1.4; }
+    .info-tooltip:hover .tooltip-bubble, .info-tooltip:focus-within .tooltip-bubble { visibility: visible; opacity: 1; }
   </style>
   <!-- MQTT.js — WebSocket MQTT client -->
   <!-- mqtt.js bundled locally for offline/LAN support -->
@@ -919,10 +925,10 @@
         <div class="shortcut-list">
           <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Audio</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="settings-mute" onchange="toggleMute()"><span class="toggle-track"></span></label></div></div>
           <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Debug overlay</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="perf-debug-overlay" onchange="savePerfSettings()"><span class="toggle-track"></span></label></div></div>
-          <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Fullscreen timeout (sec, 0 = off)</span><input type="number" id="fs-timeout-input" min="0" max="3600" placeholder="sec" style="width:56px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:3px;color:rgba(255,255,255,0.85);font-family:'Courier New',monospace;font-size:11px;padding:4px 8px;text-align:center;outline:none;" /></div></div>
+          <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Fullscreen timeout (sec, 0 = off)</span><input type="number" id="fs-timeout-input" min="0" max="3600" placeholder="sec" style="width:64px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:4px;color:rgba(255,255,255,0.85);font-family:'Courier New',monospace;font-size:13px;padding:8px;min-height:44px;text-align:center;outline:none;" /></div></div>
           <div class="shortcut-row" style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">
             <div id="clear-storage-confirm" style="display:none;width:100%;flex-direction:column;gap:8px;">
-              <span style="font-size:10px;color:rgba(255,255,255,0.5);">Clear all saved preferences?</span>
+              <span style="font-size:12px;color:rgba(255,255,255,0.5);">Clear all saved preferences?</span>
               <div style="display:flex;gap:8px;">
                 <button class="perf-reset" style="color:rgba(248,113,113,0.9);border-color:rgba(248,113,113,0.4);flex:1" onclick="confirmClearStorage()">Yes, clear</button>
                 <button class="perf-reset" style="flex:1" onclick="cancelClearStorage()">Cancel</button>
@@ -930,7 +936,7 @@
             </div>
             <button id="clear-storage-btn" class="perf-reset" style="color:rgba(248,113,113,0.7);border-color:rgba(248,113,113,0.3);width:100%" onclick="promptClearStorage()">Clear all saved data</button>
           </div>
-          <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:8px;">Shortcuts</div>
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:8px;">Shortcuts</div>
           <div class="shortcut-row"><span class="shortcut-key" title="Close any open modal">Esc</span><span>Open settings / close modal</span></div>
           <div class="shortcut-row"><span class="shortcut-key">←</span><span class="shortcut-key">→</span><span>Previous / next view</span></div>
           <div class="shortcut-row"><span class="shortcut-key" title="Pause / resume view cycling">Space</span><span>Pause / resume cycling</span></div>
@@ -942,19 +948,19 @@
         <!-- Table view -->
         <div id="views-table-wrap" style="width:100%;max-width:900px;display:flex;flex-direction:column;gap:0">
           <div class="views-toolbar">
+            <div style="display:flex;gap:8px;margin-right:auto;">
+              <button class="cam-add-btn" onclick="openNewViewEditor()">+ Add View</button>
+            </div>
             <div class="views-toolbar-group">
-              <span>Cycle</span>
+              <span class="info-tooltip">Cycle<span class="info-icon" tabindex="0" aria-label="About Cycle">ℹ</span><span class="tooltip-bubble">Include this view in the auto-cycle rotation</span></span>
               <label class="toggle" style="margin-left:4px">
                 <input type="checkbox" id="views-cycle-chk" onchange="onViewsCycleToggle()">
                 <span class="toggle-track"></span>
               </label>
             </div>
             <div class="views-toolbar-group" id="views-default-wrap">
-              <label for="views-default-sel">Default</label>
+              <label for="views-default-sel" class="info-tooltip">Default<span class="info-icon" tabindex="0" aria-label="About Default">ℹ</span><span class="tooltip-bubble">Show this view when the kiosk starts</span></label>
               <select id="views-default-sel" onchange="onViewsDefaultChange()"></select>
-            </div>
-            <div style="margin-left:auto;display:flex;gap:8px;">
-              <button class="cam-add-btn" onclick="openNewViewEditor()">+ Add View</button>
             </div>
           </div>
           <div class="tab-scroll-body">
@@ -989,7 +995,7 @@
             <div class="views-form-row">
               <label for="ve-duration">Duration (s)</label>
               <input type="number" class="perf-input" id="ve-duration" min="-1" placeholder="20" />
-              <span style="font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:0.1em">−1 = stay forever</span>
+              <span style="font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:0.08em">−1 = stay forever</span>
             </div>
             <div class="views-form-row" id="ve-preload-row">
               <label for="ve-preload-enabled">Preload lead (s)</label>
@@ -1017,7 +1023,6 @@
       <!-- Cameras tab -->
       <div id="stab-cameras" class="settings-tab-panel" style="display:none">
         <div class="cam-toolbar">
-          <span style="flex:1"></span>
           <button class="cam-add-btn" id="cam-add-btn" onclick="addCamStream()">+ Add Camera</button>
         </div>
         <div class="tab-scroll-body">
@@ -1203,9 +1208,9 @@
 <!-- Camera stream test modal -->
 <div id="cam-test-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;flex-direction:column" onclick="if(event.target===this)closeCamStreamTest()">
   <div style="background:#111;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:20px;min-width:400px;max-width:760px;width:calc(100% - 48px)">
-    <div id="cam-test-title" style="font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:8px"></div>
+    <div id="cam-test-title" style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:8px"></div>
     <video id="cam-test-video" autoplay muted playsinline style="width:100%;aspect-ratio:16/9;background:#000;border-radius:4px;display:block"></video>
-    <div id="cam-test-status" style="font-size:10px;font-family:'Courier New',monospace;color:rgba(255,255,255,0.4);margin-top:8px;text-align:center">Connecting…</div>
+    <div id="cam-test-status" style="font-size:12px;font-family:'Courier New',monospace;color:rgba(255,255,255,0.4);margin-top:8px;text-align:center">Connecting…</div>
     <div style="text-align:center;margin-top:12px"><button class="perf-reset" onclick="closeCamStreamTest()">Close</button></div>
   </div>
 </div>
