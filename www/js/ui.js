@@ -202,10 +202,10 @@ document.addEventListener('keydown', e => {
 
   // ── Navigation + pause — always active, work even with modals open ──
   if (e.key === 'ArrowRight' && VIEWS.length > 1 && !anyOpen) {
-    navigateView(1); return;
+    if (!VIEWS_CYCLE || VIEWS.some(v => v.cycle !== false)) { navigateView(1); return; }
   }
   if (e.key === 'ArrowLeft' && VIEWS.length > 1 && !anyOpen) {
-    navigateView(-1); return;
+    if (!VIEWS_CYCLE || VIEWS.some(v => v.cycle !== false)) { navigateView(-1); return; }
   }
   if (e.key === ' ' && !anyOpen) {
     // Space = pause/resume cycling
@@ -284,6 +284,7 @@ document.addEventListener('touchend', e => {
   const anyOpen = ['settings-modal'].some(id => document.getElementById(id)?.classList.contains('open'));
   if (anyOpen) return;
 
+  if (VIEWS_CYCLE && !VIEWS.some(v => v.cycle !== false)) return;
   if (deltaX < 0) {
     navigateView(1);   // swipe left → next view
   } else {

@@ -73,6 +73,7 @@ function cancelDeleteView() {
 function toggleViewCycle(name) {
   const view = VIEWS.find(v => v.name === name);
   if (!view) return;
+  if (view.cycle !== false && VIEWS.filter(v => v.cycle !== false).length <= 1) return;
   view.cycle = view.cycle === false ? true : false;
   _persistViews();
   renderViewsTab();
