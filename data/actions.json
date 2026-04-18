@@ -10,6 +10,19 @@
         "autoConnect": true
       },
       {
+        "id": "home-wss",
+        "connectionType": "wss",
+        "host": "localhost",
+        "port": 9002,
+        "broker": "wss://localhost:9002",
+        "autoConnect": true,
+        "tls": {
+          "caFile": "ca.crt",
+          "certFile": "client.key",
+          "keyFile": "client.key"
+        }
+      },
+      {
         "id": "external-wss",
         "connectionType": "wss",
         "host": "10.8.123.100",
@@ -24,23 +37,17 @@
           "certFile": "client.crt",
           "keyFile": "client.key"
         }
-      },
-      {
-        "id": "home-wss",
-        "connectionType": "wss",
-        "host": "localhost",
-        "port": 9002,
-        "broker": "wss://localhost:9002",
-        "autoConnect": true,
-        "tls": {
-          "caFile": "ca.crt",
-          "certFile": "client.crt",
-          "keyFile": "client.key"
-        }
       }
     ]
   },
   "actions": [
+    {
+      "id": "Focus Panel 1 Second",
+      "type": "focus-panel",
+      "description": "1 Second Focus",
+      "icon": "mdi:fullscreen",
+      "timeout": 1
+    },
     {
       "id": "Focus Panel",
       "type": "focus-panel",
@@ -147,30 +154,30 @@
     {
       "id": "server-1-ping",
       "type": "mqtt",
-      "mqttServer": "external-wss",
       "description": "Server 1 Ping",
       "icon": "mdi:heart-pulse",
+      "mqttServer": "external-wss",
       "publish": {
-        "topic": "test/server1/ping",
+        "topic": "dev/server1/ping",
         "payload": "PING"
       },
       "state": {
-        "topic": "test/server1/status",
+        "topic": "dev/server1/status",
         "onValue": "PONG"
       }
     },
     {
       "id": "server-1-status",
       "type": "mqtt",
-      "mqttServer": "external-wss",
       "description": "Server 1 Status",
       "icon": "mdi:information-outline",
+      "mqttServer": "external-wss",
       "publish": {
-        "topic": "test/server1/status/request",
+        "topic": "dev/server1/status/request",
         "payload": "GET"
       },
       "state": {
-        "topic": "test/server1/status/response",
+        "topic": "dev/server1/status/response",
         "onValue": "READY"
       }
     }
@@ -200,8 +207,9 @@
       "id": "server-1-test",
       "name": "Server 1 Test",
       "actions": [
-        "server-1-ping",
-        "server-1-status"
+        "Next View",
+        "Previous View",
+        "Focus Panel 1 Second"
       ]
     }
   ]
