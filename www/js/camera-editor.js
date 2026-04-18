@@ -435,6 +435,8 @@ function addCamStream() {
   CAM_LOCAL_STREAMS.push(newStream);
   renderCamTable();
   openCamDrawer(newStream.path);
+  const pathInput = document.getElementById('cam-field-path');
+  if (pathInput) pathInput.focus();
 }
 
 // ── Drag-to-reorder ───────────────────────────────────────
