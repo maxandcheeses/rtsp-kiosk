@@ -1120,9 +1120,15 @@ function confirmDeleteAeAction(id) {
     if (Array.isArray(g.actions)) g.actions = g.actions.filter(aid => aid !== id);
   });
   if (AE_OPEN_DRAWER === id) AE_OPEN_DRAWER = null;
+  // Clean up dangling slotGroups references in views
+  (VIEWS || []).forEach(v => {
+    if (!Array.isArray(v.slotGroups)) return;
+    v.slotGroups = v.slotGroups.map(sg => sg === id ? null : sg);
+  });
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
   applyAeChanges();
+  _persistViews();
 }
 
 function addAeAction() {
@@ -1371,9 +1377,15 @@ function deleteAeGroup(id) {
 function confirmDeleteAeGroup(id) {
   AE_LOCAL.groups = (AE_LOCAL.groups || []).filter(g => g.id !== id);
   if (AE_OPEN_DRAWER === id) AE_OPEN_DRAWER = null;
+  // Clean up dangling slotGroups references in views
+  (VIEWS || []).forEach(v => {
+    if (!Array.isArray(v.slotGroups)) return;
+    v.slotGroups = v.slotGroups.map(sg => sg === id ? null : sg);
+  });
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
   applyAeChanges();
+  _persistViews();
 }
 
 function addAeGroup() {
