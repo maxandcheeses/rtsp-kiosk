@@ -237,7 +237,7 @@ function layoutSvgWithNumbers(layoutName, streams) {
     if (i >= (streams?.length || 0)) return '';
     const cellW = rects[i]?.w || 20;
     const fs    = cellW >= 46 ? 10 : cellW >= 26 ? 8 : 7;
-    return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="${fs}" font-weight="bold" fill="rgba(255,255,255,0.7)" clip-path="url(#lc${uid}_${i})">${i}</text>`;
+    return `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="${fs}" font-weight="bold" fill="rgba(255,255,255,0.7)" clip-path="url(#lc${uid}_${i})">${i + 1}</text>`;
   }).join('');
 
   return `<svg width="64" height="40" viewBox="0 0 80 50"><defs>${clipDefs}</defs>${rectsSvg}${labelsSvg}</svg>`;
