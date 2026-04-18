@@ -122,9 +122,17 @@ function _renderAeTabsInto(container) {
 
   const bannerHtml = AE_UNSAVED ? _buildAeBanner() : '';
 
+  const addActionBtn = AE_TAB === 'actions'
+    ? `<button class="cam-add-btn" style="margin-left:auto" onclick="addAeAction()">+ Add Action</button>`
+    : AE_TAB === 'mqtt'
+    ? `<button class="cam-add-btn" style="margin-left:auto" onclick="addAeSrv()">+ Add Server</button>`
+    : AE_TAB === 'groups'
+    ? `<button class="cam-add-btn" style="margin-left:auto" onclick="addAeGroup()">+ Add Group</button>`
+    : '';
+
   container.innerHTML = `
-    <div class="ae-tab-nav" style="width:100%;max-width:900px">${tabNav}</div>
-    <div id="ae-tab-content" style="width:100%;max-width:900px">${tabContent}</div>
+    <div class="ae-tab-nav" style="width:100%;max-width:900px;display:flex;align-items:center">${tabNav}${addActionBtn}</div>
+    <div id="ae-tab-content" class="ae-tab-body" style="width:100%;max-width:900px">${tabContent}</div>
     ${bannerHtml}`;
 
   if (AE_TAB === 'mqtt')    _initAeSrvDrag();
@@ -145,12 +153,8 @@ function switchAeTab(tab) {
 function _buildAeMqttTab() {
   const servers = (AE_LOCAL && AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || [];
 
-  const addBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-    <button class="cam-add-btn" onclick="addAeSrv()">+ Add Server</button>
-  </div>`;
-
   if (servers.length === 0) {
-    return addBtn + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
+    return `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
       NO SERVERS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Server above</span>
     </div>`;
   }
@@ -186,7 +190,7 @@ function _buildAeMqttTab() {
     </tr>`;
   });
 
-  return addBtn + `<table class="streams-table" style="width:100%">
+  return `<table class="streams-table" style="width:100%">
     <thead><tr>
       <th></th><th>ID</th><th>Broker</th><th></th>
     </tr></thead>
@@ -703,12 +707,8 @@ function _buildAeActionsTab() {
       <tbody>${builtinRows}</tbody>
     </table>`;
 
-  const addBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-    <button class="cam-add-btn" onclick="addAeAction()">+ Add Action</button>
-  </div>`;
-
   if (actions.length === 0) {
-    return addBtn + builtinSection + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
+    return builtinSection + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
       NO ACTIONS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Action above</span>
     </div>`;
   }
@@ -743,7 +743,7 @@ function _buildAeActionsTab() {
     </tr>`;
   });
 
-  return addBtn + builtinSection + `<table class="streams-table" style="width:100%">
+  return builtinSection + `<table class="streams-table" style="width:100%">
     <thead><tr>
       <th></th><th>ID</th><th>Description</th><th>Icon</th><th>Publish</th><th></th>
     </tr></thead>
@@ -1167,12 +1167,8 @@ function addAeAction() {
 function _buildAeGroupsTab() {
   const groups = (AE_LOCAL && AE_LOCAL.groups) || [];
 
-  const addBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-    <button class="cam-add-btn" onclick="addAeGroup()">+ Add Group</button>
-  </div>`;
-
   if (groups.length === 0) {
-    return addBtn + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
+    return `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
       NO GROUPS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Group above</span>
     </div>`;
   }
@@ -1203,7 +1199,7 @@ function _buildAeGroupsTab() {
     </tr>`;
   });
 
-  return addBtn + `<table class="streams-table" style="width:100%">
+  return `<table class="streams-table" style="width:100%">
     <thead><tr>
       <th></th><th>ID</th><th>Name</th><th>Actions</th><th></th>
     </tr></thead>

@@ -814,7 +814,8 @@
     }
 
     /* ─── Actions tab ─── */
-    .ae-tab-nav { display:flex; gap:4px; margin-bottom:20px; position:sticky; top:0; z-index:2; background:rgb(13,13,13); }
+    .ae-tab-nav { display:flex; gap:4px; align-items:center; margin-bottom:12px; }
+    .ae-tab-body { overflow-y:auto; max-height:calc(min(560px, 85vh) - 32px - 32px - 44px); }
     .ae-tab-btn { padding:6px 16px; border:1px solid rgba(255,255,255,0.12); border-radius:3px; background:transparent; color:rgba(255,255,255,0.4); font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
     .ae-tab-btn.active { border-color:rgba(255,255,255,0.35); color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.06); }
 
