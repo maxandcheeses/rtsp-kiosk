@@ -13,10 +13,11 @@
       "duration": 20,
       "cycle": true,
       "slotGroups": [
-        "Focus Panel 1 Second",
+        "front-door",
         "Next View",
         "Previous View"
-      ]
+      ],
+      "preloadLeadTime": 5
     },
     {
       "name": "all-cams-mirror",
@@ -31,7 +32,7 @@
       "slotGroups": [
         "Next View",
         "Previous View",
-        "server-1-ping"
+        "living-rooms"
       ]
     }
   ]

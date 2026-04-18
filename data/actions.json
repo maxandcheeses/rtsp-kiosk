@@ -124,9 +124,9 @@
     {
       "id": "lock-door",
       "type": "mqtt",
-      "mqttServer": "home",
       "description": "Lock",
       "icon": "mdi:lock",
+      "mqttServer": "home",
       "publish": {
         "topic": "home/front-door/lock/set",
         "payload": "LOCK"
@@ -139,9 +139,9 @@
     {
       "id": "unlock-door",
       "type": "mqtt",
-      "mqttServer": "home",
       "description": "Unlock",
       "icon": "mdi:lock-open",
+      "mqttServer": "home",
       "publish": {
         "topic": "home/front-door/lock/set",
         "payload": "UNLOCK"
@@ -189,9 +189,9 @@
       "actions": [
         "lights-on",
         "lights-off",
-        "Next View",
         "Previous View",
-        "Focus Panel",
+        "Next View",
+        "Focus Panel 1 Second",
         "fan-on"
       ]
     },
@@ -199,17 +199,9 @@
       "id": "front-door",
       "name": "Front Door",
       "actions": [
+        "unlock-door",
         "lock-door",
-        "unlock-door"
-      ]
-    },
-    {
-      "id": "server-1-test",
-      "name": "Server 1 Test",
-      "actions": [
-        "Next View",
-        "Previous View",
-        "Focus Panel 1 Second"
+        "server-1-ping"
       ]
     }
   ]
