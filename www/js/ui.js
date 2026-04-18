@@ -41,6 +41,8 @@ let _activeSettingsTab = 'general';
 
 function closeAllModals() {
   document.getElementById('settings-modal').classList.remove('open');
+  // Close cam stream test modal if open
+  if (typeof closeCamStreamTest === 'function') closeCamStreamTest();
   // Discard any unsaved changes in the cameras and actions editors
   if (typeof discardCamChanges === 'function') discardCamChanges();
   if (typeof discardAeChanges  === 'function') discardAeChanges();
@@ -196,6 +198,7 @@ document.addEventListener('keydown', e => {
     const focusOverlay = document.getElementById('focus-panel-overlay');
     if (focusOverlay && focusOverlay.classList.contains('open')) { if (typeof closeFocusPanel === 'function') closeFocusPanel(); return; }
     if (typeof closeActionsModal === 'function' && ACTIONS_MODAL_OPEN) { closeActionsModal(); return; }
+    if (document.getElementById('cam-test-modal')?.style.display === 'flex') { if (typeof closeCamStreamTest === 'function') closeCamStreamTest(); return; }
     if (anyOpen) { closeAllModals(); return; }
     if (modalsEnabled) { openSettingsModal(); return; }
   }

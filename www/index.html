@@ -1200,6 +1200,16 @@
 </div>
 <div id="actions-backdrop" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:10000;" onclick="closeActionsModal()"></div>
 
+<!-- Camera stream test modal -->
+<div id="cam-test-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;flex-direction:column" onclick="if(event.target===this)closeCamStreamTest()">
+  <div style="background:#111;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:20px;min-width:400px;max-width:760px;width:calc(100% - 48px)">
+    <div id="cam-test-title" style="font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:8px"></div>
+    <video id="cam-test-video" autoplay muted playsinline style="width:100%;aspect-ratio:16/9;background:#000;border-radius:4px;display:block"></video>
+    <div id="cam-test-status" style="font-size:10px;font-family:'Courier New',monospace;color:rgba(255,255,255,0.4);margin-top:8px;text-align:center">Connecting…</div>
+    <div style="text-align:center;margin-top:12px"><button class="perf-reset" onclick="closeCamStreamTest()">Close</button></div>
+  </div>
+</div>
+
 <script src="/js/config.js"></script>
 <script src="/js/layouts.js"></script>
 <script src="/js/webrtc.js"></script>

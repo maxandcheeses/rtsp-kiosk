@@ -130,6 +130,7 @@ function renderCamTable() {
       <td style="width:40px;text-align:center"><span class="stream-status ${streamStatus}"></span></td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${camEscHtml(camMaskSource(stream.source))}</td>
       <td style="text-align:right;white-space:nowrap">
+        <button class="sp-btn" onclick="openCamStreamTest('${camEscHtml(stream.path)}')" title="Test stream" style="color:rgba(74,222,128,0.6);border-color:rgba(74,222,128,0.2)">▶</button>
         <button class="sp-btn" onclick="openCamDrawer('${camEscHtml(stream.path)}')" title="Edit">✎</button>
         <button class="sp-btn" onclick="deleteCamStream('${camEscHtml(stream.path)}')" title="Delete" style="color:rgba(248,113,113,0.6);border-color:rgba(248,113,113,0.2)">✕</button>
       </td>`;
@@ -535,4 +536,87 @@ function _onCamDragEnd(e) {
   CAM_LOCAL_STREAMS.splice(newIdx, 0, moved);
   markCamUnsaved();
   renderCamTable();
+}
+
+// ── Camera stream test modal ───────────────────────────────
+
+let _camTestPC = null;
+
+async function openCamStreamTest(path) {
+  const modal   = document.getElementById('cam-test-modal');
+  const titleEl = document.getElementById('cam-test-title');
+  const videoEl = document.getElementById('cam-test-video');
+  const statusEl = document.getElementById('cam-test-status');
+
+  // Close any existing test connection first
+  closeCamStreamTest();
+
+  titleEl.textContent = path;
+  statusEl.textContent = 'Connecting…';
+  statusEl.style.color = 'rgba(255,255,255,0.4)';
+  videoEl.srcObject = null;
+  modal.style.display = 'flex';
+
+  const whepUrl = `http://${MEDIAMTX_HOST}:${MEDIAMTX_PORT}/${path}/whep`;
+
+  try {
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+    });
+    _camTestPC = pc;
+
+    pc.ontrack = e => {
+      videoEl.srcObject = e.streams[0];
+      videoEl.play().catch(() => {});
+      statusEl.textContent = 'Connected';
+      statusEl.style.color = 'rgba(74,222,128,0.7)';
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+        statusEl.textContent = 'Connection lost';
+        statusEl.style.color = 'rgba(248,113,113,0.7)';
+      }
+    };
+
+    pc.addTransceiver('video', { direction: 'recvonly' });
+    pc.addTransceiver('audio', { direction: 'inactive' });
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    await new Promise(resolve => {
+      if (pc.iceGatheringState === 'complete') return resolve();
+      pc.onicegatheringstatechange = () => {
+        if (pc.iceGatheringState === 'complete') resolve();
+      };
+      setTimeout(resolve, 5000);
+    });
+
+    const res = await fetch(whepUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/sdp' },
+      body: pc.localDescription.sdp,
+    });
+
+    if (!res.ok) throw new Error(`WHEP ${res.status}`);
+    await pc.setRemoteDescription({ type: 'answer', sdp: await res.text() });
+
+  } catch(e) {
+    console.error('[CamTest] WHEP error:', e);
+    statusEl.textContent = `Error: ${e.message}`;
+    statusEl.style.color = 'rgba(248,113,113,0.7)';
+    if (_camTestPC) { try { _camTestPC.close(); } catch(_) {} _camTestPC = null; }
+  }
+}
+
+function closeCamStreamTest() {
+  const modal   = document.getElementById('cam-test-modal');
+  const videoEl = document.getElementById('cam-test-video');
+  if (modal) modal.style.display = 'none';
+  if (videoEl) videoEl.srcObject = null;
+  if (_camTestPC) {
+    try { _camTestPC.close(); } catch(_) {}
+    _camTestPC = null;
+  }
 }
