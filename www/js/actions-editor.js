@@ -1210,7 +1210,8 @@ function _buildAeGroupDrawerForm(group, isNew) {
   let slotsHtml = '';
   for (let i = 0; i < numSlots; i++) {
     const val = slots[i] || '';
-    slotsHtml += `<div class="views-form-row" id="ae-slot-row-${i}">
+    slotsHtml += `<div class="views-form-row" id="ae-slot-row-${i}" style="align-items:center">
+      <span class="cam-drag-handle" style="margin-right:6px;flex-shrink:0;cursor:grab">≡</span>
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Button ${i + 1}</label>
       <select class="views-input" id="ae-slot-${i}" style="flex:none;width:auto">
         <option value="">— none —</option>
@@ -1267,7 +1268,9 @@ function _aeAddSlot(currentCount) {
   builtinsAdd.forEach(a => mergedMapAdd.set(a.id, a));
   allActions.forEach(a => { if (!mergedMapAdd.has(a.id)) mergedMapAdd.set(a.id, a); });
   const sortedActionsAdd = [...mergedMapAdd.values()].sort((a, b) => typeOrderAdd(a) - typeOrderAdd(b));
+  slotRow.style.alignItems = 'center';
   slotRow.innerHTML = `
+    <span class="cam-drag-handle" style="margin-right:6px;flex-shrink:0;cursor:grab">≡</span>
     <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Button ${currentCount + 1}</label>
     <select class="views-input" id="ae-slot-${currentCount}" style="flex:none;width:auto">
       <option value="">— none —</option>
@@ -1281,6 +1284,7 @@ function _aeAddSlot(currentCount) {
   } else {
     container.appendChild(slotRow);
   }
+  _initAeSlotDrag();
 }
 
 function openAeGroupDrawer(id) {
@@ -1295,6 +1299,7 @@ function openAeGroupDrawer(id) {
   if (!inner) return;
   const isNew = !AE_FULL || !(AE_FULL.groups || []).find(g => g.id === id);
   inner.innerHTML = _buildAeGroupDrawerForm(group, isNew);
+  _initAeSlotDrag();
   const drawer = document.getElementById(`ae-group-drawer-${id}`);
   if (drawer) drawer.style.maxHeight = '9999px';
   AE_OPEN_DRAWER = id;
@@ -1630,6 +1635,92 @@ function _onAeGroupDragEnd(e) {
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
   markAeUnsaved();
+}
+
+// ── Drag-to-reorder: Group Drawer Slots ──────────────────────────────────────
+
+function _initAeSlotDrag() {
+  document.querySelectorAll('#ae-slots-container .cam-drag-handle').forEach(handle => {
+    handle.addEventListener('pointerdown', _onAeSlotDragDown, { passive: false });
+  });
+}
+
+function _onAeSlotDragDown(e) {
+  e.preventDefault();
+  const handle = e.currentTarget;
+  const row    = handle.closest('.views-form-row[id^="ae-slot-row-"]');
+  const container = document.getElementById('ae-slots-container');
+  if (!container || !row) return;
+  const rows = [...container.querySelectorAll('.views-form-row[id^="ae-slot-row-"]')];
+  const idx  = rows.indexOf(row);
+  if (idx < 0) return;
+
+  const rect  = row.getBoundingClientRect();
+  const ghost = document.createElement('div');
+  ghost.id = 'ae-drag-ghost';
+  ghost.style.cssText = `position:fixed;z-index:2000;pointer-events:none;background:rgba(15,15,15,0.97);border:1px solid rgba(74,222,128,0.5);border-radius:3px;box-shadow:0 6px 24px rgba(0,0,0,0.7);display:flex;align-items:center;padding:0 16px;font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.8);left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px`;
+  const sel = row.querySelector('select');
+  ghost.textContent = sel ? (sel.value || '— none —') : '';
+  document.body.appendChild(ghost);
+
+  row.classList.add('cam-row-dragging');
+  handle.setPointerCapture(e.pointerId);
+  _aeDrag = { type: 'slot', idx, dropIdx: idx, ghost, rows, offsetY: e.clientY - rect.top };
+  handle.addEventListener('pointermove',   _onAeSlotDragMove);
+  handle.addEventListener('pointerup',     _onAeSlotDragEnd);
+  handle.addEventListener('pointercancel', _onAeSlotDragEnd);
+}
+
+function _onAeSlotDragMove(e) {
+  if (!_aeDrag) return;
+  const { ghost, rows, offsetY } = _aeDrag;
+  ghost.style.top = (e.clientY - offsetY) + 'px';
+  let dropIdx = rows.length;
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i].getBoundingClientRect();
+    if (e.clientY < r.top + r.height / 2) { dropIdx = i; break; }
+  }
+  _aeDrag.dropIdx = dropIdx;
+  rows.forEach(r => r.classList.remove('cam-drop-before', 'cam-drop-after'));
+  if (dropIdx < rows.length) rows[dropIdx].classList.add('cam-drop-before');
+  else rows[rows.length - 1].classList.add('cam-drop-after');
+}
+
+function _onAeSlotDragEnd(e) {
+  if (!_aeDrag) return;
+  const { idx, dropIdx, ghost, rows } = _aeDrag;
+  const handle = e.currentTarget;
+  handle.removeEventListener('pointermove',   _onAeSlotDragMove);
+  handle.removeEventListener('pointerup',     _onAeSlotDragEnd);
+  handle.removeEventListener('pointercancel', _onAeSlotDragEnd);
+  ghost.remove();
+  rows.forEach(r => r.classList.remove('cam-row-dragging', 'cam-drop-before', 'cam-drop-after'));
+  _aeDrag = null;
+  const newIdx = dropIdx <= idx ? dropIdx : dropIdx - 1;
+  if (newIdx === idx) return;
+
+  // Reorder rows in the DOM
+  const container = document.getElementById('ae-slots-container');
+  const addBtn    = document.getElementById('ae-add-slot-btn');
+  if (!container) return;
+  const [movedRow] = rows.splice(idx, 1);
+  rows.splice(newIdx, 0, movedRow);
+  rows.forEach(r => {
+    if (addBtn) container.insertBefore(r, addBtn);
+    else container.appendChild(r);
+  });
+
+  // Renumber all slot row ids and select ids sequentially from 0
+  rows.forEach((r, i) => {
+    r.id = `ae-slot-row-${i}`;
+    const label = r.querySelector('label');
+    if (label) label.textContent = `Button ${i + 1}`;
+    const sel = r.querySelector('select');
+    if (sel) sel.id = `ae-slot-${i}`;
+  });
+
+  // Re-wire drag handles
+  _initAeSlotDrag();
 }
 
 // ── Drag-to-reorder: Servers ──────────────────────────────────────────────────
