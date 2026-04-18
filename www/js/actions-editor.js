@@ -131,6 +131,7 @@ function _renderAeTabsInto(container) {
     : '';
 
   container.innerHTML = `
+    <p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0 0 20px">Automate kiosk behavior using MQTT events.</p>
     <div class="ae-tab-nav" style="width:100%;max-width:900px;display:flex;align-items:center">${tabNav}${addActionBtn}</div>
     <div id="ae-tab-content" class="ae-tab-body" style="width:100%;max-width:900px">${tabContent}</div>
     ${bannerHtml}`;
@@ -152,9 +153,10 @@ function switchAeTab(tab) {
 
 function _buildAeMqttTab() {
   const servers = (AE_LOCAL && AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || [];
+  const descHtml = `<p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0 0 20px">Connect to MQTT brokers for event messaging.</p>`;
 
   if (servers.length === 0) {
-    return `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
+    return descHtml + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
       NO SERVERS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Server above</span>
     </div>`;
   }
@@ -190,7 +192,7 @@ function _buildAeMqttTab() {
     </tr>`;
   });
 
-  return `<table class="streams-table" style="width:100%">
+  return descHtml + `<table class="streams-table" style="width:100%">
     <thead><tr>
       <th></th><th>ID</th><th>Broker</th><th></th>
     </tr></thead>
@@ -693,6 +695,7 @@ function _onAeSrvDragEnd(e) {
 
 function _buildAeActionsTab() {
   const actions = (AE_LOCAL && AE_LOCAL.actions) || [];
+  const descHtml = `<p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0 0 20px">Map MQTT triggers to kiosk commands.</p>`;
 
   const builtinRows = Object.values(BUILTIN_ACTIONS).map(action => {
     const iconHtml = action.icon ? _renderIcon(action.icon) : '';
@@ -713,7 +716,7 @@ function _buildAeActionsTab() {
     </table>`;
 
   if (actions.length === 0) {
-    return builtinSection + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
+    return descHtml + builtinSection + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
       NO ACTIONS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Action above</span>
     </div>`;
   }
@@ -748,7 +751,7 @@ function _buildAeActionsTab() {
     </tr>`;
   });
 
-  return builtinSection + `<table class="streams-table" style="width:100%">
+  return descHtml + builtinSection + `<table class="streams-table" style="width:100%">
     <thead><tr>
       <th></th><th>ID</th><th>Description</th><th>Icon</th><th>Publish</th><th></th>
     </tr></thead>
@@ -1171,9 +1174,10 @@ function addAeAction() {
 
 function _buildAeGroupsTab() {
   const groups = (AE_LOCAL && AE_LOCAL.groups) || [];
+  const descHtml = `<p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0 0 20px">Organize cameras into logical groups.</p>`;
 
   if (groups.length === 0) {
-    return `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
+    return descHtml + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
       NO GROUPS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Group above</span>
     </div>`;
   }
@@ -1204,7 +1208,7 @@ function _buildAeGroupsTab() {
     </tr>`;
   });
 
-  return `<table class="streams-table" style="width:100%">
+  return descHtml + `<table class="streams-table" style="width:100%">
     <thead><tr>
       <th></th><th>ID</th><th>Name</th><th>Actions</th><th></th>
     </tr></thead>
