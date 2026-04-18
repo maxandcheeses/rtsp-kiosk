@@ -11,7 +11,12 @@
         "test-3"
       ],
       "duration": 20,
-      "preloadLeadTime": 20
+      "cycle": true,
+      "slotGroups": [
+        "Focus Panel 1 Second",
+        "Next View",
+        "Previous View"
+      ]
     },
     {
       "name": "all-cams-mirror",
@@ -22,7 +27,12 @@
         "test-1"
       ],
       "duration": 20,
-      "preloadLeadTime": 20
+      "cycle": true,
+      "slotGroups": [
+        "Next View",
+        "Previous View",
+        "server-1-ping"
+      ]
     }
   ]
 }

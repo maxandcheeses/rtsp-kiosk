@@ -72,6 +72,14 @@ function cancelDeleteView() {
   renderViewsTab();
 }
 
+function toggleViewCycle(name) {
+  const view = VIEWS.find(v => v.name === name);
+  if (!view) return;
+  view.cycle = view.cycle === false ? true : false;
+  _persistViews();
+  renderViewsTab();
+}
+
 function cloneView(name) {
   const view = getView(name);
   if (!view) return;
@@ -353,6 +361,7 @@ function saveViewForm() {
     layout:     _editLayoutSel,
     streams:    _editStreams.filter(Boolean),
     duration:   isNaN(dur) ? 20 : dur,
+    cycle:      _editingViewName ? (getView(_editingViewName)?.cycle ?? true) : true,
     slotGroups: _editSlotGroups.map(g => g || null),
     ...(preloadEnabled ? { preloadLeadTime: isNaN(lead) ? 5 : lead } : {}),
   };

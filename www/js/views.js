@@ -103,6 +103,12 @@ function activateView(name, skipCycleReset) {
 
 }
 
+function getCycleViews() {
+  if (!VIEWS_CYCLE) return VIEWS;
+  const filtered = VIEWS.filter(v => v.cycle !== false);
+  return filtered.length > 0 ? filtered : VIEWS;
+}
+
 function scheduleCycle(view) {
   clearCycle();
   clearPreload();
@@ -114,9 +120,10 @@ function scheduleCycle(view) {
   if (!duration || duration < 0) return; // -1 = stay forever, no auto-advance
 
   cycleTimer = setTimeout(() => {
-    const idx  = VIEWS.findIndex(v => v.name === view.name);
-    const next = VIEWS[(idx + 1) % VIEWS.length];
-    cycleIndex = (idx + 1) % VIEWS.length;
+    const pool  = getCycleViews();
+    const idx   = pool.findIndex(v => v.name === view.name);
+    const next  = pool[(idx + 1) % pool.length];
+    cycleIndex  = VIEWS.findIndex(v => v.name === next.name);
     console.log(`[Cycle] ${view.name} → ${next.name}`);
     showIndicator('playing', next.name);
     activateView(next.name);
@@ -130,8 +137,9 @@ function clearCycle() {
 
 function startCycling() {
   cycleIndex = 0;
-  if (VIEWS.length === 0) return;
-  activateView(VIEWS[0].name);
+  const pool = getCycleViews();
+  if (pool.length === 0) return;
+  activateView(pool[0].name);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -186,17 +194,19 @@ function resumeCycle() {
   if (resumeDuration > 0) {
     cycleStartedAt = Date.now() - (cycleDuration - resumeDuration);
     cycleTimer = setTimeout(() => {
-      const idx  = VIEWS.findIndex(v => v.name === view.name);
-      const next = VIEWS[(idx + 1) % VIEWS.length];
-      cycleIndex = (idx + 1) % VIEWS.length;
+      const pool  = getCycleViews();
+      const idx   = pool.findIndex(v => v.name === view.name);
+      const next  = pool[(idx + 1) % pool.length];
+      cycleIndex  = VIEWS.findIndex(v => v.name === next.name);
       console.log(`[Cycle] ${view.name} → ${next.name}`);
       activateView(next.name);
     }, resumeDuration);
     schedulePreload(view);
   } else {
     // Time already expired — advance immediately
-    const idx  = VIEWS.findIndex(v => v.name === view.name);
-    const next = VIEWS[(idx + 1) % VIEWS.length];
+    const pool  = getCycleViews();
+    const idx   = pool.findIndex(v => v.name === view.name);
+    const next  = pool[(idx + 1) % pool.length];
     activateView(next.name);
   }
   updateDebugOverlay();
@@ -204,9 +214,11 @@ function resumeCycle() {
 
 function navigateView(direction) {
   // direction: 1 = forward, -1 = backward
-  const idx     = VIEWS.findIndex(v => v.name === activeView);
-  const nextIdx = (idx + direction + VIEWS.length) % VIEWS.length;
-  const next    = VIEWS[nextIdx];
+  const pool    = getCycleViews();
+  const idx     = pool.findIndex(v => v.name === activeView);
+  const safeIdx = idx < 0 ? 0 : idx;
+  const nextIdx = (safeIdx + direction + pool.length) % pool.length;
+  const next    = pool[nextIdx];
   if (!next) return;
 
   // Pause auto-cycle during manual navigation if cycling is on

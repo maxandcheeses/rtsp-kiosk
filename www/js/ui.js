@@ -114,6 +114,11 @@ function renderViewsTab() {
            <button class="sp-btn" title="Edit" onclick="openViewEditor('${v.name}')">✎</button>
            <button class="sp-btn" title="Delete" style="color:rgba(248,113,113,0.9)" onclick="promptDeleteView('${v.name}')">✕</button>
          </td>`;
+    const cycleToggle = VIEWS_CYCLE
+      ? `<td style="text-align:center;padding:4px 8px">
+           <input type="checkbox" ${v.cycle !== false ? 'checked' : ''} onchange="toggleViewCycle('${v.name}')" title="Include in cycle">
+         </td>`
+      : `<td></td>`;
     return `<tr class="${isActive ? 'active-view' : ''}${confirming ? ' view-row-confirm' : ''}">
       <td class="view-drag-handle">≡</td>
       <td>${isActive ? '▶' : ''}</td>
@@ -121,9 +126,10 @@ function renderViewsTab() {
       <td title="${v.layout || '—'}" style="padding:6px 16px">${layoutSvg}</td>
       <td title="${(v.streams || []).map((s,i) => i+':'+s).join(', ')}">${(v.streams || []).map((s,i) => `<span style="color:rgba(255,255,255,0.4)">${i}</span>:${s}`).join('  ')}</td>
       <td>${duration}</td>
+      ${cycleToggle}
       ${actionCell}
     </tr>`;
-  }).join('') || '<tr><td colspan="7" style="opacity:0.4;padding:16px">No views configured — click + Add View</td></tr>';
+  }).join('') || '<tr><td colspan="8" style="opacity:0.4;padding:16px">No views configured — click + Add View</td></tr>';
 
   _initViewDrag();
 }
