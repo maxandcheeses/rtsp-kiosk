@@ -104,7 +104,6 @@ function activateView(name, skipCycleReset) {
 }
 
 function getCycleViews() {
-  if (!VIEWS_CYCLE) return VIEWS;
   const filtered = VIEWS.filter(v => v.cycle !== false);
   return filtered.length > 0 ? filtered : VIEWS;
 }
