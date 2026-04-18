@@ -706,7 +706,7 @@ function _buildAeActionsTab() {
   </div>`;
 
   if (actions.length === 0) {
-    return builtinSection + addBtn + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
+    return addBtn + builtinSection + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
       NO ACTIONS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Action above</span>
     </div>`;
   }
@@ -741,7 +741,7 @@ function _buildAeActionsTab() {
     </tr>`;
   });
 
-  return builtinSection + addBtn + `<table class="streams-table" style="width:100%">
+  return addBtn + builtinSection + `<table class="streams-table" style="width:100%">
     <thead><tr>
       <th></th><th>ID</th><th>Description</th><th>Icon</th><th>Publish</th><th></th>
     </tr></thead>
