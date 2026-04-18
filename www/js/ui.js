@@ -94,15 +94,6 @@ function renderViewsTab() {
   const cycleChk = document.getElementById('views-cycle-chk');
   if (cycleChk) cycleChk.checked = VIEWS_CYCLE;
 
-  const defaultSel = document.getElementById('views-default-sel');
-  if (defaultSel) {
-    defaultSel.innerHTML = VIEWS.map(v =>
-      `<option value="${v.name}"${v.name === VIEWS_DEFAULT ? ' selected' : ''}>${v.name}</option>`
-    ).join('');
-  }
-
-  _updateDefaultVisibility();
-
   // Show table, hide edit panel
   document.getElementById('views-table-wrap').style.display = '';
   document.getElementById('view-edit-panel').style.display = 'none';
@@ -136,14 +127,17 @@ function renderViewsTab() {
       <td>${isActive ? '▶' : ''}</td>
       <td title="${v.name}">${v.name}</td>
       <td title="${v.layout || '—'}" style="padding:6px 16px">${layoutSvg}</td>
-      <td title="${(v.streams || []).map((s,i) => i+':'+s).join(', ')}">${(v.streams || []).map((s,i) => `<span style="color:rgba(255,255,255,0.4)">${i}</span>:${s}`).join('  ')}</td>
-      <td>${duration}</td>
+      <td title="${(v.streams || []).map((s,i) => i+':'+s).join(', ')}"><div style="display:flex;flex-direction:column;gap:2px">${(v.streams || []).map((s,i) => `<span><span style="color:rgba(255,255,255,0.4)">${i}</span>:${s}</span>`).join('')}</div></td>
+      <td class="views-duration-col">${duration}</td>
       ${cycleToggle}
       ${actionCell}
     </tr>`;
   }).join('') || '<tr><td colspan="8" style="opacity:0.4;padding:16px">No views configured — click + Add View</td></tr>';
 
   _initViewDrag();
+
+  const tableWrap = document.getElementById('views-table-wrap');
+  if (tableWrap) tableWrap.classList.toggle('views-cycle-off', !VIEWS_CYCLE);
 }
 
 function openViewsModal() {
