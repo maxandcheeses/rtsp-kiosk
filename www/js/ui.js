@@ -65,6 +65,20 @@ function activateSettingsTab(tab) {
     renderActionsTab();
   }
   if (tab === 'streams') renderStreamsTab();
+  const footerDescriptions = {
+    general:     'Keyboard shortcuts and global preferences.',
+    cameras:     'Manage IP cameras and RTSP stream sources.',
+    views:       'Define and organize named layouts for the video wall.',
+    actions:     'Automate kiosk behavior using MQTT events.',
+    performance: 'Tune WebRTC streaming quality and behavior.',
+    streams:     'Monitor live stream health and connection status.',
+  };
+  setSettingsFooter(footerDescriptions[tab] || '');
+}
+
+function setSettingsFooter(text) {
+  const el = document.getElementById('settings-tab-footer');
+  if (el) el.textContent = text;
 }
 
 function openSettingsModal(tab = 'general') {

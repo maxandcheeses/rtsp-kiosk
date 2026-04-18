@@ -917,7 +917,6 @@
       <!-- General tab -->
       <div id="stab-general" class="settings-tab-panel">
         <h1 style="margin-bottom:8px">Settings</h1>
-        <p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0 0 20px">Keyboard shortcuts and global preferences.</p>
         <div class="shortcut-list">
           <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Audio</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="settings-mute" onchange="toggleMute()"><span class="toggle-track"></span></label></div></div>
           <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Debug overlay</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="perf-debug-overlay" onchange="savePerfSettings()"><span class="toggle-track"></span></label></div></div>
@@ -941,7 +940,6 @@
 
       <!-- Views tab -->
       <div id="stab-views" class="settings-tab-panel" style="display:none">
-        <p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0 0 20px">Define and organize named layouts for the video wall.</p>
         <!-- Table view -->
         <div id="views-table-wrap" style="width:100%;max-width:900px;display:flex;flex-direction:column;gap:0">
           <div class="views-toolbar">
@@ -1019,7 +1017,6 @@
 
       <!-- Cameras tab -->
       <div id="stab-cameras" class="settings-tab-panel" style="display:none">
-        <p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0 0 20px">Manage IP cameras and RTSP stream sources.</p>
         <div class="cam-toolbar">
           <span style="flex:1"></span>
           <button class="cam-add-btn" id="cam-add-btn" onclick="addCamStream()">+ Add Camera</button>
@@ -1055,7 +1052,6 @@
 
       <!-- Performance tab -->
       <div id="stab-performance" class="settings-tab-panel" style="display:none">
-        <p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0 0 20px">Tune WebRTC streaming quality and behavior.</p>
         <div class="perf-section">
           <div class="perf-section-title">WebRTC</div>
           <div class="perf-rows">
@@ -1132,7 +1128,6 @@
 
       <!-- Streams tab -->
       <div id="stab-streams" class="settings-tab-panel" style="display:none">
-        <p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0 0 20px">Monitor live stream health and connection status.</p>
         <div class="tab-scroll-body">
           <table class="streams-table">
             <thead>
@@ -1151,6 +1146,7 @@
         </div>
       </div>
 
+      <div id="settings-tab-footer" style="flex-shrink:0; border-top:1px solid rgba(255,255,255,0.06); padding:10px 40px; font-size:11px; color:rgba(255,255,255,0.3); font-family:'Courier New',monospace; letter-spacing:0.03em; min-height:38px; display:flex; align-items:center;"></div>
     </div><!-- /.settings-content -->
   </div><!-- /.settings-layout -->
 </div><!-- /#settings-modal -->
