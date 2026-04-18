@@ -127,8 +127,9 @@ function renderViewsTab() {
            <button class="sp-btn" title="Edit" onclick="openViewEditor('${v.name}')">✎</button>
            <button class="sp-btn" title="Delete" style="color:rgba(248,113,113,0.7);border-color:rgba(248,113,113,0.2)" onclick="promptDeleteView('${v.name}')">✕</button>
          </td>`;
+    const onlyCycleView = VIEWS_CYCLE && v.cycle !== false && VIEWS.filter(w => w.cycle !== false).length <= 1;
     const cycleToggle = `<td style="padding:4px 8px">
-           <input type="checkbox" ${v.cycle !== false ? 'checked' : ''} onchange="toggleViewCycle('${v.name}')" title="Include in cycle">
+           <input type="checkbox" ${v.cycle !== false ? 'checked' : ''} ${onlyCycleView ? 'disabled title="At least one view must be included in cycle"' : 'title="Include in cycle"'} onchange="toggleViewCycle('${v.name}')">
          </td>`;
     return `<tr class="${isActive ? 'active-view' : ''}${confirming ? ' view-row-confirm' : ''}">
       <td class="view-drag-handle">≡</td>

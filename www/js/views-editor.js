@@ -29,8 +29,12 @@ function _updateDefaultVisibility() {
 
 function onViewsCycleToggle() {
   VIEWS_CYCLE = document.getElementById('views-cycle-chk').checked;
+  if (VIEWS_CYCLE && VIEWS.length > 0 && VIEWS.filter(v => v.cycle !== false).length === 0) {
+    VIEWS[0].cycle = true;
+  }
   _persistViews();
   _updateDefaultVisibility();
+  renderViewsTab();
 }
 
 function onViewsDefaultChange() {
@@ -73,7 +77,7 @@ function cancelDeleteView() {
 function toggleViewCycle(name) {
   const view = VIEWS.find(v => v.name === name);
   if (!view) return;
-  if (view.cycle !== false && VIEWS.filter(v => v.cycle !== false).length <= 1) return;
+  if (VIEWS_CYCLE && view.cycle !== false && VIEWS.filter(v => v.cycle !== false).length <= 1) return;
   view.cycle = view.cycle === false ? true : false;
   _persistViews();
   renderViewsTab();
