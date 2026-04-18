@@ -491,9 +491,14 @@ function addAeSrv() {
 }
 
 function aeTrustBrokerCert() {
-  const host = (document.getElementById('ae-field-srv-host') || {}).value || '';
+  const hostEl = document.getElementById('ae-field-srv-host');
+  const host = (hostEl || {}).value || '';
   const port = (document.getElementById('ae-field-srv-port') || {}).value || '';
-  if (!host) { alert('Enter a host first.'); return; }
+  if (!host) {
+    const errHost = document.getElementById('ae-err-srv-host');
+    if (errHost) errHost.textContent = 'Host is required';
+    return;
+  }
   window.open(`https://${host}:${port}`, '_blank');
 }
 

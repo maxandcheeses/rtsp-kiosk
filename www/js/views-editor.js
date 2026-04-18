@@ -212,6 +212,9 @@ function openViewEditor(name) {
 }
 
 function _showViewForm(view) {
+  ['ve-err-name', 've-err-layout', 've-err-streams'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = '';
+  });
   document.getElementById('views-table-wrap').style.display = 'none';
   document.getElementById('view-edit-panel').style.display  = '';
   document.getElementById('view-edit-title').textContent = _editingViewName ? `Edit: ${_editingViewName}` : 'New View';
@@ -357,14 +360,30 @@ function toggleVePreload() {
 }
 
 function saveViewForm() {
+  // Clear all inline errors
+  ['ve-err-name', 've-err-layout', 've-err-streams'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = '';
+  });
+
   const name           = document.getElementById('ve-name').value.trim();
   const dur            = parseInt(document.getElementById('ve-duration').value, 10);
   const preloadEnabled = document.getElementById('ve-preload-enabled').checked;
   const lead           = preloadEnabled ? parseInt(document.getElementById('ve-leadtime').value, 10) : undefined;
 
-  if (!name)           { alert('View name is required'); return; }
-  if (!_editLayoutSel) { alert('Select a layout'); return; }
-  if (_editStreams.filter(Boolean).length === 0) { alert('Add at least one stream'); return; }
+  let valid = true;
+  if (!name) {
+    const el = document.getElementById('ve-err-name'); if (el) el.textContent = 'Name is required';
+    valid = false;
+  }
+  if (!_editLayoutSel) {
+    const el = document.getElementById('ve-err-layout'); if (el) el.textContent = 'Select a layout';
+    valid = false;
+  }
+  if (_editStreams.filter(Boolean).length === 0) {
+    const el = document.getElementById('ve-err-streams'); if (el) el.textContent = 'Add at least one stream';
+    valid = false;
+  }
+  if (!valid) return;
 
   const view = {
     name,
@@ -378,13 +397,17 @@ function saveViewForm() {
 
   if (_editingViewName) {
     if (name !== _editingViewName && VIEWS.find(v => v.name === name)) {
-      alert(`View "${name}" already exists`); return;
+      const el = document.getElementById('ve-err-name'); if (el) el.textContent = `"${name}" already exists`;
+      return;
     }
     const idx = VIEWS.findIndex(v => v.name === _editingViewName);
     if (idx >= 0) VIEWS[idx] = view;
     if (VIEWS_DEFAULT === _editingViewName) VIEWS_DEFAULT = name;
   } else {
-    if (VIEWS.find(v => v.name === name)) { alert(`View "${name}" already exists`); return; }
+    if (VIEWS.find(v => v.name === name)) {
+      const el = document.getElementById('ve-err-name'); if (el) el.textContent = `"${name}" already exists`;
+      return;
+    }
     VIEWS.push(view);
     if (!VIEWS_DEFAULT) VIEWS_DEFAULT = name;
   }
