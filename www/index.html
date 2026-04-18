@@ -896,11 +896,8 @@
       <div id="stab-general" class="settings-tab-panel">
         <h1 style="margin-bottom:24px">Settings</h1>
         <div class="shortcut-list">
-          <div class="shortcut-row"><span class="shortcut-key" title="Close any open modal">Esc</span><span>Open settings / close modal</span></div>
-          <div class="shortcut-row"><span class="shortcut-key">←</span><span class="shortcut-key">→</span><span>Previous / next view</span></div>
           <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Audio</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="settings-mute" onchange="toggleMute()"><span class="toggle-track"></span></label></div></div>
           <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Debug overlay</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="perf-debug-overlay" onchange="savePerfSettings()"><span class="toggle-track"></span></label></div></div>
-          <div class="shortcut-row"><span class="shortcut-key" title="Pause / resume view cycling">Space</span><span>Pause / resume cycling</span></div>
           <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Fullscreen timeout (sec, 0 = off)</span><input type="number" id="fs-timeout-input" min="0" max="3600" placeholder="sec" style="width:56px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:3px;color:rgba(255,255,255,0.85);font-family:'Courier New',monospace;font-size:11px;padding:4px 8px;text-align:center;outline:none;" /></div></div>
           <div class="shortcut-row" style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">
             <div id="clear-storage-confirm" style="display:none;width:100%;flex-direction:column;gap:8px;">
@@ -912,6 +909,10 @@
             </div>
             <button id="clear-storage-btn" class="perf-reset" style="color:rgba(248,113,113,0.7);border-color:rgba(248,113,113,0.3);width:100%" onclick="promptClearStorage()">Clear all saved data</button>
           </div>
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:8px;">Shortcuts</div>
+          <div class="shortcut-row"><span class="shortcut-key" title="Close any open modal">Esc</span><span>Open settings / close modal</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">←</span><span class="shortcut-key">→</span><span>Previous / next view</span></div>
+          <div class="shortcut-row"><span class="shortcut-key" title="Pause / resume view cycling">Space</span><span>Pause / resume cycling</span></div>
         </div>
       </div>
 
