@@ -207,12 +207,25 @@ function _renderActionButtons(groupId) {
       }
     }
 
-    const isOn = action.state && ACTION_STATES[action.state.topic] === action.state.onValue;
+    const hasStateData = action.state && (action.state.topic in ACTION_STATES);
+    const isOn = hasStateData && ACTION_STATES[action.state.topic] === action.state.onValue;
+    const isUnknown = action.state && !hasStateData;
     const iconHtml = _renderIcon(action.icon);
     const disabledAttr = isDisabled ? ' disabled' : '';
     const disabledClass = isDisabled ? ' disabled' : '';
-    return `<button class="action-btn${isOn ? ' on' : ''}${disabledClass}"${disabledAttr} data-action-id="${id}" onclick="pressAction('${id}')">${iconHtml}<span>${action.description || id}</span></button>`;
+    return `<button class="action-btn${isOn ? ' on' : ''}${isUnknown ? ' state-unknown' : ''}${disabledClass}"${disabledAttr} data-action-id="${id}" onclick="pressAction('${id}')">${iconHtml}<span>${action.description || id}</span></button>`;
   }).join('');
+}
+
+function _onMqttDisconnect(serverId) {
+  if (serverId) {
+    Object.values(ACTIONS).forEach(a => {
+      if (a.state && a.mqttServer === serverId) delete ACTION_STATES[a.state.topic];
+    });
+  } else {
+    Object.keys(ACTION_STATES).forEach(k => delete ACTION_STATES[k]);
+  }
+  if (ACTIONS_MODAL_OPEN) _refreshActionButtons();
 }
 
 function _refreshActionButtons() {

@@ -40,6 +40,7 @@ function getOrCreateMqttClient(serverId, serverCfg) {
   client.on('close', () => {
     console.log(`MQTT: named client "${serverId}" closed`);
     _updateMqttStatusIndicator();
+    if (typeof _onMqttDisconnect === 'function') _onMqttDisconnect(serverId);
     if (client._reconnTimer) return;
     client._reconnTimer = setTimeout(() => {
       client._reconnTimer = null;
@@ -148,6 +149,7 @@ function startMQTT() {
   _mqttClient.on('close', () => {
     _mqttConnected = false;
     _updateMqttStatusIndicator();
+    if (typeof _onMqttDisconnect === 'function') _onMqttDisconnect();
     _mqttScheduleReconnect();
   });
 
@@ -252,6 +254,7 @@ function mqttConnect(broker, username, password) {
   _mqttClient.on('close', () => {
     _mqttConnected = false;
     _updateMqttStatusIndicator();
+    if (typeof _onMqttDisconnect === 'function') _onMqttDisconnect();
     _mqttScheduleReconnect();
   });
   _mqttClient.on('message', (topic, payload) => {
