@@ -35,17 +35,17 @@ const CAM_FIELD_SCHEMA = [
     id: 'objectFit', label: 'Object Fit', type: 'select', default: 'contain', section: 'main',
     options: [{value:'contain',label:'Contain (letterbox)'},{value:'cover',label:'Cover (crop)'}],
   },
-  { id: 'audio', label: 'Audio', type: 'toggle', default: false, section: 'main' },
+  { id: 'audio', label: 'Audio', type: 'toggle', default: false, section: 'advanced' },
   {
-    id: 'sourceOnDemand', label: 'On Demand', type: 'toggle', default: true, section: 'main',
+    id: 'sourceOnDemand', label: 'On Demand', type: 'toggle', default: true, section: 'advanced',
   },
   {
     id: 'sourceOnDemandStartTimeout', label: 'Start Timeout', type: 'text', default: '10s',
-    section: 'main', placeholder: '10s', dependsOn: 'sourceOnDemand',
+    section: 'advanced', placeholder: '10s', dependsOn: 'sourceOnDemand',
   },
   {
     id: 'sourceOnDemandCloseAfter', label: 'Close After', type: 'text', default: '10s',
-    section: 'main', placeholder: '10s', dependsOn: 'sourceOnDemand',
+    section: 'advanced', placeholder: '10s', dependsOn: 'sourceOnDemand',
   },
   {
     id: 'refreshInterval', label: 'Refresh Interval', type: 'number', default: 0,
