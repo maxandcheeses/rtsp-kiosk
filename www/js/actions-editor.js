@@ -130,9 +130,16 @@ function _renderAeTabsInto(container) {
     ? `<button class="cam-add-btn" style="margin-left:auto" onclick="addAeGroup()">+ Add Group</button>`
     : '';
 
+  const aeSubtabDesc = {
+    mqtt:    'Connect to MQTT brokers for event messaging.',
+    actions: 'Map MQTT triggers to kiosk commands.',
+    groups:  'Organize cameras into logical groups.',
+  };
+  const subtabDescHtml = `<p style="color:rgba(255,255,255,0.4);font-size:11px;margin:6px 0 16px">${aeSubtabDesc[AE_TAB] || ''}</p>`;
+
   container.innerHTML = `
-    <p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0 0 20px">Automate kiosk behavior using MQTT events.</p>
     <div class="ae-tab-nav" style="width:100%;max-width:900px;display:flex;align-items:center">${tabNav}${addActionBtn}</div>
+    ${subtabDescHtml}
     <div id="ae-tab-content" class="ae-tab-body" style="width:100%;max-width:900px">${tabContent}</div>
     ${bannerHtml}`;
 
