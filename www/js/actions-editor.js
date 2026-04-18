@@ -856,6 +856,8 @@ function _buildAeActionDrawerForm(action, isNew) {
 
   const focusAuto = !!(action.timeout && action.timeout > 0);
   const focusTimeout = focusAuto ? action.timeout : 30;
+  const focusSamePanel = !(typeof action.panel === 'number' && action.panel >= 0 && action.panel <= 7);
+  const focusPanelVal  = focusSamePanel ? '' : String(action.panel);
   const iconPreviewId = `ae-icon-preview-${_aeEsc(id)}`;
   return `<div class="cam-form-grid">
     <div class="views-form-row">
@@ -944,6 +946,18 @@ function _buildAeActionDrawerForm(action, isNew) {
     <div id="ae-focus-fields" style="${type === 'focus-panel' ? '' : 'display:none'}">
       <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace;margin-bottom:6px">Displays a panel overlay in the kiosk view. Useful for interstitial messages or confirmation screens.</div>
       <div class="views-form-row" style="margin-top:8px">
+        <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Focus panel</label>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer">
+            <input type="checkbox" id="ae-focus-same-panel"${focusSamePanel ? ' checked' : ''} onclick="_aeFocusSamePanelChanged()"> Same panel
+          </label>
+          <select class="views-input" id="ae-focus-panel-select" style="width:auto;flex:none${focusSamePanel ? ';display:none' : ''}">
+            <option value="">Same Panel</option>
+            ${[0,1,2,3,4,5,6,7].map(i => `<option value="${i}"${focusPanelVal === String(i) ? ' selected' : ''}>Panel ${i+1}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="views-form-row" style="margin-top:8px">
         <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Close behaviour</label>
         <div style="display:flex;flex-direction:column;gap:6px">
           <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer">
@@ -1029,6 +1043,13 @@ function _aeFocusRadioChanged() {
   if (timeoutEl) timeoutEl.disabled = !auto;
 }
 
+function _aeFocusSamePanelChanged() {
+  const cb  = document.getElementById('ae-focus-same-panel');
+  const sel = document.getElementById('ae-focus-panel-select');
+  if (!cb || !sel) return;
+  sel.style.display = cb.checked ? 'none' : '';
+}
+
 function saveAeActionDrawer(originalId, isNew) {
   const idEl     = document.getElementById('ae-field-id');
   const descEl   = document.getElementById('ae-field-description');
@@ -1094,9 +1115,15 @@ function saveAeActionDrawer(originalId, isNew) {
   }
 
   let timeout = 0;
+  let focusPanelSaved = null;
   if (type === 'focus-panel') {
     const autoClose = !!(document.getElementById('ae-focus-auto') && document.getElementById('ae-focus-auto').checked);
     timeout = autoClose ? (parseInt((document.getElementById('ae-focus-timeout') || {}).value, 10) || 30) : 0;
+    const samePanelCb = document.getElementById('ae-focus-same-panel');
+    const panelSel    = document.getElementById('ae-focus-panel-select');
+    if (samePanelCb && !samePanelCb.checked && panelSel && panelSel.value !== '') {
+      focusPanelSaved = parseInt(panelSel.value, 10);
+    }
   }
 
   if (!valid) return;
@@ -1110,6 +1137,7 @@ function saveAeActionDrawer(originalId, isNew) {
     ...(type === 'mqtt' ? { publish: { topic: pTopic, payload: pPayload } } : {}),
     ...(type === 'mqtt' && sTopic ? { state: { topic: sTopic, ...(sOnVal ? { onValue: sOnVal } : {}) } } : {}),
     ...(type === 'focus-panel' && timeout > 0 ? { timeout } : {}),
+    ...(type === 'focus-panel' && typeof focusPanelSaved === 'number' ? { panel: focusPanelSaved } : {}),
   };
 
   const idx = (AE_LOCAL.actions || []).findIndex(a => a.id === originalId);

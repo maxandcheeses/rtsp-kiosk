@@ -258,11 +258,11 @@ function pressAction(actionId) {
 
   // Handle focus-panel actions
   if (action.type === 'focus-panel') {
-    const slotForFocus = _actionsSlotIndex;
+    const panelSlot = (typeof action.panel === 'number' && action.panel >= 0) ? action.panel : _actionsSlotIndex;
     let keepOpen = false;
     try { keepOpen = localStorage.getItem('actionsKeepOpen') === 'true'; } catch(e) {}
     closeActionsModal();
-    openFocusPanel(slotForFocus, action.timeout || 0, keepOpen ? slotForFocus : null);
+    openFocusPanel(panelSlot, action.timeout || 0, keepOpen ? panelSlot : null);
     return;
   }
 
