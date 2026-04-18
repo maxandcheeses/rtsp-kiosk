@@ -258,6 +258,39 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// ═══════════════════════════════════════════════════════
+// Touch swipe — left/right navigates views (same as arrow keys)
+// ═══════════════════════════════════════════════════════
+let touchStartX = null;
+let touchStartY = null;
+
+document.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) { touchStartX = null; touchStartY = null; return; }
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  if (touchStartX === null || touchStartY === null) return;
+  const deltaX = e.changedTouches[0].clientX - touchStartX;
+  const deltaY = e.changedTouches[0].clientY - touchStartY;
+  touchStartX = null;
+  touchStartY = null;
+
+  // Ignore if not primarily horizontal or below threshold
+  if (Math.abs(deltaX) < 50 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+  if (VIEWS.length <= 1) return;
+
+  const anyOpen = ['settings-modal'].some(id => document.getElementById(id)?.classList.contains('open'));
+  if (anyOpen) return;
+
+  if (deltaX < 0) {
+    navigateView(1);   // swipe left → next view
+  } else {
+    navigateView(-1);  // swipe right → previous view
+  }
+}, { passive: true });
+
 // Cursor hide
 let cursorTimer;
 let settingsBtnTimer;
