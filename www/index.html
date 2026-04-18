@@ -899,6 +899,7 @@
           <div class="shortcut-row"><span class="shortcut-key" title="Close any open modal">Esc</span><span>Open settings / close modal</span></div>
           <div class="shortcut-row"><span class="shortcut-key">←</span><span class="shortcut-key">→</span><span>Previous / next view</span></div>
           <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Audio</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="settings-mute" onchange="toggleMute()"><span class="toggle-track"></span></label></div></div>
+          <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Debug overlay</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="perf-debug-overlay" onchange="savePerfSettings()"><span class="toggle-track"></span></label></div></div>
           <div class="shortcut-row"><span class="shortcut-key" title="Pause / resume view cycling">Space</span><span>Pause / resume cycling</span></div>
           <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Fullscreen timeout (sec, 0 = off)</span><input type="number" id="fs-timeout-input" min="0" max="3600" placeholder="sec" style="width:56px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:3px;color:rgba(255,255,255,0.85);font-family:'Courier New',monospace;font-size:11px;padding:4px 8px;text-align:center;outline:none;" /></div></div>
           <div class="shortcut-row" style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">
@@ -1085,20 +1086,6 @@
                 <small>Caps exponential backoff — lower saves reconnect attempts</small>
               </div>
               <input type="number" class="perf-input" id="perf-max-retry" min="2" max="300" value="30" onchange="savePerfSettings()">
-            </div>
-          </div>
-
-          <div class="perf-section-title">Debug</div>
-          <div class="perf-rows">
-            <div class="perf-row">
-              <div class="perf-label">
-                Debug overlay
-                <small>Shows stream info, source, refresh and view countdown on screen</small>
-              </div>
-              <label class="toggle">
-                <input type="checkbox" id="perf-debug-overlay" onchange="savePerfSettings()">
-                <span class="toggle-track"></span>
-              </label>
             </div>
           </div>
 
