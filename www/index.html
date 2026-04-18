@@ -948,16 +948,16 @@
         <!-- Table view -->
         <div id="views-table-wrap" style="width:100%;max-width:900px;display:flex;flex-direction:column;gap:0">
           <div class="views-toolbar">
-            <div class="views-toolbar-group" id="views-default-wrap">
-              <label for="views-default-sel" class="info-tooltip">Default<span class="info-icon" tabindex="0" aria-label="About Default">ℹ</span><span class="tooltip-bubble">Show this view when the kiosk starts</span></label>
-              <select id="views-default-sel" onchange="onViewsDefaultChange()"></select>
-            </div>
             <div class="views-toolbar-group">
               <span class="info-tooltip">Cycle<span class="info-icon" tabindex="0" aria-label="About Cycle">ℹ</span><span class="tooltip-bubble">Include this view in the auto-cycle rotation</span></span>
               <label class="toggle" style="margin-left:4px">
                 <input type="checkbox" id="views-cycle-chk" onchange="onViewsCycleToggle()">
                 <span class="toggle-track"></span>
               </label>
+            </div>
+            <div class="views-toolbar-group" id="views-default-wrap">
+              <label for="views-default-sel" class="info-tooltip">Default<span class="info-icon" tabindex="0" aria-label="About Default">ℹ</span><span class="tooltip-bubble">Show this view when the kiosk starts</span></label>
+              <select id="views-default-sel" onchange="onViewsDefaultChange()"></select>
             </div>
             <button class="cam-add-btn" style="margin-left:auto" onclick="openNewViewEditor()">+ Add View</button>
           </div>
