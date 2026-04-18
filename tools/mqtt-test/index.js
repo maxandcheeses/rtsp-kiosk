@@ -195,7 +195,7 @@ async function cmdSubscribe() {
 
       client.on('message', (topic, payload) => {
         const msg = payload.toString();
-        log(`${colors.cyan}[${serverId}] ${topic}${colors.reset} → ${colors.green}${msg}${colors.reset}`);
+        log(`${colors.yellow}[sub]${colors.reset} ${colors.cyan}[${serverId}] ${topic}${colors.reset} ${colors.green}${msg}${colors.reset}`);
       });
     } catch (e) {
       logError(`Failed to connect to ${serverId}: ${e.message}`);
@@ -263,7 +263,7 @@ async function cmdPublish(actionId) {
 
   try {
     const client = await createMqttClient(server.broker, '', '', 5000, tlsOpts);
-    log(`Publishing to ${colors.cyan}${topic}${colors.reset}: ${colors.green}${payload}${colors.reset}`);
+    log(`${colors.yellow}[pub]${colors.reset} ${colors.cyan}${topic}${colors.reset} ${colors.green}${payload}${colors.reset}`);
 
     client.publish(topic, payload, { qos: 1 }, (err) => {
       if (err) {
@@ -350,11 +350,11 @@ async function cmdSimulate() {
       client.on('message', (topic, payload) => {
         const mapping = topicMap.get(topic);
         if (mapping) {
-          log(`${colors.green}${mapping.actionId}${colors.reset} set received on ${colors.cyan}[${serverId}] ${topic}${colors.reset}`);
+          log(`${colors.yellow}[sub]${colors.reset} ${colors.green}${mapping.actionId}${colors.reset} set received on ${colors.cyan}[${serverId}] ${topic}${colors.reset}`);
           // Simulate response after delay
           setTimeout(() => {
             client.publish(mapping.stateTopic, mapping.onValue, { qos: 1 });
-            log(`  → published ${colors.green}${mapping.onValue}${colors.reset} to ${colors.cyan}${mapping.stateTopic}${colors.reset}`);
+            log(`  ${colors.yellow}[pub]${colors.reset} ${colors.green}${mapping.onValue}${colors.reset} to ${colors.cyan}${mapping.stateTopic}${colors.reset}`);
           }, 100);
         }
       });
