@@ -34,7 +34,13 @@ function getOrCreateMqttClient(serverId, serverCfg) {
     client._reconnDelay = 1000;
     if (client._reconnTimer) { clearTimeout(client._reconnTimer); client._reconnTimer = null; }
     console.log(`MQTT: named client "${serverId}" connected`);
+    _extraSubscriptions.forEach(sub => client.subscribe(sub.topic, { qos: 1 }));
     _updateMqttStatusIndicator();
+  });
+  client.on('message', (topic, payload) => {
+    _extraSubscriptions.forEach(sub => {
+      if (sub.topic === topic) sub.callback(topic, payload.toString());
+    });
   });
   client.on('error', (err) => { console.log(`MQTT: named client "${serverId}" error:`, err); _updateMqttStatusIndicator(); });
   client.on('close', () => {
@@ -273,6 +279,9 @@ function mqttSubscribe(topic, callback) {
   if (_mqttClient && _mqttClient.connected) {
     _mqttClient.subscribe(topic, { qos: 1 });
   }
+  _mqttClients.forEach(client => {
+    if (client.connected) client.subscribe(topic, { qos: 1 });
+  });
   return function unsubscribe() {
     const idx = _extraSubscriptions.indexOf(entry);
     if (idx >= 0) _extraSubscriptions.splice(idx, 1);
