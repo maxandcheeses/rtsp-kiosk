@@ -30,8 +30,9 @@ let AE_FULL        = null;  // { mqtt, actions, groups } — loaded from API
 let AE_LOCAL       = null;  // working copy — mutated by editor
 let AE_UNSAVED     = false;
 let AE_TAB         = 'mqtt';   // 'mqtt' | 'actions' | 'groups'
-let AE_OPEN_DRAWER = null;     // action id or group id currently open
-let AE_DRAWER_DIRTY = false;   // true if any form field has been modified since drawer opened
+let AE_OPEN_DRAWER = null;          // action id or group id currently open
+let AE_OPEN_DRAWER_IS_NEW = false;  // true if the open drawer is for a newly added (unsaved) entry
+let AE_DRAWER_DIRTY = false;        // true if any form field has been modified since drawer opened
 
 function _aeDeepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
@@ -322,6 +323,7 @@ function openAeSrvDrawer(id) {
   const inner = document.getElementById(`ae-srv-drawer-inner-${id}`);
   if (!inner) return;
   const isNew = !AE_FULL || !(AE_FULL.mqtt && AE_FULL.mqtt.servers || []).find(s => s.id === id);
+  AE_OPEN_DRAWER_IS_NEW = isNew;
   inner.innerHTML = _buildAeSrvDrawerForm(srv, isNew);
   const drawer = document.getElementById(`ae-srv-drawer-${id}`);
   if (drawer) drawer.style.maxHeight = '9999px';
@@ -952,6 +954,7 @@ function openAeActionDrawer(id) {
   const inner = document.getElementById(`ae-action-drawer-inner-${id}`);
   if (!inner) return;
   const isNew = !AE_FULL || !(AE_FULL.actions || []).find(a => a.id === id);
+  AE_OPEN_DRAWER_IS_NEW = isNew;
   inner.innerHTML = _buildAeActionDrawerForm(action, isNew);
   const drawer = document.getElementById(`ae-action-drawer-${id}`);
   if (drawer) drawer.style.maxHeight = '9999px';
@@ -973,7 +976,22 @@ function closeAeDrawer() {
                    document.getElementById(`ae-srv-row-${AE_OPEN_DRAWER}`);
   if (drawerEl) drawerEl.style.maxHeight = '0';
   if (rowEl) rowEl.classList.remove('cam-row-active');
+  if (AE_OPEN_DRAWER_IS_NEW && !AE_DRAWER_DIRTY) {
+    const removedId = AE_OPEN_DRAWER;
+    AE_OPEN_DRAWER = null;
+    AE_OPEN_DRAWER_IS_NEW = false;
+    AE_DRAWER_DIRTY = false;
+    if (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) {
+      AE_LOCAL.mqtt.servers = AE_LOCAL.mqtt.servers.filter(s => s.id !== removedId);
+    }
+    AE_LOCAL.actions = (AE_LOCAL.actions || []).filter(a => a.id !== removedId);
+    AE_LOCAL.groups  = (AE_LOCAL.groups  || []).filter(g => g.id !== removedId);
+    const container = document.getElementById('ae-tabs-and-content');
+    if (container) _renderAeTabsInto(container);
+    return;
+  }
   AE_OPEN_DRAWER = null;
+  AE_OPEN_DRAWER_IS_NEW = false;
   AE_DRAWER_DIRTY = false;
 }
 
@@ -1298,6 +1316,7 @@ function openAeGroupDrawer(id) {
   const inner = document.getElementById(`ae-group-drawer-inner-${id}`);
   if (!inner) return;
   const isNew = !AE_FULL || !(AE_FULL.groups || []).find(g => g.id === id);
+  AE_OPEN_DRAWER_IS_NEW = isNew;
   inner.innerHTML = _buildAeGroupDrawerForm(group, isNew);
   _initAeSlotDrag();
   const drawer = document.getElementById(`ae-group-drawer-${id}`);

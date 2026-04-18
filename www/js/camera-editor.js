@@ -4,6 +4,8 @@ let CAM_STREAMS_FULL = null;
 let CAM_LOCAL_STREAMS = null;
 let CAM_UNSAVED = false;
 let CAM_OPEN_DRAWER = null;
+let CAM_DRAWER_IS_NEW = false;
+let CAM_DRAWER_DIRTY = false;
 
 const CAM_FIELD_SCHEMA = [
   {
@@ -262,7 +264,11 @@ function openCamDrawer(path) {
   const inner = document.getElementById(`cam-drawer-inner-${path}`);
   if (!inner) return;
   const isNew = !CAM_STREAMS_FULL || !CAM_STREAMS_FULL.find(s => s.path === path);
+  CAM_DRAWER_IS_NEW = isNew;
+  CAM_DRAWER_DIRTY = false;
   inner.innerHTML = buildCamDrawerForm(stream, isNew);
+  inner.addEventListener('input',  () => { CAM_DRAWER_DIRTY = true; });
+  inner.addEventListener('change', () => { CAM_DRAWER_DIRTY = true; });
   const drawer = document.getElementById(`cam-drawer-${path}`);
   drawer.style.maxHeight = '9999px';
   CAM_OPEN_DRAWER = path;
@@ -276,7 +282,16 @@ function closeCamDrawer() {
   if (drawer) drawer.style.maxHeight = '0';
   const row = document.getElementById(`cam-row-${CAM_OPEN_DRAWER}`);
   if (row) row.classList.remove('cam-row-active');
+  if (CAM_DRAWER_IS_NEW && !CAM_DRAWER_DIRTY) {
+    const removedPath = CAM_OPEN_DRAWER;
+    CAM_OPEN_DRAWER = null;
+    CAM_DRAWER_IS_NEW = false;
+    CAM_LOCAL_STREAMS = CAM_LOCAL_STREAMS.filter(s => s.path !== removedPath);
+    renderCamTable();
+    return;
+  }
   CAM_OPEN_DRAWER = null;
+  CAM_DRAWER_IS_NEW = false;
 }
 
 function saveCamDrawer(originalPath, isNew) {
