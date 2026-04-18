@@ -267,6 +267,13 @@ function pressAction(actionId) {
     if (btn) {
       btn.style.background = 'rgba(248,113,113,0.3)';
       setTimeout(() => { if (btn) btn.style.background = ''; }, 1000);
+    } else if (_actionsSlotIndex !== null) {
+      // Direct-action path: modal was never opened, so flash the cell itself
+      const cell = document.getElementById(`cell${_actionsSlotIndex}`);
+      if (cell) {
+        cell.style.outline = '3px solid rgba(248,113,113,0.8)';
+        setTimeout(() => { if (cell) cell.style.outline = ''; }, 1000);
+      }
     }
     console.warn('Actions: MQTT not connected, cannot publish');
     setTimeout(() => {
@@ -280,6 +287,13 @@ function pressAction(actionId) {
   if (btn) {
     btn.style.background = 'rgba(255,255,255,0.15)';
     setTimeout(() => { if (btn) btn.style.background = ''; }, 150);
+  } else if (_actionsSlotIndex !== null) {
+    // Direct-action path: flash the cell itself as success confirmation
+    const cell = document.getElementById(`cell${_actionsSlotIndex}`);
+    if (cell) {
+      cell.style.outline = '3px solid rgba(255,255,255,0.5)';
+      setTimeout(() => { if (cell) cell.style.outline = ''; }, 150);
+    }
   }
 
   setTimeout(() => {
