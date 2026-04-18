@@ -154,9 +154,10 @@ function switchAeTab(tab) {
 function _buildAeMqttTab() {
   const servers = (AE_LOCAL && AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || [];
   const descHtml = `<p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0 0 20px">Connect to MQTT brokers for event messaging.</p>`;
+  const hintHtml = `<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:16px">MQTT servers are the brokers this kiosk connects to. Actions and triggers reference servers by their ID.</div>`;
 
   if (servers.length === 0) {
-    return descHtml + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
+    return descHtml + hintHtml + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
       NO SERVERS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Server above</span>
     </div>`;
   }
@@ -192,7 +193,7 @@ function _buildAeMqttTab() {
     </tr>`;
   });
 
-  return descHtml + `<table class="streams-table" style="width:100%">
+  return descHtml + hintHtml + `<table class="streams-table" style="width:100%">
     <thead><tr>
       <th></th><th>ID</th><th>Broker</th><th></th>
     </tr></thead>
@@ -697,6 +698,8 @@ function _buildAeActionsTab() {
   const actions = (AE_LOCAL && AE_LOCAL.actions) || [];
   const descHtml = `<p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0 0 20px">Map MQTT triggers to kiosk commands.</p>`;
 
+  const actionsHintHtml = `<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:16px">Each action defines something the kiosk can do. Built-in actions are always available. Custom actions publish MQTT messages or show a focus panel when triggered.</div>`;
+
   const builtinRows = Object.values(BUILTIN_ACTIONS).map(action => {
     const iconHtml = action.icon ? _renderIcon(action.icon) : '';
     const badge = `<span style="font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:2px;padding:1px 5px">BUILT-IN</span>`;
@@ -716,7 +719,7 @@ function _buildAeActionsTab() {
     </table>`;
 
   if (actions.length === 0) {
-    return descHtml + builtinSection + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
+    return descHtml + actionsHintHtml + builtinSection + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
       NO ACTIONS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Action above</span>
     </div>`;
   }
@@ -751,7 +754,7 @@ function _buildAeActionsTab() {
     </tr>`;
   });
 
-  return descHtml + builtinSection + `<table class="streams-table" style="width:100%">
+  return descHtml + actionsHintHtml + builtinSection + `<table class="streams-table" style="width:100%">
     <thead><tr>
       <th></th><th>ID</th><th>Description</th><th>Icon</th><th>Publish</th><th></th>
     </tr></thead>
@@ -902,6 +905,7 @@ function _buildAeActionDrawerForm(action, isNew) {
         </div>
       </div>
       <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin:4px 0 -4px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">Publish</div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace;margin-bottom:6px">The MQTT message sent when this action is triggered.</div>
       <div class="views-form-row">
         <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Topic</label>
         <div style="flex:1;display:flex;flex-direction:column;gap:4px">
@@ -917,6 +921,7 @@ function _buildAeActionDrawerForm(action, isNew) {
         </div>
       </div>
       <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin:4px 0 -4px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">State (optional)</div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace;margin-bottom:6px">Subscribe to a topic to reflect this action's current on/off state in the UI.</div>
       <div class="views-form-row">
         <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">State Topic</label>
         <input class="views-input" id="ae-field-state-topic" value="${_aeEsc(sTopic)}" placeholder="home/light/state">
@@ -931,6 +936,7 @@ function _buildAeActionDrawerForm(action, isNew) {
     </div>
 
     <div id="ae-focus-fields" style="${type === 'focus-panel' ? '' : 'display:none'}">
+      <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace;margin-bottom:6px">Displays a panel overlay in the kiosk view. Useful for interstitial messages or confirmation screens.</div>
       <div class="views-form-row" style="margin-top:8px">
         <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Close behaviour</label>
         <div style="display:flex;flex-direction:column;gap:6px">
@@ -1175,9 +1181,10 @@ function addAeAction() {
 function _buildAeGroupsTab() {
   const groups = (AE_LOCAL && AE_LOCAL.groups) || [];
   const descHtml = `<p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0 0 20px">Organize cameras into logical groups.</p>`;
+  const groupsHintHtml = `<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:16px">Groups bundle up to 6 actions into a button bar shown on the kiosk overlay. Assign a group to a view to show its buttons when that view is active.</div>`;
 
   if (groups.length === 0) {
-    return descHtml + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
+    return descHtml + groupsHintHtml + `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
       NO GROUPS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Group above</span>
     </div>`;
   }
@@ -1208,7 +1215,7 @@ function _buildAeGroupsTab() {
     </tr>`;
   });
 
-  return descHtml + `<table class="streams-table" style="width:100%">
+  return descHtml + groupsHintHtml + `<table class="streams-table" style="width:100%">
     <thead><tr>
       <th></th><th>ID</th><th>Name</th><th>Actions</th><th></th>
     </tr></thead>
@@ -1264,6 +1271,7 @@ function _buildAeGroupDrawerForm(group, isNew) {
     </div>
 
     <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin:4px 0 -4px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">Action Slots</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace;margin-bottom:6px">Assign actions to each button slot. Slots appear left-to-right in the overlay button bar. Leave a slot empty to hide it.</div>
     <div id="ae-slots-container" style="display:flex;flex-direction:column;gap:10px">
       ${slotsHtml}
       ${addSlotBtn}
