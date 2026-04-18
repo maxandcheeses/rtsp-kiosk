@@ -223,6 +223,10 @@
       font-size: 9px;
       letter-spacing: 0.2em;
       text-transform: uppercase;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: rgb(13,13,13);
     }
     .streams-table td {
       padding: 10px 16px;
@@ -420,6 +424,10 @@
       font-family: 'Courier New', monospace;
       font-size: 11px;
       color: rgba(255,255,255,0.6);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: rgb(13,13,13);
     }
     .views-toolbar-group {
       display: flex;
@@ -591,7 +599,8 @@
 
     /* ── Views tab — touch-friendly sizing + legibility ── */
     #stab-views .streams-table { font-size: 13px; }
-    #stab-views .streams-table th { font-size: 11px; }
+    #stab-views .streams-table th { font-size: 11px; top: 44px; }
+    #stab-cameras .streams-table th { top: 44px; }
     #stab-views .views-toolbar { font-size: 13px; font-weight: 500; }
     #stab-views .views-form-row { font-size: 13px; }
     #stab-views .views-form-row > label { font-size: 12px; font-weight: 500; }
@@ -739,7 +748,7 @@
     }
 
     /* ── Cameras tab ── */
-    .cam-toolbar { display: flex; align-items: center; width: 100%; max-width: 900px; margin-bottom: 12px; }
+    .cam-toolbar { display: flex; align-items: center; width: 100%; max-width: 900px; margin-bottom: 12px; position: sticky; top: 0; z-index: 2; background: rgb(13,13,13); }
     .cam-add-btn {
       background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3);
       border-radius: 3px; color: #4ade80; font-family: 'Courier New', monospace;
@@ -805,7 +814,7 @@
     }
 
     /* ─── Actions tab ─── */
-    .ae-tab-nav { display:flex; gap:4px; margin-bottom:20px; }
+    .ae-tab-nav { display:flex; gap:4px; margin-bottom:20px; position:sticky; top:0; z-index:2; background:rgb(13,13,13); }
     .ae-tab-btn { padding:6px 16px; border:1px solid rgba(255,255,255,0.12); border-radius:3px; background:transparent; color:rgba(255,255,255,0.4); font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
     .ae-tab-btn.active { border-color:rgba(255,255,255,0.35); color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.06); }
 
