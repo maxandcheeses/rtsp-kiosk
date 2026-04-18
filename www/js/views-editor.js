@@ -24,7 +24,7 @@ function _persistViews() {
 
 function _updateDefaultVisibility() {
   const wrap = document.getElementById('views-default-wrap');
-  if (wrap) wrap.style.display = VIEWS_CYCLE ? 'none' : '';
+  if (wrap) wrap.style.visibility = VIEWS_CYCLE ? 'hidden' : '';
 }
 
 function onViewsCycleToggle() {
