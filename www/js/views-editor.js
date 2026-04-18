@@ -22,24 +22,13 @@ function _persistViews() {
   }).catch(e => console.warn('Failed to save views to server:', e));
 }
 
-function _updateDefaultVisibility() {
-  const wrap = document.getElementById('views-default-wrap');
-  if (wrap) wrap.style.visibility = VIEWS_CYCLE ? 'hidden' : '';
-}
-
 function onViewsCycleToggle() {
   VIEWS_CYCLE = document.getElementById('views-cycle-chk').checked;
   if (VIEWS_CYCLE && VIEWS.length > 0 && VIEWS.filter(v => v.cycle !== false).length === 0) {
     VIEWS[0].cycle = true;
   }
   _persistViews();
-  _updateDefaultVisibility();
   renderViewsTab();
-}
-
-function onViewsDefaultChange() {
-  VIEWS_DEFAULT = document.getElementById('views-default-sel').value;
-  _persistViews();
 }
 
 function moveView(name, dir) {
@@ -64,7 +53,6 @@ function confirmDeleteView(name) {
   const idx = VIEWS.findIndex(v => v.name === name);
   if (idx < 0) return;
   VIEWS.splice(idx, 1);
-  if (VIEWS_DEFAULT === name) VIEWS_DEFAULT = VIEWS[0]?.name ?? null;
   _persistViews();
   renderViewsTab();
 }
@@ -242,7 +230,7 @@ function _showViewForm(view) {
 function _renderVeLayoutGrid() {
   document.getElementById('ve-layout-grid').innerHTML = Object.keys(LAYOUTS).map(k => {
     const sel = k === _editLayoutSel ? ' selected' : '';
-    const svg = layoutSvgWithNumbers(k, _editStreams);
+    const svg = layoutSvgWithNumbers(k, new Array(LAYOUTS[k].streams));
     return `<button class="ve-layout-btn${sel}" onclick="_veSelectLayout('${k}')">${svg}<span>${k}</span></button>`;
   }).join('');
 }
