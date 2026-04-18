@@ -89,7 +89,12 @@ function cloneView(name) {
   _editingViewName = null;
   _editLayoutSel   = view.layout;
   _editStreams      = [...(view.streams || [])];
-  _editSlotGroups  = [...(view.slotGroups || [])];
+  _editSlotGroups  = (view.slotGroups || []).map(g => {
+    if (!g) return null;
+    if (typeof ACTION_GROUPS !== 'undefined' && ACTION_GROUPS[g]) return g;
+    if (typeof ACTIONS !== 'undefined' && ACTIONS[g]) return g;
+    return null;
+  });
   _showViewForm({ ...view, name: newName });
 }
 
@@ -197,7 +202,12 @@ function openViewEditor(name) {
   _editingViewName = name;
   _editLayoutSel   = view.layout;
   _editStreams      = [...(view.streams || [])];
-  _editSlotGroups  = [...(view.slotGroups || [])];
+  _editSlotGroups  = (view.slotGroups || []).map(g => {
+    if (!g) return null;
+    if (typeof ACTION_GROUPS !== 'undefined' && ACTION_GROUPS[g]) return g;
+    if (typeof ACTIONS !== 'undefined' && ACTIONS[g]) return g;
+    return null;
+  });
   _showViewForm(view);
 }
 

@@ -118,7 +118,9 @@ function openActionsModal(slotIndex) {
   const groupId = slotGroups && slotGroups[slotIndex];
   if (!groupId) return;
   if (!ACTION_GROUPS[groupId] && !ACTIONS[groupId]) {
-    console.warn(`Actions: "${groupId}" not found as group or action`);
+    console.warn(`Actions: "${groupId}" not found as group or action — removing stale reference`);
+    if (view && view.slotGroups) { view.slotGroups[slotIndex] = null; }
+    if (typeof _persistViews === 'function') _persistViews();
     return;
   }
 
