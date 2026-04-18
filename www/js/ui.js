@@ -101,9 +101,6 @@ function renderViewsTab() {
     ).join('');
   }
 
-  const cycleEl = document.getElementById('cycle-status');
-  if (cycleEl) cycleEl.textContent = VIEWS_CYCLE ? 'on' : 'off';
-
   _updateDefaultVisibility();
 
   // Show table, hide edit panel
@@ -120,15 +117,15 @@ function renderViewsTab() {
       ? `<td style="white-space:nowrap;padding:4px 12px">
            <div class="view-delete-confirm">
              <span>Delete?</span>
-             <button class="sp-btn" style="color:rgba(248,113,113,0.9);width:auto;padding:0 12px;font-size:12px" onclick="confirmDeleteView('${v.name}')">Yes</button>
-             <button class="sp-btn" style="width:auto;padding:0 12px;font-size:12px" onclick="cancelDeleteView()">No</button>
+             <button class="sp-btn" style="color:rgba(248,113,113,0.9);width:auto;padding:0 16px" onclick="confirmDeleteView('${v.name}')">Yes</button>
+             <button class="sp-btn" style="width:auto;padding:0 16px" onclick="cancelDeleteView()">No</button>
            </div>
          </td>`
       : `<td style="white-space:nowrap;padding:4px 8px">
-           <button class="sp-btn" title="Activate" onclick="closeAllModals();activateView('${v.name}')">▶</button>
+           <button class="sp-btn" title="Activate" style="color:rgba(74,222,128,0.7);border-color:rgba(74,222,128,0.25)" onclick="closeAllModals();activateView('${v.name}')">▶</button>
            <button class="sp-btn" title="Clone" onclick="cloneView('${v.name}')">⎘</button>
            <button class="sp-btn" title="Edit" onclick="openViewEditor('${v.name}')">✎</button>
-           <button class="sp-btn" title="Delete" style="color:rgba(248,113,113,0.9)" onclick="promptDeleteView('${v.name}')">✕</button>
+           <button class="sp-btn" title="Delete" style="color:rgba(248,113,113,0.7);border-color:rgba(248,113,113,0.2)" onclick="promptDeleteView('${v.name}')">✕</button>
          </td>`;
     const cycleToggle = `<td style="text-align:center;padding:4px 8px">
            <input type="checkbox" ${v.cycle !== false ? 'checked' : ''} onchange="toggleViewCycle('${v.name}')" title="Include in cycle">
