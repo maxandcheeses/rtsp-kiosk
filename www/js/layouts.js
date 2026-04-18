@@ -122,7 +122,12 @@ function applyLayout(name) {
     // Inject action indicator if this slot has an action group
     const _activeViewObj = typeof getView === 'function' && activeView ? getView(activeView) : null;
     const _slotGroups = _activeViewObj && _activeViewObj.slotGroups;
-    if (_slotGroups && _slotGroups[i]) {
+    const _groupId = _slotGroups && _slotGroups[i];
+    const _groupValid = _groupId && (
+      (typeof ACTION_GROUPS !== 'undefined' && ACTION_GROUPS[_groupId]) ||
+      (typeof ACTIONS      !== 'undefined' && ACTIONS[_groupId])
+    );
+    if (_groupValid) {
       const indicator = document.createElement('button');
       indicator.className = 'action-indicator';
       indicator.textContent = '⚡';
