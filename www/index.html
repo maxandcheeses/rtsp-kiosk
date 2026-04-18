@@ -225,7 +225,7 @@
       text-transform: uppercase;
       position: sticky;
       top: 0;
-      z-index: 1;
+      z-index: 3;
       background: rgb(13,13,13);
     }
     .streams-table td {
@@ -426,7 +426,7 @@
       color: rgba(255,255,255,0.6);
       position: sticky;
       top: 0;
-      z-index: 2;
+      z-index: 4;
       background: rgb(13,13,13);
     }
     .views-toolbar-group {
@@ -748,7 +748,7 @@
     }
 
     /* ── Cameras tab ── */
-    .cam-toolbar { display: flex; align-items: center; width: 100%; max-width: 900px; margin-bottom: 12px; position: sticky; top: 0; z-index: 2; background: rgb(13,13,13); }
+    .cam-toolbar { display: flex; align-items: center; width: 100%; max-width: 900px; margin-bottom: 12px; position: sticky; top: 0; z-index: 4; background: rgb(13,13,13); }
     .cam-add-btn {
       background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3);
       border-radius: 3px; color: #4ade80; font-family: 'Courier New', monospace;
@@ -815,7 +815,7 @@
     }
 
     /* ─── Actions tab ─── */
-    .ae-tab-nav { display:flex; gap:4px; align-items:center; margin-bottom:12px; }
+    .ae-tab-nav { display:flex; gap:4px; align-items:center; margin-bottom:12px; position:sticky; top:0; z-index:2; background:rgb(13,13,13); }
     .ae-tab-body { overflow-y:auto; max-height:calc(min(560px, 85vh) - 32px - 32px - 44px); }
     .ae-tab-btn { padding:6px 16px; border:1px solid rgba(255,255,255,0.12); border-radius:3px; background:transparent; color:rgba(255,255,255,0.4); font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
     .ae-tab-btn.active { border-color:rgba(255,255,255,0.35); color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.06); }
@@ -909,7 +909,7 @@
 
       <!-- General tab -->
       <div id="stab-general" class="settings-tab-panel">
-        <h1 style="margin-bottom:24px">Settings</h1>
+        <h1 style="margin-bottom:24px;position:sticky;top:0;z-index:2;background:rgb(13,13,13);padding-bottom:4px">Settings</h1>
         <div class="shortcut-list">
           <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Audio</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="settings-mute" onchange="toggleMute()"><span class="toggle-track"></span></label></div></div>
           <div class="shortcut-row"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Debug overlay</span><label class="toggle" style="margin-left:auto"><input type="checkbox" id="perf-debug-overlay" onchange="savePerfSettings()"><span class="toggle-track"></span></label></div></div>
