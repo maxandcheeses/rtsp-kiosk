@@ -91,7 +91,13 @@ async function loadActionsEditorData() {
     return;
   }
 
-  renderActionsEditor();
+  try {
+    renderActionsEditor();
+  } catch(e) {
+    console.error('Actions editor: render failed', e);
+    const c = document.getElementById('ae-content');
+    if (c) c.innerHTML = `<div style="padding:40px 0;text-align:center;font-family:'Courier New',monospace;font-size:10px;color:rgba(248,113,113,0.8)">Render error — see browser console</div>`;
+  }
 }
 
 // ── Render ───────────────────────────────────────────────────────────────────
@@ -735,7 +741,7 @@ function _buildAeActionsTab() {
     const id  = action.id || '';
     const esc = _aeEsc(id);
     const iconHtml = action.icon ? _renderIcon(action.icon) : '';
-    const publishSummary = action.type === 'focus-panel'
+    const publishSummary = action.type === 'focus-stream'
       ? `focus (${action.timeout > 0 ? action.timeout + 's' : 'manual close'})`
       : (action.publish ? `${_aeEsc(action.publish.topic)} → ${_aeEsc(action.publish.payload)}` : '—');
     const isOpen = AE_OPEN_DRAWER === id;
@@ -766,6 +772,17 @@ function _buildAeActionsTab() {
     </tr></thead>
     <tbody id="ae-actions-tbody">${rows}</tbody>
   </table>`;
+}
+
+function _aeStateHtml(action) {
+  if (!action.state || !action.state.topic) return '';
+  const topic = action.state.topic;
+  const onVal = action.state.onValue || '';
+  const cur   = ACTION_STATES[topic];
+  if (cur === undefined) return '<span style="color:rgba(255,255,255,0.2);font-size:9px">●</span>';
+  const isOn = cur === onVal;
+  const col = isOn ? 'rgba(74,222,128,0.7)' : 'rgba(248,113,113,0.6)';
+  return `<span style="color:${col};font-size:9px">● ${_aeEsc(cur)}</span>`;
 }
 
 function _refreshAeStateCells() {
@@ -857,14 +874,14 @@ function _buildAeActionDrawerForm(action, isNew) {
   const focusAuto = !!(action.timeout && action.timeout > 0);
   const focusTimeout = focusAuto ? action.timeout : 30;
   const focusSamePanel = !(typeof action.panel === 'number' && action.panel >= 0 && action.panel <= 7);
-  const focusPanelVal  = focusSamePanel ? '' : String(action.panel);
+  const focusStreamVal  = focusSamePanel ? '' : String(action.panel);
   const iconPreviewId = `ae-icon-preview-${_aeEsc(id)}`;
   return `<div class="cam-form-grid">
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Type</label>
       <select class="views-input" id="ae-field-type" style="flex:none;width:auto" onchange="_aeTypeChanged(this.value)">
         <option value="mqtt"${type === 'mqtt' ? ' selected' : ''}>mqtt</option>
-        <option value="focus-panel"${type === 'focus-panel' ? ' selected' : ''}>focus-panel</option>
+        <option value="focus-stream"${type === 'focus-stream' ? ' selected' : ''}>focus-stream</option>
       </select>
     </div>
     <div class="views-form-row">
@@ -890,7 +907,7 @@ function _buildAeActionDrawerForm(action, isNew) {
       </div>
     </div>
 
-    <div id="ae-mqtt-fields" style="${type === 'focus-panel' ? 'display:none' : ''}">
+    <div id="ae-mqtt-fields" style="${type === 'focus-stream' ? 'display:none' : ''}">
       <div class="views-form-row" style="margin-top:0">
         <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">MQTT Server</label>
         <div style="flex:1;display:flex;flex-direction:column;gap:4px">
@@ -943,17 +960,14 @@ function _buildAeActionDrawerForm(action, isNew) {
       </div>
     </div>
 
-    <div id="ae-focus-fields" style="${type === 'focus-panel' ? '' : 'display:none'}">
+    <div id="ae-focus-fields" style="${type === 'focus-stream' ? '' : 'display:none'}">
       <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace;margin-bottom:6px">Displays a panel overlay in the kiosk view. Useful for interstitial messages or confirmation screens.</div>
       <div class="views-form-row" style="margin-top:8px">
         <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Focus panel</label>
         <div style="display:flex;flex-direction:column;gap:6px">
-          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer">
-            <input type="checkbox" id="ae-focus-same-panel"${focusSamePanel ? ' checked' : ''} onclick="_aeFocusSamePanelChanged()"> Same panel
-          </label>
-          <select class="views-input" id="ae-focus-panel-select" style="width:auto;flex:none${focusSamePanel ? ';display:none' : ''}">
+          <select class="views-input" id="ae-focus-stream-select" style="width:auto;flex:none">
             <option value="">Same Panel</option>
-            ${[0,1,2,3,4,5,6,7].map(i => `<option value="${i}"${focusPanelVal === String(i) ? ' selected' : ''}>Panel ${i+1}</option>`).join('')}
+            ${[0,1,2,3,4,5,6,7].map(i => `<option value="${i}"${focusStreamVal === String(i) ? ' selected' : ''}>Stream ${i+1}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -1032,9 +1046,9 @@ function closeAeDrawer() {
 function _aeTypeChanged(type) {
   const focusFields = document.getElementById('ae-focus-fields');
   const mqttFields = document.getElementById('ae-mqtt-fields');
-  if (focusFields) focusFields.style.display = type === 'focus-panel' ? '' : 'none';
-  if (mqttFields) mqttFields.style.display = type === 'focus-panel' ? 'none' : '';
-  if (type === 'focus-panel') _aeFocusRadioChanged();
+  if (focusFields) focusFields.style.display = type === 'focus-stream' ? '' : 'none';
+  if (mqttFields) mqttFields.style.display = type === 'focus-stream' ? 'none' : '';
+  if (type === 'focus-stream') _aeFocusRadioChanged();
 }
 
 function _aeFocusRadioChanged() {
@@ -1043,12 +1057,6 @@ function _aeFocusRadioChanged() {
   if (timeoutEl) timeoutEl.disabled = !auto;
 }
 
-function _aeFocusSamePanelChanged() {
-  const cb  = document.getElementById('ae-focus-same-panel');
-  const sel = document.getElementById('ae-focus-panel-select');
-  if (!cb || !sel) return;
-  sel.style.display = cb.checked ? 'none' : '';
-}
 
 function saveAeActionDrawer(originalId, isNew) {
   const idEl     = document.getElementById('ae-field-id');
@@ -1115,14 +1123,13 @@ function saveAeActionDrawer(originalId, isNew) {
   }
 
   let timeout = 0;
-  let focusPanelSaved = null;
-  if (type === 'focus-panel') {
+  let focusStreamSaved = null;
+  if (type === 'focus-stream') {
     const autoClose = !!(document.getElementById('ae-focus-auto') && document.getElementById('ae-focus-auto').checked);
     timeout = autoClose ? (parseInt((document.getElementById('ae-focus-timeout') || {}).value, 10) || 30) : 0;
-    const samePanelCb = document.getElementById('ae-focus-same-panel');
-    const panelSel    = document.getElementById('ae-focus-panel-select');
-    if (samePanelCb && !samePanelCb.checked && panelSel && panelSel.value !== '') {
-      focusPanelSaved = parseInt(panelSel.value, 10);
+    const panelSel = document.getElementById('ae-focus-stream-select');
+    if (panelSel && panelSel.value !== '') {
+      focusStreamSaved = parseInt(panelSel.value, 10);
     }
   }
 
@@ -1136,8 +1143,8 @@ function saveAeActionDrawer(originalId, isNew) {
     ...(type === 'mqtt' && mqttServer ? { mqttServer } : {}),
     ...(type === 'mqtt' ? { publish: { topic: pTopic, payload: pPayload } } : {}),
     ...(type === 'mqtt' && sTopic ? { state: { topic: sTopic, ...(sOnVal ? { onValue: sOnVal } : {}) } } : {}),
-    ...(type === 'focus-panel' && timeout > 0 ? { timeout } : {}),
-    ...(type === 'focus-panel' && typeof focusPanelSaved === 'number' ? { panel: focusPanelSaved } : {}),
+    ...(type === 'focus-stream' && timeout > 0 ? { timeout } : {}),
+    ...(type === 'focus-stream' && typeof focusStreamSaved === 'number' ? { panel: focusStreamSaved } : {}),
   };
 
   const idx = (AE_LOCAL.actions || []).findIndex(a => a.id === originalId);
@@ -1261,7 +1268,7 @@ function _buildAeGroupDrawerForm(group, isNew) {
   const numSlots = Math.min(slots.length + 1, 6); // show one extra empty slot unless at max
   const allActions = (AE_LOCAL && AE_LOCAL.actions) || [];
 
-  const typeOrder = a => a.type === 'builtin' ? 0 : a.type === 'focus-panel' ? 1 : 2;
+  const typeOrder = a => a.type === 'builtin' ? 0 : a.type === 'focus-stream' ? 1 : 2;
   const builtins = typeof BUILTIN_ACTIONS !== 'undefined' ? Object.values(BUILTIN_ACTIONS) : [];
   const mergedMap = new Map();
   builtins.forEach(a => mergedMap.set(a.id, a));
@@ -1324,7 +1331,7 @@ function _aeAddSlot(currentCount) {
   const slotRow = document.createElement('div');
   slotRow.className = 'views-form-row';
   slotRow.id = `ae-slot-row-${currentCount}`;
-  const typeOrderAdd = a => (a.type === 'builtin' || a.type === 'focus-panel') ? 0 : 1;
+  const typeOrderAdd = a => (a.type === 'builtin' || a.type === 'focus-stream') ? 0 : 1;
   const builtinsAdd = typeof BUILTIN_ACTIONS !== 'undefined' ? Object.values(BUILTIN_ACTIONS) : [];
   const mergedMapAdd = new Map();
   builtinsAdd.forEach(a => mergedMapAdd.set(a.id, a));
@@ -1786,71 +1793,3 @@ function _onAeSlotDragEnd(e) {
   _initAeSlotDrag();
 }
 
-// ── Drag-to-reorder: Servers ──────────────────────────────────────────────────
-
-function _initAeSrvDrag() {
-  document.querySelectorAll('#ae-srv-tbody .cam-drag-handle').forEach(handle => {
-    handle.addEventListener('pointerdown', _onAeSrvDragDown, { passive: false });
-  });
-}
-
-function _onAeSrvDragDown(e) {
-  e.preventDefault();
-  const handle = e.currentTarget;
-  const row    = handle.closest('tr');
-  const tbody  = document.getElementById('ae-srv-tbody');
-  if (!tbody) return;
-  const rows   = [...tbody.querySelectorAll('tr[id^="ae-srv-row-"]')];
-  const idx    = rows.indexOf(row);
-  if (idx < 0) return;
-
-  const rect = row.getBoundingClientRect();
-  const ghost = document.createElement('div');
-  ghost.id = 'ae-drag-ghost';
-  ghost.style.cssText = `position:fixed;z-index:2000;pointer-events:none;background:rgba(15,15,15,0.97);border:1px solid rgba(74,222,128,0.5);border-radius:3px;box-shadow:0 6px 24px rgba(0,0,0,0.7);display:flex;align-items:center;padding:0 16px;font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.8);left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px`;
-  ghost.textContent = (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers || [])[idx] ? AE_LOCAL.mqtt.servers[idx].id : '';
-  document.body.appendChild(ghost);
-
-  row.classList.add('cam-row-dragging');
-  handle.setPointerCapture(e.pointerId);
-  _aeDrag = { type: 'srv', idx, dropIdx: idx, ghost, rows, offsetY: e.clientY - rect.top };
-  handle.addEventListener('pointermove',   _onAeSrvDragMove);
-  handle.addEventListener('pointerup',     _onAeSrvDragEnd);
-  handle.addEventListener('pointercancel', _onAeSrvDragEnd);
-}
-
-function _onAeSrvDragMove(e) {
-  if (!_aeDrag) return;
-  const { ghost, rows, offsetY } = _aeDrag;
-  ghost.style.top = (e.clientY - offsetY) + 'px';
-  let dropIdx = rows.length;
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i].getBoundingClientRect();
-    if (e.clientY < r.top + r.height / 2) { dropIdx = i; break; }
-  }
-  _aeDrag.dropIdx = dropIdx;
-  rows.forEach(r => r.classList.remove('cam-drop-before', 'cam-drop-after'));
-  if (dropIdx < rows.length) rows[dropIdx].classList.add('cam-drop-before');
-  else rows[rows.length - 1].classList.add('cam-drop-after');
-}
-
-function _onAeSrvDragEnd(e) {
-  if (!_aeDrag) return;
-  const { idx, dropIdx, ghost, rows } = _aeDrag;
-  const handle = e.currentTarget;
-  handle.removeEventListener('pointermove',   _onAeSrvDragMove);
-  handle.removeEventListener('pointerup',     _onAeSrvDragEnd);
-  handle.removeEventListener('pointercancel', _onAeSrvDragEnd);
-  ghost.remove();
-  rows.forEach(r => r.classList.remove('cam-row-dragging', 'cam-drop-before', 'cam-drop-after'));
-  _aeDrag = null;
-  const newIdx = dropIdx <= idx ? dropIdx : dropIdx - 1;
-  if (newIdx === idx) return;
-  const servers = AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers;
-  if (!servers) return;
-  const [moved] = servers.splice(idx, 1);
-  servers.splice(newIdx, 0, moved);
-  const container = document.getElementById('ae-tabs-and-content');
-  if (container) _renderAeTabsInto(container);
-  markAeUnsaved();
-}
