@@ -35,26 +35,32 @@ const CAM_FIELD_SCHEMA = [
     id: 'objectFit', label: 'Object Fit', type: 'select', default: 'contain', section: 'main',
     options: [{value:'contain',label:'Contain (letterbox)'},{value:'cover',label:'Cover (crop)'}],
   },
-  { id: 'audio', label: 'Audio', type: 'toggle', default: false, section: 'advanced' },
+  { id: 'audio', label: 'Audio', type: 'toggle', default: false, section: 'advanced',
+    tooltip: 'Enables audio playback for this stream. Requires the RTSP source to include an audio track.' },
   {
     id: 'sourceOnDemand', label: 'On Demand', type: 'toggle', default: true, section: 'advanced',
+    tooltip: 'When enabled, the stream is only fetched from the RTSP source when a viewer is connected. Saves bandwidth when no one is watching.',
   },
   {
     id: 'sourceOnDemandStartTimeout', label: 'Start Timeout', type: 'text', default: '10s',
     section: 'advanced', placeholder: '10s', dependsOn: 'sourceOnDemand',
+    tooltip: 'How long to wait for the stream to start before giving up. Use Go duration format (e.g. 10s, 1m).',
   },
   {
     id: 'sourceOnDemandCloseAfter', label: 'Close After', type: 'text', default: '10s',
     section: 'advanced', placeholder: '10s', dependsOn: 'sourceOnDemand',
+    tooltip: 'How long after the last viewer disconnects before closing the upstream RTSP connection. Use Go duration format (e.g. 10s, 1m).',
   },
   {
     id: 'refreshInterval', label: 'Refresh Interval', type: 'number', default: 0,
     section: 'advanced', hint: 'sec (0 = off)',
+    tooltip: 'Automatically reload the stream player every N seconds. Useful for streams that stall. Set to 0 to disable.',
   },
   {
     id: 'preloadLeadTime', label: 'Preload Lead', type: 'number', default: 0,
     section: 'advanced', hint: 'sec (0 = default)',
     showIf: () => typeof ENABLE_PRELOAD !== 'undefined' && ENABLE_PRELOAD,
+    tooltip: 'Number of seconds before the stream tile becomes visible to start loading the stream. 0 uses the application default.',
   },
 ];
 
@@ -68,7 +74,7 @@ function openCamerasModal() {
 
 async function loadCamStreams() {
   const tbody = document.getElementById('cam-tbody');
-  tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;font-family:\'Courier New\',monospace;font-size:10px;color:rgba(255,255,255,0.3)">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;font-family:\'Courier New\',monospace;font-size:12px;color:rgba(255,255,255,0.3)">Loading...</td></tr>';
   try {
     const res = await fetch('/api/streams');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -103,7 +109,7 @@ function camEscHtml(s) {
 function renderCamTable() {
   const tbody = document.getElementById('cam-tbody');
   if (!CAM_LOCAL_STREAMS || CAM_LOCAL_STREAMS.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="padding:32px;text-align:center;font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3)">
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:32px;text-align:center;font-family:'Courier New',monospace;font-size:12px;color:rgba(255,255,255,0.3)">
       NO STREAMS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Camera to add your first stream</span>
     </td></tr>`;
     return;
@@ -126,9 +132,9 @@ function renderCamTable() {
     }
     row.innerHTML = `
       <td class="cam-drag-handle" style="width:32px">≡</td>
-      <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${camEscHtml(stream.path)}</td>
-      <td style="width:40px;text-align:center"><span class="stream-status ${streamStatus}"></span></td>
-      <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${camEscHtml(camMaskSource(stream.source))}</td>
+      <td style="font-family:'Courier New',monospace;color:rgba(255,255,255,0.7)">${camEscHtml(stream.path)}</td>
+      <td style="width:48px;text-align:center"><span class="stream-status ${streamStatus}"></span></td>
+      <td style="font-family:'Courier New',monospace;color:rgba(255,255,255,0.5);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${camEscHtml(camMaskSource(stream.source))}</td>
       <td style="text-align:right;white-space:nowrap">
         <button class="sp-btn" onclick="openCamStreamTest('${camEscHtml(stream.path)}')" title="Test stream" style="color:rgba(74,222,128,0.6);border-color:rgba(74,222,128,0.2)">▶</button>
         <button class="sp-btn" onclick="openCamDrawer('${camEscHtml(stream.path)}')" title="Edit">✎</button>
@@ -148,8 +154,9 @@ function renderCamTable() {
   _initCamDrag();
 }
 
-function camFormRow(label, inputHtml) {
-  return `<div class="views-form-row"><label>${label}</label><div style="flex:1;display:flex;flex-direction:column;gap:4px">${inputHtml}</div></div>`;
+function camFormRow(label, inputHtml, tooltip = '') {
+  const infoIcon = tooltip ? `<span class="cam-info-icon" title="${tooltip}" style="cursor:help;font-size:11px;color:rgba(255,255,255,0.4);margin-left:4px;">ℹ</span>` : '';
+  return `<div class="views-form-row"><label>${label}${infoIcon}</label><div style="flex:1;display:flex;flex-direction:column;gap:4px">${inputHtml}</div></div>`;
 }
 
 function renderCamField(field, stream) {
@@ -164,14 +171,15 @@ function renderCamField(field, stream) {
     return camFormRow(field.label, `<div style="display:flex;gap:8px;align-items:center">
       <select class="views-input" id="cam-field-aspectRatio" style="flex:none;width:auto" onchange="camArChange(this)">${opts}</select>
       <input class="views-input" id="cam-field-aspectRatio-custom" value="${camEscHtml(arCustom)}" placeholder="e.g. 9:16" style="flex:none;width:90px;${ar==='custom'?'':'display:none'}">
-    </div>`);
+    </div>`, field.tooltip);
   }
 
   if (field.type === 'toggle') {
     const checked = field.id === 'sourceOnDemand' ? val !== false : !!val;
     const extra = field.id === 'sourceOnDemand' ? ' onchange="camOnDemandChange(this)"' : '';
     return camFormRow(field.label,
-      `<label class="toggle"><input type="checkbox" id="cam-field-${field.id}"${checked?' checked':''}${extra}><span class="toggle-track"></span></label>`
+      `<label class="toggle"><input type="checkbox" id="cam-field-${field.id}"${checked?' checked':''}${extra}><span class="toggle-track"></span></label>`,
+      field.tooltip
     );
   }
 
@@ -180,14 +188,16 @@ function renderCamField(field, stream) {
       `<option value="${camEscHtml(o.value)}" ${val===o.value?'selected':''}>${camEscHtml(o.label)}</option>`
     ).join('');
     return camFormRow(field.label,
-      `<select class="views-input" id="cam-field-${field.id}" style="flex:none;width:auto">${opts}</select>`
+      `<select class="views-input" id="cam-field-${field.id}" style="flex:none;width:auto">${opts}</select>`,
+      field.tooltip
     );
   }
 
   if (field.type === 'number') {
     const hint = field.hint ? `<span style="font-size:10px;color:rgba(255,255,255,0.3)">${camEscHtml(field.hint)}</span>` : '';
     return camFormRow(field.label,
-      `<div style="display:flex;align-items:center;gap:8px"><input type="number" class="perf-input" id="cam-field-${field.id}" value="${camEscHtml(String(val))}" min="0">${hint}</div>`
+      `<div style="display:flex;align-items:center;gap:8px"><input type="number" class="perf-input" id="cam-field-${field.id}" value="${camEscHtml(String(val))}" min="0">${hint}</div>`,
+      field.tooltip
     );
   }
 
@@ -198,7 +208,8 @@ function renderCamField(field, stream) {
     : '';
   const errHtml = field.validate ? `<div class="cam-field-error" id="cam-err-${field.id}"></div>` : '';
   return camFormRow(field.label,
-    `<input class="views-input" id="cam-field-${field.id}" value="${camEscHtml(String(val))}"${phAttr}>${hintHtml}${errHtml}`
+    `<input class="views-input" id="cam-field-${field.id}" value="${camEscHtml(String(val))}"${phAttr}>${hintHtml}${errHtml}`,
+    field.tooltip
   );
 }
 
@@ -421,12 +432,12 @@ function deleteCamStream(path) {
   const usedByViews = (typeof VIEWS !== 'undefined' ? VIEWS : [])
     .filter(v => Array.isArray(v.streams) && v.streams.includes(path));
   const usageNote = usedByViews.length > 0
-    ? `<div style="margin-top:6px;font-size:10px;color:rgba(248,113,113,0.7)">Used by ${usedByViews.length} view(s) — will be removed from them on apply.</div>`
+    ? `<div style="margin-top:6px;font-size:12px;color:rgba(248,113,113,0.7)">Used by ${usedByViews.length} view(s) — will be removed from them on apply.</div>`
     : '';
   row.classList.add('cam-row-confirm');
   row.onclick = null;
   row.innerHTML = `<td colspan="5" style="padding:10px 16px">
-    <span style="font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.7)">Delete "<strong>${camEscHtml(stream.path)}</strong>"?</span>${usageNote}
+    <span style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.7)">Delete "<strong>${camEscHtml(stream.path)}</strong>"?</span>${usageNote}
   </td>
   <td style="text-align:right;white-space:nowrap;padding:10px 16px">
     <button class="perf-reset" onclick="renderCamTable()">Cancel</button>
