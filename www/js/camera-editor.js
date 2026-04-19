@@ -106,6 +106,23 @@ function camEscHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function _showCamTooltip(el) {
+  const text = el.dataset.tooltip;
+  if (!text) return;
+  const tip = document.createElement('div');
+  tip.id = 'cam-tooltip';
+  tip.textContent = text;
+  tip.style.cssText = 'position:fixed;z-index:99999;background:#222;color:#eee;font-size:11px;padding:6px 10px;border-radius:4px;max-width:260px;line-height:1.4;pointer-events:none;border:1px solid rgba(255,255,255,0.15);font-family:"Courier New",monospace;';
+  document.body.appendChild(tip);
+  const r = el.getBoundingClientRect();
+  tip.style.left = r.left + 'px';
+  tip.style.top = (r.bottom + 6) + 'px';
+}
+function _hideCamTooltip() {
+  const tip = document.getElementById('cam-tooltip');
+  if (tip) tip.remove();
+}
+
 function renderCamTable() {
   const tbody = document.getElementById('cam-tbody');
   if (!CAM_LOCAL_STREAMS || CAM_LOCAL_STREAMS.length === 0) {
@@ -155,7 +172,7 @@ function renderCamTable() {
 }
 
 function camFormRow(label, inputHtml, tooltip = '') {
-  const infoIcon = tooltip ? `<span class="cam-info-icon" title="${tooltip}" style="cursor:help;font-size:11px;color:rgba(255,255,255,0.4);margin-left:4px;">ℹ</span>` : '';
+  const infoIcon = tooltip ? `<span class="cam-info-icon" data-tooltip="${tooltip}" onmouseenter="_showCamTooltip(this)" onmouseleave="_hideCamTooltip()" style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.4);font-size:10px;font-weight:bold;font-style:italic;color:rgba(255,255,255,0.5);cursor:help;margin-left:5px;line-height:1;vertical-align:middle;">i</span>` : '';
   return `<div class="views-form-row"><label>${label}${infoIcon}</label><div style="flex:1;display:flex;flex-direction:column;gap:4px">${inputHtml}</div></div>`;
 }
 
