@@ -26,10 +26,10 @@ function _aeParsesBrokerUrl(broker) {
   }
 }
 
-let AE_FULL        = null;  // { mqtt, actions, groups } — loaded from API
+let AE_FULL        = null;  // { mqtt, actions, collections } — loaded from API
 let AE_LOCAL       = null;  // working copy — mutated by editor
 let AE_UNSAVED     = false;
-let AE_TAB         = 'mqtt';   // 'mqtt' | 'actions' | 'groups'
+let AE_TAB         = 'mqtt';   // 'mqtt' | 'actions' | 'collections'
 let AE_OPEN_DRAWER = null;          // action id or group id currently open
 let AE_OPEN_DRAWER_IS_NEW = false;  // true if the open drawer is for a newly added (unsaved) entry
 let AE_DRAWER_DIRTY = false;        // true if any form field has been modified since drawer opened
@@ -72,7 +72,7 @@ async function loadActionsEditorData() {
   } catch(e) {
     // API unavailable or file missing — start with empty structure
     console.warn('Actions editor: failed to load /api/actions', e);
-    const empty = { mqtt: { servers: [] }, actions: [], groups: [] };
+    const empty = { mqtt: { servers: [] }, actions: [], collections: [] };
     AE_FULL    = null;  // null = not yet saved; track as unavailable for error display
     AE_LOCAL   = _aeDeepClone(empty);
     AE_UNSAVED = false;
@@ -113,18 +113,18 @@ function _renderAeTabsInto(container) {
   if (!container) return;
 
   const tabs = [
-    { id: 'mqtt',    label: 'MQTT' },
-    { id: 'actions', label: 'Actions' },
-    { id: 'groups',  label: 'Groups' },
+    { id: 'mqtt',        label: 'MQTT' },
+    { id: 'actions',     label: 'Actions' },
+    { id: 'collections', label: 'Collections' },
   ];
   const tabNav = tabs.map(t =>
     `<button class="ae-tab-btn${AE_TAB === t.id ? ' active' : ''}" onclick="switchAeTab('${t.id}')">${t.label}</button>`
   ).join('');
 
   let tabContent = '';
-  if (AE_TAB === 'mqtt')    tabContent = _buildAeMqttTab();
-  if (AE_TAB === 'actions') tabContent = _buildAeActionsTab();
-  if (AE_TAB === 'groups')  tabContent = _buildAeGroupsTab();
+  if (AE_TAB === 'mqtt')        tabContent = _buildAeMqttTab();
+  if (AE_TAB === 'actions')     tabContent = _buildAeActionsTab();
+  if (AE_TAB === 'collections') tabContent = _buildAeCollectionsTab();
 
   const bannerHtml = AE_UNSAVED ? _buildAeBanner() : '';
 
@@ -132,14 +132,14 @@ function _renderAeTabsInto(container) {
     ? `<button class="cam-add-btn" style="margin-left:auto" onclick="addAeAction()">+ Add Action</button>`
     : AE_TAB === 'mqtt'
     ? `<button class="cam-add-btn" style="margin-left:auto" onclick="addAeSrv()">+ Add Server</button>`
-    : AE_TAB === 'groups'
-    ? `<button class="cam-add-btn" style="margin-left:auto" onclick="addAeGroup()">+ Add Group</button>`
+    : AE_TAB === 'collections'
+    ? `<button class="cam-add-btn" style="margin-left:auto" onclick="addAeCollection()">+ Add Collection</button>`
     : '';
 
   const aeSubtabDesc = {
-    mqtt:    'Connect to MQTT brokers for event messaging.',
-    actions: 'Map MQTT triggers to kiosk commands.',
-    groups:  'Organize cameras into logical groups.',
+    mqtt:        'Connect to MQTT brokers for event messaging. Brokers configured here can be used as triggers and targets in actions.',
+    actions:     'Actions can be triggered by users on any view or panel — navigate views or publish MQTT commands.',
+    collections: 'Bundle actions into a named collection — displayed as a pop-up menu users can trigger from any view.',
   };
   const subtabDescHtml = `<p style="color:rgba(255,255,255,0.4);font-size:11px;margin:6px 0 16px">${aeSubtabDesc[AE_TAB] || ''}</p>`;
 
@@ -149,9 +149,9 @@ function _renderAeTabsInto(container) {
     <div id="ae-tab-content" class="ae-tab-body" style="width:100%;max-width:900px">${tabContent}</div>
     ${bannerHtml}`;
 
-  if (AE_TAB === 'mqtt')    _initAeSrvDrag();
-  if (AE_TAB === 'actions') _initAeActionDrag();
-  if (AE_TAB === 'groups')  _initAeGroupDrag();
+  if (AE_TAB === 'mqtt')        _initAeSrvDrag();
+  if (AE_TAB === 'actions')     _initAeActionDrag();
+  if (AE_TAB === 'collections') _initAeCollectionDrag();
 }
 
 function switchAeTab(tab) {
@@ -159,9 +159,9 @@ function switchAeTab(tab) {
   AE_OPEN_DRAWER = null;
   AE_DRAWER_DIRTY = false;
   const aeTabDescriptions = {
-    mqtt:    'MQTT — connect to brokers for event messaging.',
-    actions: 'Actions — map MQTT triggers to kiosk commands.',
-    groups:  'Groups — organize cameras into logical groups.',
+    mqtt:        'MQTT — connect to brokers for event messaging.',
+    actions:     'Actions — map MQTT triggers to kiosk commands.',
+    collections: 'Collections — organize cameras into logical collections.',
   };
   if (typeof setSettingsFooter === 'function') setSettingsFooter(aeTabDescriptions[tab] || '');
   const container = document.getElementById('ae-tabs-and-content');
@@ -1017,10 +1017,10 @@ function openAeActionDrawer(id) {
 function closeAeDrawer() {
   if (!AE_OPEN_DRAWER) return;
   const drawerEl = document.getElementById(`ae-action-drawer-${AE_OPEN_DRAWER}`) ||
-                   document.getElementById(`ae-group-drawer-${AE_OPEN_DRAWER}`) ||
+                   document.getElementById(`ae-collection-drawer-${AE_OPEN_DRAWER}`) ||
                    document.getElementById(`ae-srv-drawer-${AE_OPEN_DRAWER}`);
   const rowEl    = document.getElementById(`ae-action-row-${AE_OPEN_DRAWER}`) ||
-                   document.getElementById(`ae-group-row-${AE_OPEN_DRAWER}`) ||
+                   document.getElementById(`ae-collection-row-${AE_OPEN_DRAWER}`) ||
                    document.getElementById(`ae-srv-row-${AE_OPEN_DRAWER}`);
   if (drawerEl) drawerEl.style.maxHeight = '0';
   if (rowEl) rowEl.classList.remove('cam-row-active');
@@ -1032,8 +1032,8 @@ function closeAeDrawer() {
     if (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) {
       AE_LOCAL.mqtt.servers = AE_LOCAL.mqtt.servers.filter(s => s.id !== removedId);
     }
-    AE_LOCAL.actions = (AE_LOCAL.actions || []).filter(a => a.id !== removedId);
-    AE_LOCAL.groups  = (AE_LOCAL.groups  || []).filter(g => g.id !== removedId);
+    AE_LOCAL.actions     = (AE_LOCAL.actions     || []).filter(a => a.id !== removedId);
+    AE_LOCAL.collections = (AE_LOCAL.collections || []).filter(g => g.id !== removedId);
     const container = document.getElementById('ae-tabs-and-content');
     if (container) _renderAeTabsInto(container);
     return;
@@ -1154,9 +1154,9 @@ function saveAeActionDrawer(originalId, isNew) {
     AE_LOCAL.actions.push(updated);
   }
 
-  // Update group references if id changed
+  // Update collection references if id changed
   if (newId !== originalId) {
-    (AE_LOCAL.groups || []).forEach(g => {
+    (AE_LOCAL.collections || []).forEach(g => {
       if (Array.isArray(g.actions)) {
         g.actions = g.actions.map(aid => aid === originalId ? newId : aid);
       }
@@ -1188,15 +1188,15 @@ function deleteAeAction(id) {
 
 function confirmDeleteAeAction(id) {
   AE_LOCAL.actions = (AE_LOCAL.actions || []).filter(a => a.id !== id);
-  // Remove from all groups
-  (AE_LOCAL.groups || []).forEach(g => {
+  // Remove from all collections
+  (AE_LOCAL.collections || []).forEach(g => {
     if (Array.isArray(g.actions)) g.actions = g.actions.filter(aid => aid !== id);
   });
   if (AE_OPEN_DRAWER === id) AE_OPEN_DRAWER = null;
-  // Clean up dangling slotGroups references in views
+  // Clean up dangling slotCollections references in views
   (VIEWS || []).forEach(v => {
-    if (!Array.isArray(v.slotGroups)) return;
-    v.slotGroups = v.slotGroups.map(sg => sg === id ? null : sg);
+    if (!Array.isArray(v.slotCollections)) return;
+    v.slotCollections = v.slotCollections.map(sg => sg === id ? null : sg);
   });
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
@@ -1217,37 +1217,37 @@ function addAeAction() {
   if (idInput) { idInput.focus(); idInput.select(); }
 }
 
-// ── Groups Tab ────────────────────────────────────────────────────────────────
+// ── Collections Tab ───────────────────────────────────────────────────────────
 
-function _buildAeGroupsTab() {
-  const groups = (AE_LOCAL && AE_LOCAL.groups) || [];
-  if (groups.length === 0) {
+function _buildAeCollectionsTab() {
+  const collections = (AE_LOCAL && AE_LOCAL.collections) || [];
+  if (collections.length === 0) {
     return `<div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.3);padding:32px 0;text-align:center">
-      NO GROUPS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Group above</span>
+      NO COLLECTIONS CONFIGURED<br><span style="margin-top:6px;display:block">Use + Add Collection above</span>
     </div>`;
   }
 
   let rows = '';
-  groups.forEach(group => {
-    const id  = group.id || '';
+  collections.forEach(collection => {
+    const id  = collection.id || '';
     const esc = _aeEsc(id);
-    const actionCount = (group.actions || []).length;
+    const actionCount = (collection.actions || []).length;
     const isOpen = AE_OPEN_DRAWER === id;
 
-    rows += `<tr id="ae-group-row-${esc}" style="cursor:pointer" onclick="(function(e){if(!e.target.closest('button'))openAeGroupDrawer('${esc}')})(event)">
+    rows += `<tr id="ae-collection-row-${esc}" style="cursor:pointer" onclick="(function(e){if(!e.target.closest('button'))openAeCollectionDrawer('${esc}')})(event)">
       <td class="cam-drag-handle" style="width:32px">≡</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${_aeEsc(id)}</td>
-      <td style="font-size:11px">${_aeEsc(group.name || '')}</td>
+      <td style="font-size:11px">${_aeEsc(collection.description || '')}</td>
       <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.4)">${actionCount} action${actionCount !== 1 ? 's' : ''}</td>
       <td style="text-align:right;white-space:nowrap">
-        <button class="sp-btn" onclick="openAeGroupDrawer('${esc}')" title="Edit">✎</button>
-        <button class="sp-btn" onclick="deleteAeGroup('${esc}')" title="Delete" style="color:rgba(248,113,113,0.6);border-color:rgba(248,113,113,0.2)">✕</button>
+        <button class="sp-btn" onclick="openAeCollectionDrawer('${esc}')" title="Edit">✎</button>
+        <button class="sp-btn" onclick="deleteAeCollection('${esc}')" title="Delete" style="color:rgba(248,113,113,0.6);border-color:rgba(248,113,113,0.2)">✕</button>
       </td>
     </tr>
-    <tr id="ae-group-drawer-row-${esc}">
+    <tr id="ae-collection-drawer-row-${esc}">
       <td colspan="5" style="padding:0;border:none">
-        <div class="cam-drawer" id="ae-group-drawer-${esc}" style="${isOpen ? 'max-height:9999px' : ''}">
-          <div class="cam-drawer-inner" id="ae-group-drawer-inner-${esc}">${isOpen ? _buildAeGroupDrawerForm(group, false) : ''}</div>
+        <div class="cam-drawer" id="ae-collection-drawer-${esc}" style="${isOpen ? 'max-height:9999px' : ''}">
+          <div class="cam-drawer-inner" id="ae-collection-drawer-inner-${esc}">${isOpen ? _buildAeCollectionDrawerForm(collection, false) : ''}</div>
         </div>
       </td>
     </tr>`;
@@ -1255,16 +1255,16 @@ function _buildAeGroupsTab() {
 
   return `<table class="streams-table" style="width:100%">
     <thead><tr>
-      <th></th><th>ID</th><th>Name</th><th>Actions</th><th></th>
+      <th></th><th>ID</th><th>Description</th><th>Actions</th><th></th>
     </tr></thead>
-    <tbody id="ae-groups-tbody">${rows}</tbody>
+    <tbody id="ae-collections-tbody">${rows}</tbody>
   </table>`;
 }
 
-function _buildAeGroupDrawerForm(group, isNew) {
-  const id      = group.id || '';
-  const name    = group.name || '';
-  const slots   = (group.actions || []).slice(0, 6);
+function _buildAeCollectionDrawerForm(collection, isNew) {
+  const id      = collection.id || '';
+  const description = collection.description || '';
+  const slots   = (collection.actions || []).slice(0, 6);
   const numSlots = Math.min(slots.length + 1, 6); // show one extra empty slot unless at max
   const allActions = (AE_LOCAL && AE_LOCAL.actions) || [];
 
@@ -1296,15 +1296,15 @@ function _buildAeGroupDrawerForm(group, isNew) {
     <div class="views-form-row">
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">ID</label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-        <input class="views-input" id="ae-field-group-id" value="${_aeEsc(id)}" placeholder="my-group">
-        <div class="cam-field-error" id="ae-err-group-id"></div>
+        <input class="views-input" id="ae-field-collection-id" value="${_aeEsc(id)}" placeholder="my-collection">
+        <div class="cam-field-error" id="ae-err-collection-id"></div>
       </div>
     </div>
     <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Name</label>
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Description</label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-        <input class="views-input" id="ae-field-group-name" value="${_aeEsc(name)}" placeholder="Living Room">
-        <div class="cam-field-error" id="ae-err-group-name"></div>
+        <input class="views-input" id="ae-field-collection-description" value="${_aeEsc(description)}" placeholder="Living Room">
+        <div class="cam-field-error" id="ae-err-collection-description"></div>
       </div>
     </div>
 
@@ -1317,7 +1317,7 @@ function _buildAeGroupDrawerForm(group, isNew) {
   </div>
   <div class="cam-drawer-footer">
     <button class="perf-reset" onclick="closeAeDrawer()">Cancel</button>
-    <button class="cam-save-btn" onclick="saveAeGroupDrawer('${_aeEsc(id)}', ${isNew})">Save</button>
+    <button class="cam-save-btn" onclick="saveAeCollectionDrawer('${_aeEsc(id)}', ${isNew})">Save</button>
   </div>`;
 }
 
@@ -1356,55 +1356,55 @@ function _aeAddSlot(currentCount) {
   _initAeSlotDrag();
 }
 
-function openAeGroupDrawer(id) {
+function openAeCollectionDrawer(id) {
   if (AE_OPEN_DRAWER === id) {
     if (!AE_DRAWER_DIRTY) closeAeDrawer();
     return;
   }
   if (AE_OPEN_DRAWER) closeAeDrawer();
-  const group = (AE_LOCAL.groups || []).find(g => g.id === id);
-  if (!group) return;
-  const inner = document.getElementById(`ae-group-drawer-inner-${id}`);
+  const collection = (AE_LOCAL.collections || []).find(g => g.id === id);
+  if (!collection) return;
+  const inner = document.getElementById(`ae-collection-drawer-inner-${id}`);
   if (!inner) return;
-  const isNew = !AE_FULL || !(AE_FULL.groups || []).find(g => g.id === id);
+  const isNew = !AE_FULL || !(AE_FULL.collections || []).find(g => g.id === id);
   AE_OPEN_DRAWER_IS_NEW = isNew;
-  inner.innerHTML = _buildAeGroupDrawerForm(group, isNew);
+  inner.innerHTML = _buildAeCollectionDrawerForm(collection, isNew);
   _initAeSlotDrag();
-  const drawer = document.getElementById(`ae-group-drawer-${id}`);
+  const drawer = document.getElementById(`ae-collection-drawer-${id}`);
   if (drawer) drawer.style.maxHeight = '9999px';
   AE_OPEN_DRAWER = id;
   AE_DRAWER_DIRTY = false;
   inner.addEventListener('input',  () => { AE_DRAWER_DIRTY = true; });
   inner.addEventListener('change', () => { AE_DRAWER_DIRTY = true; });
-  const row = document.getElementById(`ae-group-row-${id}`);
+  const row = document.getElementById(`ae-collection-row-${id}`);
   if (row) row.classList.add('cam-row-active');
 }
 
-function saveAeGroupDrawer(originalId, isNew) {
-  const idEl   = document.getElementById('ae-field-group-id');
-  const nameEl = document.getElementById('ae-field-group-name');
-  const newId   = idEl   ? idEl.value.trim()   : originalId;
-  const newName = nameEl ? nameEl.value.trim() : '';
+function saveAeCollectionDrawer(originalId, isNew) {
+  const idEl   = document.getElementById('ae-field-collection-id');
+  const descEl  = document.getElementById('ae-field-collection-description');
+  const newId   = idEl  ? idEl.value.trim()  : originalId;
+  const newDescription = descEl ? descEl.value.trim() : '';
 
   let valid = true;
 
-  const errId = document.getElementById('ae-err-group-id');
+  const errId = document.getElementById('ae-err-collection-id');
   if (!newId) {
     if (errId) errId.textContent = 'ID is required';
     valid = false;
-  } else if (newId !== originalId && (AE_LOCAL.groups || []).find(g => g.id === newId)) {
+  } else if (newId !== originalId && (AE_LOCAL.collections || []).find(g => g.id === newId)) {
     if (errId) errId.textContent = 'ID already exists';
     valid = false;
   } else {
     if (errId) errId.textContent = '';
   }
 
-  const errName = document.getElementById('ae-err-group-name');
-  if (!newName) {
-    if (errName) errName.textContent = 'Name is required';
+  const errDescription = document.getElementById('ae-err-collection-description');
+  if (!newDescription) {
+    if (errDescription) errDescription.textContent = 'Description is required';
     valid = false;
   } else {
-    if (errName) errName.textContent = '';
+    if (errDescription) errDescription.textContent = '';
   }
 
   if (!valid) return;
@@ -1417,13 +1417,13 @@ function saveAeGroupDrawer(originalId, isNew) {
     if (sel.value) actions.push(sel.value);
   }
 
-  const updated = { id: newId, name: newName, actions };
+  const updated = { id: newId, description: newDescription, actions };
 
-  const idx = (AE_LOCAL.groups || []).findIndex(g => g.id === originalId);
+  const idx = (AE_LOCAL.collections || []).findIndex(g => g.id === originalId);
   if (idx >= 0) {
-    AE_LOCAL.groups[idx] = updated;
+    AE_LOCAL.collections[idx] = updated;
   } else {
-    AE_LOCAL.groups.push(updated);
+    AE_LOCAL.collections.push(updated);
   }
 
   AE_DRAWER_DIRTY = false;
@@ -1433,29 +1433,29 @@ function saveAeGroupDrawer(originalId, isNew) {
   applyAeChanges();
 }
 
-function deleteAeGroup(id) {
-  const group = (AE_LOCAL.groups || []).find(g => g.id === id);
-  if (!group) return;
-  const row = document.getElementById(`ae-group-row-${id}`);
+function deleteAeCollection(id) {
+  const collection = (AE_LOCAL.collections || []).find(g => g.id === id);
+  if (!collection) return;
+  const row = document.getElementById(`ae-collection-row-${id}`);
   if (!row) return;
   row.classList.add('cam-row-confirm');
   row.onclick = null;
   row.innerHTML = `<td colspan="4" style="padding:10px 16px">
-    <span style="font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.7)">Delete group "<strong>${_aeEsc(id)}</strong>"?</span>
+    <span style="font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.7)">Delete collection "<strong>${_aeEsc(id)}</strong>"?</span>
   </td>
   <td style="text-align:right;white-space:nowrap;padding:10px 16px">
     <button class="perf-reset" onclick="(function(){const c=document.getElementById('ae-tabs-and-content');if(c)_renderAeTabsInto(c);})()">Cancel</button>
-    <button class="cam-save-btn" style="background:rgba(248,113,113,0.15);border-color:rgba(248,113,113,0.5);color:#f87171" onclick="confirmDeleteAeGroup('${_aeEsc(id)}')">Delete</button>
+    <button class="cam-save-btn" style="background:rgba(248,113,113,0.15);border-color:rgba(248,113,113,0.5);color:#f87171" onclick="confirmDeleteAeCollection('${_aeEsc(id)}')">Delete</button>
   </td>`;
 }
 
-function confirmDeleteAeGroup(id) {
-  AE_LOCAL.groups = (AE_LOCAL.groups || []).filter(g => g.id !== id);
+function confirmDeleteAeCollection(id) {
+  AE_LOCAL.collections = (AE_LOCAL.collections || []).filter(g => g.id !== id);
   if (AE_OPEN_DRAWER === id) AE_OPEN_DRAWER = null;
-  // Clean up dangling slotGroups references in views
+  // Clean up dangling slotCollections references in views
   (VIEWS || []).forEach(v => {
-    if (!Array.isArray(v.slotGroups)) return;
-    v.slotGroups = v.slotGroups.map(sg => sg === id ? null : sg);
+    if (!Array.isArray(v.slotCollections)) return;
+    v.slotCollections = v.slotCollections.map(sg => sg === id ? null : sg);
   });
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
@@ -1463,16 +1463,16 @@ function confirmDeleteAeGroup(id) {
   _persistViews();
 }
 
-function addAeGroup() {
-  if (!AE_LOCAL.groups) AE_LOCAL.groups = [];
+function addAeCollection() {
+  if (!AE_LOCAL.collections) AE_LOCAL.collections = [];
   let n = 1;
-  while (AE_LOCAL.groups.find(g => g.id === `new-group-${n}`)) n++;
-  const newGroup = { id: `new-group-${n}`, name: '', actions: [] };
-  AE_LOCAL.groups.push(newGroup);
-  AE_OPEN_DRAWER = newGroup.id;
+  while (AE_LOCAL.collections.find(g => g.id === `new-collection-${n}`)) n++;
+  const newCollection = { id: `new-collection-${n}`, name: '', actions: [] };
+  AE_LOCAL.collections.push(newCollection);
+  AE_OPEN_DRAWER = newCollection.id;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
-  const idInput = document.getElementById('ae-field-group-id');
+  const idInput = document.getElementById('ae-field-collection-id');
   if (idInput) { idInput.focus(); idInput.select(); }
 }
 
@@ -1497,17 +1497,17 @@ function _aeCountChanges() {
   // Rough count: sum changed actions + changed groups + mqtt change
   let count = 0;
   if (JSON.stringify(AE_FULL.mqtt) !== JSON.stringify(AE_LOCAL.mqtt)) count++;
-  const fullActions  = AE_FULL.actions  || [];
-  const localActions = AE_LOCAL.actions || [];
-  const fullGroups   = AE_FULL.groups   || [];
-  const localGroups  = AE_LOCAL.groups  || [];
+  const fullActions      = AE_FULL.actions      || [];
+  const localActions     = AE_LOCAL.actions     || [];
+  const fullCollections  = AE_FULL.collections  || [];
+  const localCollections = AE_LOCAL.collections || [];
   const maxAct = Math.max(fullActions.length, localActions.length);
   for (let i = 0; i < maxAct; i++) {
     if (JSON.stringify(fullActions[i]) !== JSON.stringify(localActions[i])) count++;
   }
-  const maxGrp = Math.max(fullGroups.length, localGroups.length);
+  const maxGrp = Math.max(fullCollections.length, localCollections.length);
   for (let i = 0; i < maxGrp; i++) {
-    if (JSON.stringify(fullGroups[i]) !== JSON.stringify(localGroups[i])) count++;
+    if (JSON.stringify(fullCollections[i]) !== JSON.stringify(localCollections[i])) count++;
   }
   return Math.max(count, 1);
 }
@@ -1564,7 +1564,7 @@ async function applyAeChanges() {
 }
 
 function discardAeChanges() {
-  AE_LOCAL       = _aeDeepClone(AE_FULL || { mqtt: { servers: [] }, actions: [], groups: [] });
+  AE_LOCAL       = _aeDeepClone(AE_FULL || { mqtt: { servers: [] }, actions: [], collections: [] });
   AE_UNSAVED     = false;
   AE_OPEN_DRAWER = null;
   const container = document.getElementById('ae-tabs-and-content');
@@ -1640,21 +1640,21 @@ function _onAeActionDragEnd(e) {
   markAeUnsaved();
 }
 
-// ── Drag-to-reorder: Groups ───────────────────────────────────────────────────
+// ── Drag-to-reorder: Collections ─────────────────────────────────────────────
 
-function _initAeGroupDrag() {
-  document.querySelectorAll('#ae-groups-tbody .cam-drag-handle').forEach(handle => {
-    handle.addEventListener('pointerdown', _onAeGroupDragDown, { passive: false });
+function _initAeCollectionDrag() {
+  document.querySelectorAll('#ae-collections-tbody .cam-drag-handle').forEach(handle => {
+    handle.addEventListener('pointerdown', _onAeCollectionDragDown, { passive: false });
   });
 }
 
-function _onAeGroupDragDown(e) {
+function _onAeCollectionDragDown(e) {
   e.preventDefault();
   const handle = e.currentTarget;
   const row    = handle.closest('tr');
-  const tbody  = document.getElementById('ae-groups-tbody');
+  const tbody  = document.getElementById('ae-collections-tbody');
   if (!tbody) return;
-  const rows   = [...tbody.querySelectorAll('tr[id^="ae-group-row-"]')];
+  const rows   = [...tbody.querySelectorAll('tr[id^="ae-collection-row-"]')];
   const idx    = rows.indexOf(row);
   if (idx < 0) return;
 
@@ -1662,18 +1662,18 @@ function _onAeGroupDragDown(e) {
   const ghost = document.createElement('div');
   ghost.id = 'ae-drag-ghost';
   ghost.style.cssText = `position:fixed;z-index:2000;pointer-events:none;background:rgba(15,15,15,0.97);border:1px solid rgba(74,222,128,0.5);border-radius:3px;box-shadow:0 6px 24px rgba(0,0,0,0.7);display:flex;align-items:center;padding:0 16px;font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.8);left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px`;
-  ghost.textContent = (AE_LOCAL.groups || [])[idx] ? AE_LOCAL.groups[idx].id : '';
+  ghost.textContent = (AE_LOCAL.collections || [])[idx] ? AE_LOCAL.collections[idx].id : '';
   document.body.appendChild(ghost);
 
   row.classList.add('cam-row-dragging');
   handle.setPointerCapture(e.pointerId);
-  _aeDrag = { type: 'group', idx, dropIdx: idx, ghost, rows, offsetY: e.clientY - rect.top };
-  handle.addEventListener('pointermove',   _onAeGroupDragMove);
-  handle.addEventListener('pointerup',     _onAeGroupDragEnd);
-  handle.addEventListener('pointercancel', _onAeGroupDragEnd);
+  _aeDrag = { type: 'collection', idx, dropIdx: idx, ghost, rows, offsetY: e.clientY - rect.top };
+  handle.addEventListener('pointermove',   _onAeCollectionDragMove);
+  handle.addEventListener('pointerup',     _onAeCollectionDragEnd);
+  handle.addEventListener('pointercancel', _onAeCollectionDragEnd);
 }
 
-function _onAeGroupDragMove(e) {
+function _onAeCollectionDragMove(e) {
   if (!_aeDrag) return;
   const { ghost, rows, offsetY } = _aeDrag;
   ghost.style.top = (e.clientY - offsetY) + 'px';
@@ -1688,26 +1688,26 @@ function _onAeGroupDragMove(e) {
   else rows[rows.length - 1].classList.add('cam-drop-after');
 }
 
-function _onAeGroupDragEnd(e) {
+function _onAeCollectionDragEnd(e) {
   if (!_aeDrag) return;
   const { idx, dropIdx, ghost, rows } = _aeDrag;
   const handle = e.currentTarget;
-  handle.removeEventListener('pointermove',   _onAeGroupDragMove);
-  handle.removeEventListener('pointerup',     _onAeGroupDragEnd);
-  handle.removeEventListener('pointercancel', _onAeGroupDragEnd);
+  handle.removeEventListener('pointermove',   _onAeCollectionDragMove);
+  handle.removeEventListener('pointerup',     _onAeCollectionDragEnd);
+  handle.removeEventListener('pointercancel', _onAeCollectionDragEnd);
   ghost.remove();
   rows.forEach(r => r.classList.remove('cam-row-dragging', 'cam-drop-before', 'cam-drop-after'));
   _aeDrag = null;
   const newIdx = dropIdx <= idx ? dropIdx : dropIdx - 1;
   if (newIdx === idx) return;
-  const [moved] = (AE_LOCAL.groups || []).splice(idx, 1);
-  AE_LOCAL.groups.splice(newIdx, 0, moved);
+  const [moved] = (AE_LOCAL.collections || []).splice(idx, 1);
+  AE_LOCAL.collections.splice(newIdx, 0, moved);
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
   markAeUnsaved();
 }
 
-// ── Drag-to-reorder: Group Drawer Slots ──────────────────────────────────────
+// ── Drag-to-reorder: Collection Drawer Slots ─────────────────────────────────
 
 function _initAeSlotDrag() {
   document.querySelectorAll('#ae-slots-container .cam-drag-handle').forEach(handle => {
