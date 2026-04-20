@@ -9,9 +9,9 @@
     :root {
       /* Fluid font sizes: clamp(min, preferred-vw, max)
          At 1920px: mid values; at 3840px: approaches max; at 1280px: approaches min */
-      --fs-xs:  clamp(8px,  0.45vw, 13px);   /* was 9px  — chrome lbl, err-sub */
-      --fs-sm:  clamp(9px,  0.55vw, 15px);   /* was 10px — chrome live, err-code */
-      --fs-md:  clamp(10px, 0.65vw, 18px);   /* was 11px — slightly larger labels */
+      --fs-xs:  clamp(11px, 0.65vw, 18px);   /* was clamp(8px,0.45vw,13px) — boosted for kiosk legibility */
+      --fs-sm:  clamp(13px, 0.75vw, 20px);   /* was clamp(9px,0.55vw,15px) */
+      --fs-md:  clamp(14px, 0.85vw, 24px);   /* was clamp(10px,0.65vw,18px) */
 
       /* Fluid spacing / element sizes */
       --chrome-inset:  clamp(10px, 0.75vw, 20px);  /* was 14px — live/btn-fs top/right/bottom */
@@ -69,15 +69,32 @@
       z-index: 20;
     }
 
+    /* Dark gradient backdrop behind chrome overlay — ensures text is readable over bright video */
+    .chrome::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.6) 0%,
+        rgba(0,0,0,0) 35%,
+        rgba(0,0,0,0) 65%,
+        rgba(0,0,0,0.6) 100%
+      );
+      pointer-events: none;
+      z-index: -1;
+    }
+
     .chrome .lbl {
       font-family: 'Courier New', monospace;
       font-size: var(--fs-xs);
       letter-spacing: 0.2em;
-      color: rgba(255,255,255,0.35);
+      color: rgba(255,255,255,0.75);
       text-transform: uppercase;
       user-select: none;
       text-align: right;
       margin-top: 3px;
+      font-weight: 500;
     }
 
     .chrome .live {
@@ -87,11 +104,21 @@
       font-family: 'Courier New', monospace;
       font-size: var(--fs-xs);
       letter-spacing: 0.15em;
-      color: rgba(255,255,255,0.4);
+      color: rgba(255,255,255,0.85);
     }
     .chrome .live .live-row {
       display: flex; align-items: center; gap: 6px;
       flex-direction: row-reverse;
+      font-weight: 500;
+    }
+
+    /* Multi-layer text-shadow for chrome text legibility over bright video frames */
+    .chrome .lbl,
+    .chrome .live {
+      text-shadow:
+        0 0 8px rgba(0,0,0,0.9),
+        0 1px 3px rgba(0,0,0,0.8),
+        0 0 16px rgba(0,0,0,0.6);
     }
     .chrome .live .dot {
       width: clamp(4px, 0.3vw, 7px); height: clamp(4px, 0.3vw, 7px);
@@ -154,11 +181,14 @@
     .err-inner { text-align: center; font-family: 'Courier New', monospace; }
     .err-inner .err-code {
       font-size: var(--fs-sm); letter-spacing: 0.25em;
-      color: rgba(248,113,113,0.6); text-transform: uppercase;
+      color: #f87171; text-transform: uppercase;
+      font-weight: 600;
+      text-shadow: 0 0 8px rgba(0,0,0,0.8);
     }
     .err-inner .err-sub {
       margin-top: 6px; font-size: var(--fs-xs); letter-spacing: 0.15em;
-      color: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.5);
+      text-shadow: 0 0 6px rgba(0,0,0,0.7);
     }
 
     /* ── Shared modal styles ── */
@@ -167,16 +197,17 @@
       background: rgba(0,0,0,0.65);
       display: none; align-items: center; justify-content: center;
       z-index: 1000;
-      font-family: 'Courier New', monospace;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
     }
     .modal.open { display: flex; }
     .modal h1 {
-      font-size: 13px; letter-spacing: 0.35em;
-      color: rgba(255,255,255,0.7); text-transform: uppercase;
+      font-size: 15px; letter-spacing: 0.35em;
+      color: rgba(255,255,255,0.85); text-transform: uppercase;
+      font-weight: 500;
     }
     .modal-hint {
-      font-size: 11px; letter-spacing: 0.15em;
-      color: rgba(255,255,255,0.35); text-transform: uppercase;
+      font-size: 12px; letter-spacing: 0.15em;
+      color: rgba(255,255,255,0.55); text-transform: uppercase;
     }
 
     /* ── Shared modal close button ── */
@@ -212,15 +243,15 @@
       width: 100%;
       max-width: 900px;
       border-collapse: collapse;
-      font-size: 13px;
-      color: rgba(255,255,255,0.75);
+      font-size: 14px;
+      color: rgba(255,255,255,0.85);
     }
     .streams-table th {
       text-align: left;
       padding: 10px 16px;
       border-bottom: 1px solid rgba(255,255,255,0.15);
-      color: rgba(255,255,255,0.4);
-      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+      font-size: 12px;
       letter-spacing: 0.2em;
       text-transform: uppercase;
     }
@@ -636,8 +667,9 @@
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: rgba(255,255,255,0.9);
-      background: rgba(0,0,0,0.75);
-      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(0,0,0,0.92);
+      border: 2px solid rgba(255,255,255,0.15);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.6);
       border-radius: 20px;
       padding: 6px 18px;
       pointer-events: none;
@@ -647,8 +679,8 @@
     }
     #cycle-indicator.visible { opacity: 1; pointer-events: auto; }
     #cycle-indicator .ci-icon { font-size: 14px; }
-    #cycle-indicator.paused { border-color: rgba(250,204,21,0.4); color: #facc15; }
-    #cycle-indicator.playing { border-color: rgba(74,222,128,0.4); color: #4ade80; }
+    #cycle-indicator.paused { border-color: rgba(250,204,21,0.7); color: #facc15; }
+    #cycle-indicator.playing { border-color: rgba(74,222,128,0.7); color: #4ade80; }
     #cycle-indicator.manual { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.8); }
 
     /* ── Debug overlay ── */
@@ -659,8 +691,8 @@
       font-family: 'Courier New', monospace;
       font-size: 10px;
       color: rgba(255,255,255,0.85);
-      background: rgba(0,0,0,0.72);
-      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.88);
+      border: 1px solid rgba(255,255,255,0.2);
       border-radius: 6px;
       padding: 10px 14px;
       min-width: 220px;
@@ -681,8 +713,8 @@
     }
     .dbg-section:first-child { margin-top: 0; border-top: none; padding-top: 0; }
     .dbg-row { display: flex; justify-content: space-between; gap: 12px; }
-    .dbg-key { color: rgba(255,255,255,0.4); }
-    .dbg-val { color: rgba(255,255,255,0.9); text-align: right; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dbg-key { color: rgba(255,255,255,0.6); }
+    .dbg-val { color: rgba(255,255,255,1); text-align: right; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .dbg-live { color: #4ade80; }
     .dbg-err  { color: #f87171; }
     .dbg-countdown { font-size: 13px; color: #facc15; font-weight: bold; }

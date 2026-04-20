@@ -190,6 +190,13 @@ All styles, organised by component:
 - Borders: `rgba(255,255,255,0.12–0.2)`
 - Font: `'Courier New', monospace` everywhere
 
+**Legibility considerations** (see `.claude/docs/design-legibility-recommendations.md`):
+- Current text opacities (0.35–0.5) struggle under bright ambient lighting
+- No text shadows on video grid chrome — text disappears over bright video frames
+- Small font sizes (8–13px fluid) optimized for desktop, not wall-mounted viewing (3–10ft)
+- Courier New has thin strokes that lose contrast under room lights
+- Recommendations: increase opacities, add multi-layer text-shadows, boost font sizes ~30–40%, consider sans-serif alternative
+
 ---
 
 ## 5. `app.js` — Section Map
@@ -512,7 +519,17 @@ Stored per-device in `localStorage('perfSettings')`. Configurable via the perfor
 
 ---
 
-## 16. Planned Features
+## 16. Design Documentation
+
+UX and visual design specs in `.claude/docs/`:
+
+| Document | Purpose | Date |
+|----------|---------|------|
+| [design-legibility-recommendations.md](./design-legibility-recommendations.md) | Typography and contrast improvements for bright-environment kiosk deployments | 2026-04-20 |
+
+---
+
+## 17. Planned Features
 
 Feature specs in `.claude/docs/specs/planned/`:
 
