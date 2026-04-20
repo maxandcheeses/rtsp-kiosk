@@ -80,9 +80,9 @@ function cloneView(name) {
   _editingViewName = null;
   _editLayoutSel   = view.layout;
   _editStreams      = [...(view.streams || [])];
-  _editSlotGroups  = (view.slotGroups || []).map(g => {
+  _editSlotCollections  = (view.slotCollections || []).map(g => {
     if (!g) return null;
-    if (typeof ACTION_GROUPS !== 'undefined' && ACTION_GROUPS[g]) return g;
+    if (typeof ACTION_COLLECTIONS !== 'undefined' && ACTION_COLLECTIONS[g]) return g;
     if (typeof ACTIONS !== 'undefined' && ACTIONS[g]) return g;
     return null;
   });
@@ -177,13 +177,13 @@ function _onDragEnd(e) {
 let _editingViewName = null; // null = new view
 let _editLayoutSel   = null;
 let _editStreams      = [];
-let _editSlotGroups  = [];
+let _editSlotCollections  = [];
 
 function openNewViewEditor() {
   _editingViewName = null;
   _editLayoutSel   = Object.keys(LAYOUTS)[0];
   _editStreams      = [];
-  _editSlotGroups  = [];
+  _editSlotCollections  = [];
   _showViewForm({ name: '', duration: 20, preloadLeadTime: 5 });
 }
 
@@ -193,9 +193,9 @@ function openViewEditor(name) {
   _editingViewName = name;
   _editLayoutSel   = view.layout;
   _editStreams      = [...(view.streams || [])];
-  _editSlotGroups  = (view.slotGroups || []).map(g => {
+  _editSlotCollections  = (view.slotCollections || []).map(g => {
     if (!g) return null;
-    if (typeof ACTION_GROUPS !== 'undefined' && ACTION_GROUPS[g]) return g;
+    if (typeof ACTION_COLLECTIONS !== 'undefined' && ACTION_COLLECTIONS[g]) return g;
     if (typeof ACTIONS !== 'undefined' && ACTIONS[g]) return g;
     return null;
   });
@@ -252,11 +252,11 @@ function _renderVeStreamPicker() {
     while (_editStreams.length < slotCount) _editStreams.push('');
   }
 
-  // Sync _editSlotGroups length to slot count
-  if (_editSlotGroups.length > slotCount) {
-    _editSlotGroups.splice(slotCount);
+  // Sync _editSlotCollections length to slot count
+  if (_editSlotCollections.length > slotCount) {
+    _editSlotCollections.splice(slotCount);
   } else {
-    while (_editSlotGroups.length < slotCount) _editSlotGroups.push(null);
+    while (_editSlotCollections.length < slotCount) _editSlotCollections.push(null);
   }
 
   container.innerHTML = '';
@@ -268,7 +268,7 @@ function _renderVeStreamPicker() {
     row.className = 'views-form-row';
 
     const lbl = document.createElement('label');
-    lbl.style.cssText = 'font-family:monospace;color:rgba(255,255,255,0.45)';
+    lbl.style.cssText = "font-family:'Courier New',monospace;color:rgba(255,255,255,0.45)";
     lbl.textContent = `Panel ${i}`;
 
     const sel = document.createElement('select');
@@ -294,45 +294,45 @@ function _renderVeStreamPicker() {
       };
     })(i));
 
-    const groupSel = document.createElement('select');
-    groupSel.className = 'views-input';
-    groupSel.style.marginTop = '4px';
+    const collectionSel = document.createElement('select');
+    collectionSel.className = 'views-input';
+    collectionSel.style.marginTop = '4px';
 
     const noneOpt = document.createElement('option');
     noneOpt.value = '';
     noneOpt.textContent = '— no actions —';
-    groupSel.appendChild(noneOpt);
+    collectionSel.appendChild(noneOpt);
 
     const actionsGroup = document.createElement('optgroup');
     actionsGroup.label = 'Actions';
-    const _typeOrder = a => a.type === 'builtin' ? 0 : a.type === 'focus-panel' ? 1 : 2;
+    const _typeOrder = a => a.type === 'builtin' ? 0 : a.type === 'focus-stream' ? 1 : 2;
     Object.values(ACTIONS).sort((a, b) => _typeOrder(a) - _typeOrder(b)).forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id;
       opt.textContent = a.id;
-      if ((_editSlotGroups[i] || '') === a.id) opt.selected = true;
+      if ((_editSlotCollections[i] || '') === a.id) opt.selected = true;
       actionsGroup.appendChild(opt);
     });
-    if (actionsGroup.children.length > 0) groupSel.appendChild(actionsGroup);
+    if (actionsGroup.children.length > 0) collectionSel.appendChild(actionsGroup);
 
-    const groupsGroup = document.createElement('optgroup');
-    groupsGroup.label = 'Groups';
-    Object.values(ACTION_GROUPS).forEach(g => {
+    const collectionsGroup = document.createElement('optgroup');
+    collectionsGroup.label = 'Collections';
+    Object.values(ACTION_COLLECTIONS).forEach(g => {
       const opt = document.createElement('option');
       opt.value = g.id;
       opt.textContent = g.id;
-      if ((_editSlotGroups[i] || '') === g.id) opt.selected = true;
-      groupsGroup.appendChild(opt);
+      if ((_editSlotCollections[i] || '') === g.id) opt.selected = true;
+      collectionsGroup.appendChild(opt);
     });
-    if (groupsGroup.children.length > 0) groupSel.appendChild(groupsGroup);
+    if (collectionsGroup.children.length > 0) collectionSel.appendChild(collectionsGroup);
 
-    groupSel.addEventListener('change', (function(idx) {
-      return function() { _editSlotGroups[idx] = this.value || null; };
+    collectionSel.addEventListener('change', (function(idx) {
+      return function() { _editSlotCollections[idx] = this.value || null; };
     })(i));
 
     row.appendChild(lbl);
     row.appendChild(sel);
-    row.appendChild(groupSel);
+    row.appendChild(collectionSel);
     container.appendChild(row);
   }
 }
@@ -340,7 +340,7 @@ function _renderVeStreamPicker() {
 function cancelViewEdit() {
   _editingViewName = null;
   _editStreams      = [];
-  _editSlotGroups  = [];
+  _editSlotCollections  = [];
   renderViewsTab();
 }
 
@@ -382,7 +382,7 @@ function saveViewForm() {
     streams:    _editStreams.filter(Boolean),
     duration:   isNaN(dur) ? 20 : dur,
     cycle:      _editingViewName ? (getView(_editingViewName)?.cycle ?? true) : true,
-    slotGroups: _editSlotGroups.map(g => g || null),
+    slotCollections: _editSlotCollections.map(g => g || null),
     ...(preloadEnabled ? { preloadLeadTime: isNaN(lead) ? 5 : lead } : {}),
   };
 

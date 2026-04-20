@@ -125,7 +125,7 @@ function renderViewsTab() {
     return `<tr class="${isActive ? 'active-view' : ''}${confirming ? ' view-row-confirm' : ''}">
       <td class="view-drag-handle">≡</td>
       <td>${isActive ? '▶' : ''}</td>
-      <td title="${v.name}">${v.name}</td>
+      <td title="${v.name}" style="color:rgba(255,255,255,0.7)">${v.name}</td>
       <td title="${v.layout || '—'}" style="padding:6px 16px">${layoutSvg}</td>
       <td title="${(v.streams || []).map((s,i) => i+':'+s).join(', ')}"><div style="display:flex;flex-direction:column;gap:2px">${(v.streams || []).map((s,i) => `<span><span style="color:rgba(255,255,255,0.4)">${i}</span>:${s}</span>`).join('')}</div></td>
       <td class="views-duration-col">${duration}</td>
@@ -187,8 +187,8 @@ document.addEventListener('keydown', e => {
 
   // ── Escape — close modal or open settings ──
   if (e.key === 'Escape') {
-    const focusOverlay = document.getElementById('focus-panel-overlay');
-    if (focusOverlay && focusOverlay.classList.contains('open')) { if (typeof closeFocusPanel === 'function') closeFocusPanel(); return; }
+    const focusOverlay = document.getElementById('focus-stream-overlay');
+    if (focusOverlay && focusOverlay.classList.contains('open')) { if (typeof closeFocusStream === 'function') closeFocusStream(); return; }
     if (typeof closeActionsModal === 'function' && ACTIONS_MODAL_OPEN) { closeActionsModal(); return; }
     if (document.getElementById('cam-test-modal')?.style.display === 'flex') { if (typeof closeCamStreamTest === 'function') closeCamStreamTest(); return; }
     if (anyOpen) { closeAllModals(); return; }
