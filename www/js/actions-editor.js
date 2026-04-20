@@ -717,7 +717,7 @@ function _buildAeActionsTab() {
     const badge = `<span style="font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:2px;padding:1px 5px">BUILT-IN</span>`;
     return `<tr>
       <td style="font-size:18px;padding:6px 10px">${iconHtml}</td>
-      <td style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.5)">${_aeEsc(action.id)}</td>
+      <td style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.5)">${_aeEsc(action.name)}</td>
       <td style="font-size:11px">${_aeEsc(action.description || '')}</td>
       <td>${badge}</td>
     </tr>`;
@@ -726,7 +726,7 @@ function _buildAeActionsTab() {
   const builtinSection = `
     <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px">Built-in Actions</div>
     <table class="streams-table" style="width:100%;margin-bottom:20px">
-      <thead><tr><th>Icon</th><th>ID</th><th>Description</th><th>Note</th></tr></thead>
+      <thead><tr><th>Icon</th><th>Name</th><th>Description</th><th>Note</th></tr></thead>
       <tbody>${builtinRows}</tbody>
     </table>`;
 
@@ -738,7 +738,7 @@ function _buildAeActionsTab() {
 
   let rows = '';
   actions.forEach(action => {
-    const id  = action.id || '';
+    const id  = action.name || '';
     const esc = _aeEsc(id);
     const iconHtml = action.icon ? _renderIcon(action.icon) : '';
     const publishSummary = action.type === 'focus-stream'
@@ -768,7 +768,7 @@ function _buildAeActionsTab() {
 
   return builtinSection + `<table class="streams-table" style="width:100%">
     <thead><tr>
-      <th></th><th>ID</th><th>Description</th><th>Icon</th><th>Publish</th><th></th>
+      <th></th><th>Name</th><th>Description</th><th>Icon</th><th>Publish</th><th></th>
     </tr></thead>
     <tbody id="ae-actions-tbody">${rows}</tbody>
   </table>`;
@@ -789,7 +789,7 @@ function _refreshAeStateCells() {
   const actions = (AE_LOCAL && AE_LOCAL.actions) || [];
   actions.forEach(action => {
     if (action.type !== 'mqtt' || !action.state || !action.state.topic) return;
-    const cell = document.getElementById('ae-action-state-' + _aeEsc(action.id || ''));
+    const cell = document.getElementById('ae-action-state-' + _aeEsc(action.name || ''));
     if (cell) cell.innerHTML = _aeStateHtml(action);
   });
 }
@@ -799,7 +799,7 @@ function _buildAeBuiltinTriggerDrawer(builtinAction, cfgEntry) {
   const tMqttServer  = trigger.mqttServer || '';
   const tTopic       = trigger.topic      || '';
   const tPayload     = trigger.payload    || '';
-  const id  = builtinAction.id;
+  const id  = builtinAction.name;
   const esc = _aeEsc(id);
 
   const serverOpts = ((AE_LOCAL && AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) || []).map(s =>
@@ -839,12 +839,12 @@ function saveAeBuiltinTrigger(id) {
   if (!AE_LOCAL.actions) AE_LOCAL.actions = [];
 
   // Remove any existing entry for this builtin ID
-  AE_LOCAL.actions = AE_LOCAL.actions.filter(a => a.id !== id);
+  AE_LOCAL.actions = AE_LOCAL.actions.filter(a => a.name !== id);
 
   // If topic is set, add an entry carrying just the trigger
   if (tTopic) {
     AE_LOCAL.actions.push({
-      id,
+      name: id,
       trigger: {
         ...(tServer ? { mqttServer: tServer } : {}),
         topic: tTopic,
@@ -861,7 +861,7 @@ function saveAeBuiltinTrigger(id) {
 }
 
 function _buildAeActionDrawerForm(action, isNew) {
-  const id     = action.id || '';
+  const id     = action.name || '';
   const desc   = action.description || '';
   const icon   = action.icon || '';
   const type       = action.type || 'mqtt';
@@ -885,7 +885,7 @@ function _buildAeActionDrawerForm(action, isNew) {
       </select>
     </div>
     <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">ID</label>
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Name</label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
         <input class="views-input" id="ae-field-id" value="${_aeEsc(id)}" placeholder="my-action">
         <div class="cam-field-error" id="ae-err-id"></div>
@@ -997,11 +997,11 @@ function openAeActionDrawer(id) {
     return;
   }
   if (AE_OPEN_DRAWER) closeAeDrawer();
-  const action = (AE_LOCAL.actions || []).find(a => a.id === id);
+  const action = (AE_LOCAL.actions || []).find(a => a.name === id);
   if (!action) return;
   const inner = document.getElementById(`ae-action-drawer-inner-${id}`);
   if (!inner) return;
-  const isNew = !AE_FULL || !(AE_FULL.actions || []).find(a => a.id === id);
+  const isNew = !AE_FULL || !(AE_FULL.actions || []).find(a => a.name === id);
   AE_OPEN_DRAWER_IS_NEW = isNew;
   inner.innerHTML = _buildAeActionDrawerForm(action, isNew);
   const drawer = document.getElementById(`ae-action-drawer-${id}`);
@@ -1032,7 +1032,7 @@ function closeAeDrawer() {
     if (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers) {
       AE_LOCAL.mqtt.servers = AE_LOCAL.mqtt.servers.filter(s => s.id !== removedId);
     }
-    AE_LOCAL.actions     = (AE_LOCAL.actions     || []).filter(a => a.id !== removedId);
+    AE_LOCAL.actions     = (AE_LOCAL.actions     || []).filter(a => a.name !== removedId);
     AE_LOCAL.collections = (AE_LOCAL.collections || []).filter(g => g.id !== removedId);
     const container = document.getElementById('ae-tabs-and-content');
     if (container) _renderAeTabsInto(container);
@@ -1078,10 +1078,10 @@ function saveAeActionDrawer(originalId, isNew) {
 
   const errId = document.getElementById('ae-err-id');
   if (!newId) {
-    if (errId) errId.textContent = 'ID is required';
+    if (errId) errId.textContent = 'Name is required';
     valid = false;
-  } else if (newId !== originalId && (AE_LOCAL.actions || []).find(a => a.id === newId)) {
-    if (errId) errId.textContent = 'ID already exists';
+  } else if (newId !== originalId && (AE_LOCAL.actions || []).find(a => a.name === newId)) {
+    if (errId) errId.textContent = 'Name already exists';
     valid = false;
   } else {
     if (errId) errId.textContent = '';
@@ -1136,7 +1136,7 @@ function saveAeActionDrawer(originalId, isNew) {
   if (!valid) return;
 
   const updated = {
-    id: newId,
+    name: newId,
     type,
     description: newDesc,
     ...(icon ? { icon } : {}),
@@ -1147,7 +1147,7 @@ function saveAeActionDrawer(originalId, isNew) {
     ...(type === 'focus-stream' && typeof focusStreamSaved === 'number' ? { panel: focusStreamSaved } : {}),
   };
 
-  const idx = (AE_LOCAL.actions || []).findIndex(a => a.id === originalId);
+  const idx = (AE_LOCAL.actions || []).findIndex(a => a.name === originalId);
   if (idx >= 0) {
     AE_LOCAL.actions[idx] = updated;
   } else {
@@ -1171,7 +1171,7 @@ function saveAeActionDrawer(originalId, isNew) {
 }
 
 function deleteAeAction(id) {
-  const action = (AE_LOCAL.actions || []).find(a => a.id === id);
+  const action = (AE_LOCAL.actions || []).find(a => a.name === id);
   if (!action) return;
   const row = document.getElementById(`ae-action-row-${id}`);
   if (!row) return;
@@ -1187,7 +1187,7 @@ function deleteAeAction(id) {
 }
 
 function confirmDeleteAeAction(id) {
-  AE_LOCAL.actions = (AE_LOCAL.actions || []).filter(a => a.id !== id);
+  AE_LOCAL.actions = (AE_LOCAL.actions || []).filter(a => a.name !== id);
   // Remove from all collections
   (AE_LOCAL.collections || []).forEach(g => {
     if (Array.isArray(g.actions)) g.actions = g.actions.filter(aid => aid !== id);
@@ -1207,10 +1207,10 @@ function confirmDeleteAeAction(id) {
 function addAeAction() {
   if (!AE_LOCAL.actions) AE_LOCAL.actions = [];
   let n = 1;
-  while (AE_LOCAL.actions.find(a => a.id === `new-action-${n}`)) n++;
-  const newAction = { id: `new-action-${n}`, type: 'mqtt', description: '', publish: { topic: '', payload: '' } };
+  while (AE_LOCAL.actions.find(a => a.name === `new-action-${n}`)) n++;
+  const newAction = { name: `new-action-${n}`, type: 'mqtt', description: '', publish: { topic: '', payload: '' } };
   AE_LOCAL.actions.push(newAction);
-  AE_OPEN_DRAWER = newAction.id;
+  AE_OPEN_DRAWER = newAction.name;
   const container = document.getElementById('ae-tabs-and-content');
   if (container) _renderAeTabsInto(container);
   const idInput = document.getElementById('ae-field-id');
@@ -1271,8 +1271,8 @@ function _buildAeCollectionDrawerForm(collection, isNew) {
   const typeOrder = a => a.type === 'builtin' ? 0 : a.type === 'focus-stream' ? 1 : 2;
   const builtins = typeof BUILTIN_ACTIONS !== 'undefined' ? Object.values(BUILTIN_ACTIONS) : [];
   const mergedMap = new Map();
-  builtins.forEach(a => mergedMap.set(a.id, a));
-  allActions.forEach(a => { if (!mergedMap.has(a.id)) mergedMap.set(a.id, a); });
+  builtins.forEach(a => mergedMap.set(a.name, a));
+  allActions.forEach(a => { if (!mergedMap.has(a.name)) mergedMap.set(a.name, a); });
   const sortedActions = [...mergedMap.values()].sort((a, b) => typeOrder(a) - typeOrder(b));
 
   let slotsHtml = '';
@@ -1283,7 +1283,7 @@ function _buildAeCollectionDrawerForm(collection, isNew) {
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Button ${i + 1}</label>
       <select class="views-input" id="ae-slot-${i}" style="flex:none;width:auto">
         <option value="">— none —</option>
-        ${sortedActions.map(a => `<option value="${_aeEsc(a.id)}"${a.id===val?' selected':''}>${_aeEsc(a.id)}</option>`).join('')}
+        ${sortedActions.map(a => `<option value="${_aeEsc(a.name)}"${a.name===val?' selected':''}>${_aeEsc(a.name)}</option>`).join('')}
       </select>
     </div>`;
   }
@@ -1334,8 +1334,8 @@ function _aeAddSlot(currentCount) {
   const typeOrderAdd = a => (a.type === 'builtin' || a.type === 'focus-stream') ? 0 : 1;
   const builtinsAdd = typeof BUILTIN_ACTIONS !== 'undefined' ? Object.values(BUILTIN_ACTIONS) : [];
   const mergedMapAdd = new Map();
-  builtinsAdd.forEach(a => mergedMapAdd.set(a.id, a));
-  allActions.forEach(a => { if (!mergedMapAdd.has(a.id)) mergedMapAdd.set(a.id, a); });
+  builtinsAdd.forEach(a => mergedMapAdd.set(a.name, a));
+  allActions.forEach(a => { if (!mergedMapAdd.has(a.name)) mergedMapAdd.set(a.name, a); });
   const sortedActionsAdd = [...mergedMapAdd.values()].sort((a, b) => typeOrderAdd(a) - typeOrderAdd(b));
   slotRow.style.alignItems = 'center';
   slotRow.innerHTML = `
@@ -1343,7 +1343,7 @@ function _aeAddSlot(currentCount) {
     <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Button ${currentCount + 1}</label>
     <select class="views-input" id="ae-slot-${currentCount}" style="flex:none;width:auto">
       <option value="">— none —</option>
-      ${sortedActionsAdd.map(a => `<option value="${_aeEsc(a.id)}">${_aeEsc(a.id)}</option>`).join('')}
+      ${sortedActionsAdd.map(a => `<option value="${_aeEsc(a.name)}">${_aeEsc(a.name)}</option>`).join('')}
     </select>`;
 
   if (addBtn) {
@@ -1595,7 +1595,7 @@ function _onAeActionDragDown(e) {
   const ghost = document.createElement('div');
   ghost.id = 'ae-drag-ghost';
   ghost.style.cssText = `position:fixed;z-index:2000;pointer-events:none;background:rgba(15,15,15,0.97);border:1px solid rgba(74,222,128,0.5);border-radius:3px;box-shadow:0 6px 24px rgba(0,0,0,0.7);display:flex;align-items:center;padding:0 16px;font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.8);left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px`;
-  ghost.textContent = (AE_LOCAL.actions || [])[idx] ? AE_LOCAL.actions[idx].id : '';
+  ghost.textContent = (AE_LOCAL.actions || [])[idx] ? AE_LOCAL.actions[idx].name : '';
   document.body.appendChild(ghost);
 
   row.classList.add('cam-row-dragging');
