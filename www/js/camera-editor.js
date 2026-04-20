@@ -232,7 +232,7 @@ function renderCamField(field, stream) {
 
 function buildCamDrawerForm(stream, isNew) {
   const mainFields = CAM_FIELD_SCHEMA.filter(f => f.section === 'main');
-  const advancedFields = CAM_FIELD_SCHEMA.filter(f => f.section === 'advanced' && (!f.showIf || f.showIf()));
+  const advancedFields = CAM_FIELD_SCHEMA.filter(f => f.section === 'advanced');
 
   let mainHtml = '';
   for (const field of mainFields) {
@@ -247,7 +247,8 @@ function buildCamDrawerForm(stream, isNew) {
 
   let advHtml = '';
   for (const field of advancedFields) {
-    advHtml += renderCamField(field, stream);
+    const hidden = field.showIf && !field.showIf();
+    advHtml += hidden ? `<div style="display:none">` + renderCamField(field, stream) + `</div>` : renderCamField(field, stream);
   }
 
   return `<div class="cam-form-grid">
@@ -281,7 +282,7 @@ function camToggleAdvanced(btn) {
   btn.textContent = (open ? '▶' : '▼') + ' Advanced';
   if (CAM_OPEN_DRAWER) {
     const drawer = document.getElementById(`cam-drawer-${CAM_OPEN_DRAWER}`);
-    if (drawer) drawer.style.maxHeight = (drawer.scrollHeight + 32) + 'px';
+    if (drawer) drawer.style.maxHeight = '9999px';
   }
 }
 
