@@ -186,8 +186,8 @@ function _buildAeMqttTab() {
 
     rows += `<tr id="ae-srv-row-${esc}" style="cursor:pointer" onclick="(function(e){if(!e.target.closest('button'))openAeSrvDrawer('${esc}')})(event)">
       <td class="cam-drag-handle" style="width:32px">≡</td>
-      <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${_aeEsc(id)}</td>
-      <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.4)">${_aeEsc(srv.broker || '')}</td>
+      <td style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.5)">${_aeEsc(id)}</td>
+      <td style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.4)">${_aeEsc(srv.broker || '')}</td>
       <td style="text-align:right;white-space:nowrap">
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
           <div style="display:flex;gap:4px;align-items:center">
@@ -717,7 +717,7 @@ function _buildAeActionsTab() {
     const badge = `<span style="font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:2px;padding:1px 5px">BUILT-IN</span>`;
     return `<tr>
       <td style="font-size:18px;padding:6px 10px">${iconHtml}</td>
-      <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${_aeEsc(action.id)}</td>
+      <td style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.5)">${_aeEsc(action.id)}</td>
       <td style="font-size:11px">${_aeEsc(action.description || '')}</td>
       <td>${badge}</td>
     </tr>`;
@@ -748,7 +748,7 @@ function _buildAeActionsTab() {
 
     rows += `<tr id="ae-action-row-${esc}" style="cursor:pointer" onclick="(function(e){if(!e.target.closest('button'))openAeActionDrawer('${esc}')})(event)">
       <td class="cam-drag-handle" style="width:32px">≡</td>
-      <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${_aeEsc(id)}</td>
+      <td style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.5)">${_aeEsc(id)}</td>
       <td style="font-size:11px">${_aeEsc(action.description || '')}</td>
       <td style="font-size:18px;padding:6px 10px">${iconHtml}</td>
       <td style="font-family:'Courier New',monospace;font-size:9px;color:rgba(255,255,255,0.4);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${publishSummary}</td>
@@ -1236,9 +1236,9 @@ function _buildAeCollectionsTab() {
 
     rows += `<tr id="ae-collection-row-${esc}" style="cursor:pointer" onclick="(function(e){if(!e.target.closest('button'))openAeCollectionDrawer('${esc}')})(event)">
       <td class="cam-drag-handle" style="width:32px">≡</td>
-      <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5)">${_aeEsc(id)}</td>
+      <td style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.5)">${_aeEsc(id)}</td>
       <td style="font-size:11px">${_aeEsc(collection.description || '')}</td>
-      <td style="font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.4)">${actionCount} action${actionCount !== 1 ? 's' : ''}</td>
+      <td style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.4)">${actionCount} action${actionCount !== 1 ? 's' : ''}</td>
       <td style="text-align:right;white-space:nowrap">
         <button class="sp-btn" onclick="openAeCollectionDrawer('${esc}')" title="Edit">✎</button>
         <button class="sp-btn" onclick="deleteAeCollection('${esc}')" title="Delete" style="color:rgba(248,113,113,0.6);border-color:rgba(248,113,113,0.2)">✕</button>
