@@ -275,7 +275,7 @@ function camOnDemandChange(cb) {
 }
 
 function camToggleAdvanced(btn) {
-  const adv = document.getElementById('cam-advanced-fields');
+  const adv = btn.nextElementSibling;
   if (!adv) return;
   const open = adv.style.display !== 'none';
   adv.style.display = open ? 'none' : '';
