@@ -42,15 +42,15 @@
   },
   "actions": [
     {
-      "id": "Focus Panel 1 Second",
-      "type": "focus-panel",
+      "name": "Focus Panel 1 Second",
+      "type": "focus-stream",
       "description": "1 Second Focus",
       "icon": "mdi:fullscreen",
       "timeout": 1
     },
     {
-      "id": "Focus Panel",
-      "type": "focus-panel",
+      "name": "Focus Panel",
+      "type": "focus-stream",
       "description": "Focus",
       "icon": "mdi:fullscreen",
       "timeout": 5,
@@ -62,7 +62,7 @@
       "stream": "test-8"
     },
     {
-      "id": "lights-on",
+      "name": "lights-on",
       "type": "mqtt",
       "description": "Lights On",
       "icon": "mdi:lightbulb",
@@ -77,7 +77,7 @@
       }
     },
     {
-      "id": "lights-off",
+      "name": "lights-off",
       "type": "mqtt",
       "description": "Lights Off",
       "icon": "mdi:lightbulb-off",
@@ -92,7 +92,7 @@
       }
     },
     {
-      "id": "fan-on",
+      "name": "fan-on",
       "type": "mqtt",
       "mqttServer": "home",
       "description": "Fan On",
@@ -107,7 +107,7 @@
       }
     },
     {
-      "id": "fan-off",
+      "name": "fan-off",
       "type": "mqtt",
       "mqttServer": "home",
       "description": "Fan Off",
@@ -122,7 +122,7 @@
       }
     },
     {
-      "id": "lock-door",
+      "name": "lock-door",
       "type": "mqtt",
       "description": "Lock",
       "icon": "mdi:lock",
@@ -137,7 +137,7 @@
       }
     },
     {
-      "id": "unlock-door",
+      "name": "unlock-door",
       "type": "mqtt",
       "description": "Unlock",
       "icon": "mdi:lock-open",
@@ -152,7 +152,7 @@
       }
     },
     {
-      "id": "server-1-ping",
+      "name": "server-1-ping",
       "type": "mqtt",
       "description": "Server 1 Ping",
       "icon": "mdi:heart-pulse",
@@ -167,7 +167,7 @@
       }
     },
     {
-      "id": "server-1-status",
+      "name": "server-1-status",
       "type": "mqtt",
       "description": "Server 1 Status",
       "icon": "mdi:information-outline",
@@ -182,7 +182,7 @@
       }
     }
   ],
-  "groups": [
+  "collections": [
     {
       "id": "living-rooms",
       "name": "Living Room",
@@ -203,6 +203,31 @@
         "lock-door",
         "server-1-ping"
       ]
+    },
+    {
+      "id": "new-collection-1",
+      "name": "asdf",
+      "actions": []
+    },
+    {
+      "id": "new-collection-2",
+      "name": "asfd",
+      "actions": []
+    },
+    {
+      "id": "new-collection-3",
+      "name": "asf",
+      "actions": []
+    },
+    {
+      "id": "new-collection-4",
+      "name": "asf",
+      "actions": []
+    },
+    {
+      "id": "new-collection-5",
+      "name": "asfd",
+      "actions": []
     }
   ]
 }

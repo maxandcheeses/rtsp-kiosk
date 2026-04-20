@@ -3,23 +3,23 @@
 // ═══════════════════════════════════════════════════════
 
 let ACTIONS       = {};  // id → action object
-let ACTION_GROUPS = {};  // id → group object
+let ACTION_COLLECTIONS = {};  // id → collection object
 let ACTION_STATES = {};  // state topic → last payload string
 let ACTIONS_MODAL_OPEN = false;
 let _actionsSlotIndex  = null; // which slot triggered the modal
 let _actionUnsubscribers = [];
 let _connectedServerIds = new Set();
 let _actionsConfig = null;  // full parsed config from /actions.json
-let _focusPanelTimer    = null;
+let _focusStreamTimer    = null;
 let _focusReopenSlot    = null; // slot to reopen actions modal on focus close
 
 const BUILTIN_ACTIONS = {
   'Next View': {
-    id: 'Next View', type: 'builtin', description: 'Next View',
+    name: 'Next View', type: 'builtin', description: 'Next View',
     icon: 'mdi:chevron-right', builtin: true,
   },
   'Previous View': {
-    id: 'Previous View', type: 'builtin', description: 'Previous View',
+    name: 'Previous View', type: 'builtin', description: 'Previous View',
     icon: 'mdi:chevron-left', builtin: true,
   },
 };
@@ -28,8 +28,8 @@ async function loadActionsConfig() {
   // Clean up any previous subscriptions from a prior load
   _actionUnsubscribers.forEach(fn => fn());
   _actionUnsubscribers = [];
-  ACTIONS       = {};
-  ACTION_GROUPS = {};
+  ACTIONS            = {};
+  ACTION_COLLECTIONS = {};
   // Keep ACTION_STATES — values are still valid if topics haven't changed
 
   try {
@@ -39,8 +39,8 @@ async function loadActionsConfig() {
 
     _actionsConfig = cfg;
 
-    (cfg.actions || []).forEach(a => { ACTIONS[a.id] = a; });
-    (cfg.groups  || []).forEach(g => { ACTION_GROUPS[g.id] = g; });
+    (cfg.actions      || []).forEach(a => { ACTIONS[a.name] = a; });
+    (cfg.collections  || []).forEach(g => { ACTION_COLLECTIONS[g.id] = g; });
 
     // Merge builtin actions (always available, not stored in config)
     Object.assign(ACTIONS, BUILTIN_ACTIONS);
@@ -73,7 +73,7 @@ async function loadActionsConfig() {
       }
     });
 
-    console.log(`Actions: loaded ${Object.keys(ACTIONS).length} actions, ${Object.keys(ACTION_GROUPS).length} groups`);
+    console.log(`Actions: loaded ${Object.keys(ACTIONS).length} actions, ${Object.keys(ACTION_COLLECTIONS).length} collections`);
   } catch(e) {
     console.warn('Actions: failed to load actions.json', e);
   }
@@ -81,12 +81,12 @@ async function loadActionsConfig() {
   Object.assign(ACTIONS, BUILTIN_ACTIONS);
 }
 
-function _connectServersForGroup(groupId) {
-  const group = ACTION_GROUPS[groupId];
-  if (!group) return;
+function _connectServersForCollection(collectionId) {
+  const collection = ACTION_COLLECTIONS[collectionId];
+  if (!collection) return;
 
   const needed = new Set();
-  (group.actions || []).forEach(actionId => {
+  (collection.actions || []).forEach(actionId => {
     const action = ACTIONS[actionId];
     if (action && action.type === 'mqtt' && action.mqttServer) needed.add(action.mqttServer);
   });
@@ -114,24 +114,24 @@ function _connectServersForGroup(groupId) {
 
 function openActionsModal(slotIndex) {
   const view = typeof getView === 'function' ? getView(activeView) : null;
-  const slotGroups = view && view.slotGroups;
-  const groupId = slotGroups && slotGroups[slotIndex];
-  if (!groupId) return;
-  if (!ACTION_GROUPS[groupId] && !ACTIONS[groupId]) {
-    console.warn(`Actions: "${groupId}" not found as group or action`);
+  const slotCollections = view && view.slotCollections;
+  const collectionId = slotCollections && slotCollections[slotIndex];
+  if (!collectionId) return;
+  if (!ACTION_COLLECTIONS[collectionId] && !ACTIONS[collectionId]) {
+    console.warn(`Actions: "${collectionId}" not found as collection or action`);
     return;
   }
 
-  // Direct action (not a group) — execute immediately, no modal
-  if (!ACTION_GROUPS[groupId] && ACTIONS[groupId]) {
+  // Direct action (not a collection) — execute immediately, no modal
+  if (!ACTION_COLLECTIONS[collectionId] && ACTIONS[collectionId]) {
     _actionsSlotIndex = slotIndex;
-    pressAction(groupId);
+    pressAction(collectionId);
     _actionsSlotIndex = null;
     return;
   }
 
   _actionsSlotIndex = slotIndex;
-  _renderActionButtons(groupId);
+  _renderActionButtons(collectionId);
 
   const modal = document.getElementById('actions-modal');
   const backdrop = document.getElementById('actions-backdrop');
@@ -158,26 +158,26 @@ function closeActionsModal() {
   _actionsSlotIndex = null;
 }
 
-function _renderActionButtons(groupId) {
-  // Support direct action assignment (slotGroups can reference an action id directly)
-  let group = ACTION_GROUPS[groupId];
-  if (!group && ACTIONS[groupId]) {
-    group = { id: groupId, name: '', actions: [groupId] };
+function _renderActionButtons(collectionId) {
+  // Support direct action assignment (slotCollections can reference an action id directly)
+  let collection = ACTION_COLLECTIONS[collectionId];
+  if (!collection && ACTIONS[collectionId]) {
+    collection = { id: collectionId, name: '', actions: [collectionId] };
   }
-  if (!group) return;
+  if (!collection) return;
 
-  // Connect/disconnect named MQTT servers as needed for this group
-  _connectServersForGroup(groupId);
+  // Connect/disconnect named MQTT servers as needed for this collection
+  _connectServersForCollection(collectionId);
 
-  const _typeOrder = id => { const a = ACTIONS[id]; if (!a) return 2; if (a.type === 'builtin') return 0; if (a.type === 'focus-panel') return 1; return 2; };
-  const actionIds = (group.actions || []).slice().sort((a, b) => _typeOrder(a) - _typeOrder(b)).slice(0, 6);
+  const _typeOrder = id => { const a = ACTIONS[id]; if (!a) return 2; if (a.type === 'builtin') return 0; if (a.type === 'focus-stream') return 1; return 2; };
+  const actionIds = (collection.actions || []).slice().sort((a, b) => _typeOrder(a) - _typeOrder(b)).slice(0, 6);
   const statusEl = document.getElementById('actions-mqtt-status');
   if (statusEl) {
     const hasMqtt = actionIds.some(id => ACTIONS[id] && ACTIONS[id].publish);
     statusEl.style.display = hasMqtt ? '' : 'none';
   }
-  if (group.actions && group.actions.length > 6) {
-    console.warn(`Actions: group "${groupId}" has ${group.actions.length} actions; only first 6 shown`);
+  if (collection.actions && collection.actions.length > 6) {
+    console.warn(`Actions: collection "${collectionId}" has ${collection.actions.length} actions; only first 6 shown`);
   }
 
   const servers = (_actionsConfig && _actionsConfig.mqtt && _actionsConfig.mqtt.servers) || [];
@@ -190,7 +190,7 @@ function _renderActionButtons(groupId) {
 
     // Determine if the action's MQTT server is present and connected
     let isDisabled = false;
-    if (action.builtin || action.type === 'focus-panel') {
+    if (action.builtin || action.type === 'focus-stream') {
       isDisabled = false;
     } else if (action.type === 'mqtt') {
       if (!action.mqttServer) {
@@ -230,9 +230,9 @@ function _onMqttDisconnect(serverId) {
 
 function _refreshActionButtons() {
   const view = typeof getView === 'function' ? getView(activeView) : null;
-  const slotGroups = view && view.slotGroups;
-  const groupId = slotGroups && _actionsSlotIndex !== null && slotGroups[_actionsSlotIndex];
-  if (groupId) _renderActionButtons(groupId);
+  const slotCollections = view && view.slotCollections;
+  const collectionId = slotCollections && _actionsSlotIndex !== null && slotCollections[_actionsSlotIndex];
+  if (collectionId) _renderActionButtons(collectionId);
 }
 
 function _renderIcon(icon) {
@@ -256,13 +256,13 @@ function pressAction(actionId) {
     return;
   }
 
-  // Handle focus-panel actions
-  if (action.type === 'focus-panel') {
+  // Handle focus-stream actions
+  if (action.type === 'focus-stream') {
     const panelSlot = (typeof action.panel === 'number' && action.panel >= 0) ? action.panel : _actionsSlotIndex;
     let keepOpen = false;
     try { keepOpen = localStorage.getItem('actionsKeepOpen') === 'true'; } catch(e) {}
     closeActionsModal();
-    openFocusPanel(panelSlot, action.timeout || 0, keepOpen ? panelSlot : null);
+    openFocusStream(panelSlot, action.timeout || 0, keepOpen ? panelSlot : null);
     return;
   }
 
@@ -316,14 +316,14 @@ function pressAction(actionId) {
   }, 150);
 }
 
-function openFocusPanel(slotIndex, timeout, reopenSlot) {
+function openFocusStream(slotIndex, timeout, reopenSlot) {
   _focusReopenSlot = reopenSlot !== undefined ? reopenSlot : null;
   // Pause cycling if active
   if (typeof pauseCycle === 'function') pauseCycle();
 
   // Clone the video source from the cell
   const srcVideo = document.getElementById(`v${slotIndex}`);
-  const destVideo = document.getElementById('focus-panel-video');
+  const destVideo = document.getElementById('focus-stream-video');
   if (srcVideo && destVideo) {
     if (srcVideo.srcObject) {
       destVideo.srcObject = srcVideo.srcObject;
@@ -333,15 +333,15 @@ function openFocusPanel(slotIndex, timeout, reopenSlot) {
     destVideo.play().catch(() => {});
   }
 
-  document.getElementById('focus-panel-overlay').classList.add('open');
+  document.getElementById('focus-stream-overlay').classList.add('open');
 
-  const countdownEl = document.getElementById('focus-panel-countdown');
+  const countdownEl = document.getElementById('focus-stream-countdown');
   if (timeout && timeout > 0) {
     let remaining = timeout;
     countdownEl.textContent = `Auto-closing in ${remaining}s`;
-    _focusPanelTimer = setInterval(() => {
+    _focusStreamTimer = setInterval(() => {
       remaining--;
-      if (remaining <= 0) { closeFocusPanel(); }
+      if (remaining <= 0) { closeFocusStream(); }
       else { countdownEl.textContent = `Auto-closing in ${remaining}s`; }
     }, 1000);
   } else {
@@ -349,20 +349,20 @@ function openFocusPanel(slotIndex, timeout, reopenSlot) {
   }
 }
 
-function closeFocusPanel() {
-  if (_focusPanelTimer) { clearInterval(_focusPanelTimer); _focusPanelTimer = null; }
-  document.getElementById('focus-panel-overlay').classList.remove('open');
-  const destVideo = document.getElementById('focus-panel-video');
+function closeFocusStream() {
+  if (_focusStreamTimer) { clearInterval(_focusStreamTimer); _focusStreamTimer = null; }
+  document.getElementById('focus-stream-overlay').classList.remove('open');
+  const destVideo = document.getElementById('focus-stream-video');
   if (destVideo) { try { destVideo.srcObject = null; } catch(e) {} destVideo.src = ''; }
   if (typeof resumeCycle === 'function') resumeCycle();
   const reopen = _focusReopenSlot;
   _focusReopenSlot = null;
-  // Only reopen actions modal if the slot points to a GROUP (not a direct action)
-  // to prevent an infinite loop where a direct focus-panel action re-opens focus
+  // Only reopen actions modal if the slot points to a COLLECTION (not a direct action)
+  // to prevent an infinite loop where a direct focus-stream action re-opens focus
   if (reopen !== null) {
     const view = typeof getView === 'function' ? getView(activeView) : null;
-    const slotGroupId = view && view.slotGroups && view.slotGroups[reopen];
-    if (slotGroupId && ACTION_GROUPS[slotGroupId]) {
+    const slotCollectionId = view && view.slotCollections && view.slotCollections[reopen];
+    if (slotCollectionId && ACTION_COLLECTIONS[slotCollectionId]) {
       openActionsModal(reopen);
     }
   }
