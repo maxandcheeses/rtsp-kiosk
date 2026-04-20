@@ -211,7 +211,7 @@ function _buildAeMqttTab() {
 
   return `<table class="streams-table" style="width:100%">
     <thead><tr>
-      <th></th><th>ID</th><th>Broker</th><th></th>
+      <th></th><th>Name</th><th>Broker</th><th></th>
     </tr></thead>
     <tbody id="ae-srv-tbody">${rows}</tbody>
   </table>`;
@@ -245,7 +245,7 @@ function _buildAeSrvDrawerForm(srv, isNew) {
 
   return `<div class="cam-form-grid">
     <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">ID</label>
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Name</label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
         <input class="views-input" id="ae-field-srv-id" value="${_aeEsc(id)}" placeholder="home">
         <div class="cam-field-error" id="ae-err-srv-id"></div>
@@ -385,10 +385,10 @@ function saveAeSrvDrawer(originalId, isNew) {
 
   const errId = document.getElementById('ae-err-srv-id');
   if (!newId) {
-    if (errId) errId.textContent = 'ID is required';
+    if (errId) errId.textContent = 'Name is required';
     valid = false;
   } else if (newId !== originalId && (AE_LOCAL.mqtt && AE_LOCAL.mqtt.servers || []).find(s => s.id === newId)) {
-    if (errId) errId.textContent = 'ID already exists';
+    if (errId) errId.textContent = 'Name already exists';
     valid = false;
   } else {
     if (errId) errId.textContent = '';
@@ -1255,7 +1255,7 @@ function _buildAeCollectionsTab() {
 
   return `<table class="streams-table" style="width:100%">
     <thead><tr>
-      <th></th><th>ID</th><th>Description</th><th>Actions</th><th></th>
+      <th></th><th>Name</th><th>Description</th><th>Actions</th><th></th>
     </tr></thead>
     <tbody id="ae-collections-tbody">${rows}</tbody>
   </table>`;
@@ -1294,7 +1294,7 @@ function _buildAeCollectionDrawerForm(collection, isNew) {
 
   return `<div class="cam-form-grid">
     <div class="views-form-row">
-      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">ID</label>
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Name</label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
         <input class="views-input" id="ae-field-collection-id" value="${_aeEsc(id)}" placeholder="my-collection">
         <div class="cam-field-error" id="ae-err-collection-id"></div>
@@ -1390,10 +1390,10 @@ function saveAeCollectionDrawer(originalId, isNew) {
 
   const errId = document.getElementById('ae-err-collection-id');
   if (!newId) {
-    if (errId) errId.textContent = 'ID is required';
+    if (errId) errId.textContent = 'Name is required';
     valid = false;
   } else if (newId !== originalId && (AE_LOCAL.collections || []).find(g => g.id === newId)) {
-    if (errId) errId.textContent = 'ID already exists';
+    if (errId) errId.textContent = 'Name already exists';
     valid = false;
   } else {
     if (errId) errId.textContent = '';
