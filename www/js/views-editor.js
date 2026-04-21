@@ -308,9 +308,9 @@ function _renderVeStreamPicker() {
     const _typeOrder = a => a.type === 'builtin' ? 0 : a.type === 'focus-stream' ? 1 : 2;
     Object.values(ACTIONS).sort((a, b) => _typeOrder(a) - _typeOrder(b)).forEach(a => {
       const opt = document.createElement('option');
-      opt.value = a.id;
-      opt.textContent = a.id;
-      if ((_editSlotCollections[i] || '') === a.id) opt.selected = true;
+      opt.value = a.name;
+      opt.textContent = a.name;
+      if ((_editSlotCollections[i] || '') === a.name) opt.selected = true;
       actionsGroup.appendChild(opt);
     });
     if (actionsGroup.children.length > 0) collectionSel.appendChild(actionsGroup);
