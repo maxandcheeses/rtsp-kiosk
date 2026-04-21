@@ -565,10 +565,10 @@ function handleDiscoveryMessage(topic, rawPayload) {
 
 function initDiscovery(cfg) {
   if (_discoveryUnsubscriber) { _discoveryUnsubscriber(); _discoveryUnsubscriber = null; }
-  if (!cfg || !cfg.enabled) return;
-  _discoveryConfig = cfg;
+  if (!cfg) return;
   const servers = (_actionsConfig && _actionsConfig.mqtt && _actionsConfig.mqtt.servers) || [];
   const srv = cfg.mqttServer ? servers.find(s => s.id === cfg.mqttServer) : null;
+  if (!cfg.enabled && !(srv && srv.discoveryTopic)) return;
   if (srv) getOrCreateMqttClient(srv.id, srv);
   const prefix = (srv && srv.discoveryTopic) || cfg.prefix || 'homeassistant';
   _discoveryConfig = { ...cfg, prefix };
