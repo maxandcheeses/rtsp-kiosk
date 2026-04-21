@@ -119,15 +119,15 @@ function applyLayout(name) {
 
     wall.appendChild(cell);
 
-    // Inject action indicator if this slot has an action group
+    // Inject action indicator if this slot has an action collection
     const _activeViewObj = typeof getView === 'function' && activeView ? getView(activeView) : null;
-    const _slotGroups = _activeViewObj && _activeViewObj.slotGroups;
-    const _groupId = _slotGroups && _slotGroups[i];
-    const _groupValid = _groupId && (
-      (typeof ACTION_GROUPS !== 'undefined' && ACTION_GROUPS[_groupId]) ||
-      (typeof ACTIONS      !== 'undefined' && ACTIONS[_groupId])
+    const _slotCollections = _activeViewObj && _activeViewObj.slotCollections;
+    const _collectionId = _slotCollections && _slotCollections[i];
+    const _collectionValid = _collectionId && (
+      (typeof ACTION_COLLECTIONS !== 'undefined' && ACTION_COLLECTIONS[_collectionId]) ||
+      (typeof ACTIONS            !== 'undefined' && ACTIONS[_collectionId])
     );
-    if (_groupValid) {
+    if (_collectionValid) {
       const indicator = document.createElement('button');
       indicator.className = 'action-indicator';
       indicator.textContent = '⚡';

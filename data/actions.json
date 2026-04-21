@@ -1,7 +1,7 @@
 {
   "discovery": {
     "enabled": false,
-    "topic": "kiosk/discovery/actions",
+    "prefix": "homeassistant",
     "mqttServer": "home"
   },
   "mqtt": {
@@ -12,7 +12,8 @@
         "host": "localhost",
         "port": 9001,
         "broker": "ws://localhost:9001",
-        "autoConnect": true
+        "autoConnect": true,
+        "discoveryTopic": "kiosk/discovery"
       },
       {
         "id": "home-wss",
@@ -202,11 +203,12 @@
     },
     {
       "id": "front-door",
-      "name": "Front Door",
+      "description": "front door",
       "actions": [
         "unlock-door",
         "lock-door",
-        "server-1-ping"
+        "server-1-ping",
+        "foobar"
       ]
     },
     {

@@ -23,14 +23,16 @@
   },
   {
     "path": "test-3",
-    "label": "Test Stream 3",
-    "aspectRatio": "16:9",
-    "objectFit": "contain",
     "source": "rtsp://fake-streams:8554/test-3",
     "rtspTransport": "tcp",
-    "sourceOnDemand": true,
+    "aspectRatio": "16:9",
+    "objectFit": "contain",
+    "audio": false,
+    "sourceOnDemand": false,
     "sourceOnDemandStartTimeout": "10s",
-    "sourceOnDemandCloseAfter": "10s"
+    "sourceOnDemandCloseAfter": "10s",
+    "refreshInterval": 0,
+    "preloadLeadTime": 0
   },
   {
     "path": "test-4",
@@ -78,13 +80,15 @@
   },
   {
     "path": "test-8",
-    "label": "Test Stream 8",
-    "aspectRatio": "16:9",
-    "objectFit": "contain",
     "source": "rtsp://fake-streams:8554/test-8",
     "rtspTransport": "tcp",
-    "sourceOnDemand": true,
+    "aspectRatio": "16:9",
+    "objectFit": "contain",
+    "audio": false,
+    "sourceOnDemand": false,
     "sourceOnDemandStartTimeout": "10s",
-    "sourceOnDemandCloseAfter": "10s"
+    "sourceOnDemandCloseAfter": "10s",
+    "refreshInterval": 0,
+    "preloadLeadTime": 0
   }
 ]

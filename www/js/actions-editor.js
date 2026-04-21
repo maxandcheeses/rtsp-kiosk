@@ -752,7 +752,11 @@ function _buildAeActionsTab() {
     const iconHtml = action.icon ? _renderIcon(action.icon) : '';
     const publishSummary = action.type === 'focus-stream'
       ? `focus (${action.timeout > 0 ? action.timeout + 's' : 'manual close'})`
-      : (action.publish ? `${_aeEsc(action.publish.topic)} → ${_aeEsc(action.publish.payload)}` : '—');
+      : (action.publish
+          ? action.type === 'toggle'
+            ? `${_aeEsc(action.publish.topic)} → ${_aeEsc(action.publish.payloadOn)}|${_aeEsc(action.publish.payloadOff)}`
+            : `${_aeEsc(action.publish.topic)} → ${_aeEsc(action.publish.payload)}`
+          : '—');
     const isOpen = AE_OPEN_DRAWER === id;
 
     rows += `<tr id="ae-action-row-${esc}" style="cursor:pointer" onclick="(function(e){if(!e.target.closest('button'))openAeActionDrawer('${esc}')})(event)">
@@ -776,12 +780,16 @@ function _buildAeActionsTab() {
   });
 
   // Append discovered action rows into the main table (read-only, no edit/delete controls)
-  const discoveredEntries = Object.values(ACTIONS).filter(a => !_STATIC_ACTIONS.has(a.name) && !BUILTIN_ACTIONS[a.name]);
+  const discoveredEntries = typeof DISCOVERED_ACTIONS !== 'undefined' ? Object.values(DISCOVERED_ACTIONS) : [];
   const discoveredRows = discoveredEntries.map(action => {
     const iconHtml = action.icon ? _renderIcon(action.icon) : '';
     const publishSummary = action.type === 'focus-stream'
       ? `focus (${action.timeout > 0 ? action.timeout + 's' : 'manual close'})`
-      : (action.publish ? `${_aeEsc(action.publish.topic)} → ${_aeEsc(action.publish.payload)}` : '—');
+      : (action.publish
+          ? action.type === 'toggle'
+            ? `${_aeEsc(action.publish.topic)} → ${_aeEsc(action.publish.payloadOn)}|${_aeEsc(action.publish.payloadOff)}`
+            : `${_aeEsc(action.publish.topic)} → ${_aeEsc(action.publish.payload)}`
+          : '—');
     return `<tr>
       <td style="width:32px"></td>
       <td style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.5)">${_aeEsc(action.name)}<span class="action-discovered-badge">discovered</span></td>
@@ -894,6 +902,8 @@ function _buildAeActionDrawerForm(action, isNew) {
   const mqttServer = action.mqttServer || '';
   const pTopic = (action.publish && action.publish.topic) || '';
   const pPay   = (action.publish && action.publish.payload) || '';
+  const pPayOn  = (action.publish && action.publish.payloadOn)  || '';
+  const pPayOff = (action.publish && action.publish.payloadOff) || '';
   const sTopic = (action.state && action.state.topic) || '';
   const sOnVal = (action.state && action.state.onValue) || '';
   const focusAuto = !!(action.timeout && action.timeout > 0);
@@ -906,6 +916,7 @@ function _buildAeActionDrawerForm(action, isNew) {
       <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Type</label>
       <select class="views-input" id="ae-field-type" style="flex:none;width:auto" onchange="_aeTypeChanged(this.value)">
         <option value="mqtt"${type === 'mqtt' ? ' selected' : ''}>mqtt</option>
+        <option value="toggle"${type === 'toggle' ? ' selected' : ''}>toggle</option>
         <option value="focus-stream"${type === 'focus-stream' ? ' selected' : ''}>focus-stream</option>
       </select>
     </div>
@@ -963,11 +974,27 @@ function _buildAeActionDrawerForm(action, isNew) {
           <div class="cam-field-error" id="ae-err-publish-topic"></div>
         </div>
       </div>
-      <div class="views-form-row">
+      <div class="views-form-row" id="ae-mqtt-payload-row" style="${type === 'toggle' ? 'display:none' : ''}">
         <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Payload</label>
         <div style="flex:1;display:flex;flex-direction:column;gap:4px">
           <input class="views-input" id="ae-field-publish-payload" value="${_aeEsc(pPay)}" placeholder="ON">
           <div class="cam-field-error" id="ae-err-publish-payload"></div>
+        </div>
+      </div>
+      <div id="ae-toggle-payload-rows" style="${type !== 'toggle' ? 'display:none' : ''}">
+        <div class="views-form-row">
+          <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Payload ON</label>
+          <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+            <input class="views-input" id="ae-field-publish-payloadOn" value="${_aeEsc(pPayOn)}" placeholder="ON">
+            <div class="cam-field-error" id="ae-err-publish-payloadOn"></div>
+          </div>
+        </div>
+        <div class="views-form-row">
+          <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Payload OFF</label>
+          <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+            <input class="views-input" id="ae-field-publish-payloadOff" value="${_aeEsc(pPayOff)}" placeholder="OFF">
+            <div class="cam-field-error" id="ae-err-publish-payloadOff"></div>
+          </div>
         </div>
       </div>
       <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin:4px 0 -4px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">State (optional)</div>
@@ -1071,8 +1098,12 @@ function closeAeDrawer() {
 function _aeTypeChanged(type) {
   const focusFields = document.getElementById('ae-focus-fields');
   const mqttFields = document.getElementById('ae-mqtt-fields');
+  const mqttPayloadRow = document.getElementById('ae-mqtt-payload-row');
+  const togglePayloadRows = document.getElementById('ae-toggle-payload-rows');
   if (focusFields) focusFields.style.display = type === 'focus-stream' ? '' : 'none';
   if (mqttFields) mqttFields.style.display = type === 'focus-stream' ? 'none' : '';
+  if (mqttPayloadRow) mqttPayloadRow.style.display = type === 'toggle' ? 'none' : '';
+  if (togglePayloadRows) togglePayloadRows.style.display = type === 'toggle' ? '' : 'none';
   if (type === 'focus-stream') _aeFocusRadioChanged();
 }
 
@@ -1120,7 +1151,8 @@ function saveAeActionDrawer(originalId, isNew) {
     if (errDesc) errDesc.textContent = '';
   }
 
-  if (type === 'mqtt') {
+  let publish;
+  if (type === 'mqtt' || type === 'toggle') {
     const errPT = document.getElementById('ae-err-publish-topic');
     if (!pTopic) {
       if (errPT) errPT.textContent = 'Publish topic is required';
@@ -1129,12 +1161,29 @@ function saveAeActionDrawer(originalId, isNew) {
       if (errPT) errPT.textContent = '';
     }
 
-    const errPP = document.getElementById('ae-err-publish-payload');
-    if (!pPayload) {
-      if (errPP) errPP.textContent = 'Publish payload is required';
-      valid = false;
+    if (type === 'toggle') {
+      const payloadOn  = (document.getElementById('ae-field-publish-payloadOn')  || {}).value?.trim() || '';
+      const payloadOff = (document.getElementById('ae-field-publish-payloadOff') || {}).value?.trim() || '';
+      if (!payloadOn) {
+        const errOn = document.getElementById('ae-err-publish-payloadOn');
+        if (errOn) errOn.textContent = 'Payload ON is required';
+        valid = false;
+      }
+      if (!payloadOff) {
+        const errOff = document.getElementById('ae-err-publish-payloadOff');
+        if (errOff) errOff.textContent = 'Payload OFF is required';
+        valid = false;
+      }
+      if (valid && pTopic) publish = { topic: pTopic, payloadOn, payloadOff };
     } else {
-      if (errPP) errPP.textContent = '';
+      const errPP = document.getElementById('ae-err-publish-payload');
+      if (!pPayload) {
+        if (errPP) errPP.textContent = 'Publish payload is required';
+        valid = false;
+      } else {
+        if (errPP) errPP.textContent = '';
+        publish = { topic: pTopic, payload: pPayload };
+      }
     }
 
     const errMS = document.getElementById('ae-err-mqttserver');
@@ -1165,9 +1214,9 @@ function saveAeActionDrawer(originalId, isNew) {
     type,
     description: newDesc,
     ...(icon ? { icon } : {}),
-    ...(type === 'mqtt' && mqttServer ? { mqttServer } : {}),
-    ...(type === 'mqtt' ? { publish: { topic: pTopic, payload: pPayload } } : {}),
-    ...(type === 'mqtt' && sTopic ? { state: { topic: sTopic, ...(sOnVal ? { onValue: sOnVal } : {}) } } : {}),
+    ...((type === 'mqtt' || type === 'toggle') && mqttServer ? { mqttServer } : {}),
+    ...(publish ? { publish } : {}),
+    ...((type === 'mqtt' || type === 'toggle') && sTopic ? { state: { topic: sTopic, ...(sOnVal ? { onValue: sOnVal } : {}) } } : {}),
     ...(type === 'focus-stream' && timeout > 0 ? { timeout } : {}),
     ...(type === 'focus-stream' && typeof focusStreamSaved === 'number' ? { panel: focusStreamSaved } : {}),
   };

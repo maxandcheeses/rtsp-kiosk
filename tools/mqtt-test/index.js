@@ -401,23 +401,19 @@ async function cmdDiscover() {
     process.exit(1);
   }
 
-  // Determine discovery topic
-  const discoveryTopic = config.discovery?.topic || 'kiosk/discovery/actions';
-  const fullTopic = `${discoveryTopic}/test-discovered-light`;
+  const prefix = config.discovery?.prefix || 'homeassistant';
+  const fullTopic = `${prefix}/switch/kiosk-test-light/config`;
 
-  // Prepare discovery payload
   const discoveryPayload = {
-    description: 'Test Discovered Light',
+    unique_id: 'kiosk-test-light',
+    name: 'Test Light',
     icon: 'mdi:lightbulb',
-    mqttServer: 'home',
-    publish: {
-      topic: 'test/discovered/light/set',
-      payload: 'ON',
-    },
-    state: {
-      topic: 'test/discovered/light/state',
-      onValue: 'ON',
-    },
+    command_topic: 'test/discovered/light/set',
+    state_topic: 'test/discovered/light/state',
+    payload_on: 'ON',
+    payload_off: 'OFF',
+    state_on: 'ON',
+    state_off: 'OFF',
   };
 
   const tlsOpts =
@@ -475,9 +471,8 @@ async function cmdUndiscover() {
     process.exit(1);
   }
 
-  // Determine discovery topic
-  const discoveryTopic = config.discovery?.topic || 'kiosk/discovery/actions';
-  const fullTopic = `${discoveryTopic}/test-discovered-light`;
+  const prefix = config.discovery?.prefix || 'homeassistant';
+  const fullTopic = `${prefix}/switch/kiosk-test-light/config`;
 
   const tlsOpts =
     config.mqtt?.servers?.[0]?.connectionType === 'wss'

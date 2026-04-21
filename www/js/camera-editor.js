@@ -9,7 +9,7 @@ let CAM_DRAWER_DIRTY = false;
 
 const CAM_FIELD_SCHEMA = [
   {
-    id: 'path', label: 'Path', type: 'text', default: '', section: 'main',
+    id: 'path', label: 'Name', type: 'text', default: '', section: 'main',
     placeholder: 'my-camera',
     hint: "Lowercase letters, numbers, hyphens",
     validate: v => /^[a-z0-9-]+$/.test(v) ? null : 'Lowercase letters, numbers, and hyphens only',

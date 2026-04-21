@@ -12,7 +12,7 @@
       ],
       "duration": 20,
       "cycle": true,
-      "slotGroups": [
+      "slotCollections": [
         "front-door",
         "Next View",
         "Previous View"
@@ -29,10 +29,48 @@
       ],
       "duration": 20,
       "cycle": true,
-      "slotGroups": [
+      "slotCollections": [
         "Next View",
         "Previous View",
-        "living-rooms"
+        "front-door"
+      ]
+    },
+    {
+      "name": "asfd",
+      "layout": "single",
+      "streams": [
+        "test-1"
+      ],
+      "duration": 20,
+      "cycle": false,
+      "slotCollections": [
+        "Next View"
+      ]
+    },
+    {
+      "name": "all-streams",
+      "layout": "eight",
+      "streams": [
+        "test-1",
+        "test-2",
+        "test-3",
+        "test-4",
+        "test-5",
+        "test-6",
+        "test-7",
+        "test-8"
+      ],
+      "duration": 20,
+      "cycle": true,
+      "slotCollections": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
       ]
     }
   ]

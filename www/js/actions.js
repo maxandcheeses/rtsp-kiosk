@@ -11,6 +11,7 @@ let ACTION_STATES = {};  // state topic → last payload string
 let ACTIONS_MODAL_OPEN = false;
 let _actionsSlotIndex  = null; // which slot triggered the modal
 let _actionUnsubscribers = [];
+let _toggleStates = {};
 let _connectedServerIds = new Set();
 let _actionsConfig = null;  // full parsed config from /actions.json
 let _discoveryUnsubscriber = null;  // unsubscribe fn for MQTT discovery topic
@@ -34,15 +35,10 @@ async function loadActionsConfig() {
   _actionUnsubscribers.forEach(fn => fn());
   _actionUnsubscribers = [];
   ACTIONS            = {};
+  DISCOVERED_ACTIONS = {};
   _STATIC_ACTIONS    = new Set();
   ACTION_COLLECTIONS = {};
   // Keep ACTION_STATES — values are still valid if topics haven't changed
-
-  // Restore persisted discovered actions into ACTIONS first (static will override below)
-  try {
-    const stored = JSON.parse(localStorage.getItem(_LS_DISCOVERED_KEY) || '{}');
-    Object.assign(ACTIONS, stored);
-  } catch(e) {}
 
   try {
     const res = await fetch('/actions.json');
@@ -57,9 +53,6 @@ async function loadActionsConfig() {
     // Merge builtin actions (always available, not stored in config)
     Object.assign(ACTIONS, BUILTIN_ACTIONS);
     Object.keys(BUILTIN_ACTIONS).forEach(k => _STATIC_ACTIONS.add(k));
-
-    // Re-save localStorage to evict any persisted discovered entries now superseded by static actions
-    _saveDiscovered();
 
     // Legacy single-broker support: if mqtt.broker is set directly (old schema)
     if (cfg.mqtt && cfg.mqtt.broker && !cfg.mqtt.servers) {
@@ -91,14 +84,6 @@ async function loadActionsConfig() {
 
     initDiscovery(cfg.discovery);
 
-    // Per-broker discovery topics
-    const servers2 = (cfg.mqtt && cfg.mqtt.servers) || [];
-    servers2.forEach(srv => {
-      if (!srv.discoveryTopic) return;
-      const unsub = mqttSubscribe(srv.discoveryTopic + '/+', handleDiscoveryMessage);
-      _actionUnsubscribers.push(unsub);
-    });
-
     console.log(`Actions: loaded ${Object.keys(ACTIONS).length} actions, ${Object.keys(ACTION_COLLECTIONS).length} collections`);
   } catch(e) {
     console.warn('Actions: failed to load actions.json', e);
@@ -112,8 +97,9 @@ function _connectServersForCollection(collectionId) {
   if (!collection) return;
 
   const needed = new Set();
+  const _merged = getMergedActions();
   (collection.actions || []).forEach(actionId => {
-    const action = ACTIONS[actionId];
+    const action = _merged[actionId];
     if (action && action.type === 'mqtt' && action.mqttServer) needed.add(action.mqttServer);
   });
 
@@ -143,13 +129,14 @@ function openActionsModal(slotIndex) {
   const slotCollections = view && view.slotCollections;
   const collectionId = slotCollections && slotCollections[slotIndex];
   if (!collectionId) return;
-  if (!ACTION_COLLECTIONS[collectionId] && !ACTIONS[collectionId]) {
+  const _merged = getMergedActions();
+  if (!ACTION_COLLECTIONS[collectionId] && !_merged[collectionId]) {
     console.warn(`Actions: "${collectionId}" not found as collection or action`);
     return;
   }
 
   // Direct action (not a collection) — execute immediately, no modal
-  if (!ACTION_COLLECTIONS[collectionId] && ACTIONS[collectionId]) {
+  if (!ACTION_COLLECTIONS[collectionId] && _merged[collectionId]) {
     _actionsSlotIndex = slotIndex;
     pressAction(collectionId);
     _actionsSlotIndex = null;
@@ -186,8 +173,9 @@ function closeActionsModal() {
 
 function _renderActionButtons(collectionId) {
   // Support direct action assignment (slotCollections can reference an action id directly)
+  const _merged = getMergedActions();
   let collection = ACTION_COLLECTIONS[collectionId];
-  if (!collection && ACTIONS[collectionId]) {
+  if (!collection && _merged[collectionId]) {
     collection = { id: collectionId, name: '', actions: [collectionId] };
   }
   if (!collection) return;
@@ -195,11 +183,11 @@ function _renderActionButtons(collectionId) {
   // Connect/disconnect named MQTT servers as needed for this collection
   _connectServersForCollection(collectionId);
 
-  const _typeOrder = id => { const a = ACTIONS[id]; if (!a) return 2; if (a.type === 'builtin') return 0; if (a.type === 'focus-stream') return 1; return 2; };
+  const _typeOrder = id => { const a = _merged[id]; if (!a) return 2; if (a.type === 'builtin') return 0; if (a.type === 'focus-stream') return 1; return 2; };
   const actionIds = (collection.actions || []).slice().sort((a, b) => _typeOrder(a) - _typeOrder(b)).slice(0, 6);
   const statusEl = document.getElementById('actions-mqtt-status');
   if (statusEl) {
-    const hasMqtt = actionIds.some(id => ACTIONS[id] && ACTIONS[id].publish);
+    const hasMqtt = actionIds.some(id => _merged[id] && _merged[id].publish);
     statusEl.style.display = hasMqtt ? '' : 'none';
   }
   if (collection.actions && collection.actions.length > 6) {
@@ -211,14 +199,14 @@ function _renderActionButtons(collectionId) {
   const grid = document.getElementById('actions-grid');
   grid.setAttribute('data-count', actionIds.length);
   grid.innerHTML = actionIds.map(id => {
-    const action = ACTIONS[id];
+    const action = _merged[id];
     if (!action) { console.warn(`Actions: action "${id}" not found`); return ''; }
 
     // Determine if the action's MQTT server is present and connected
     let isDisabled = false;
     if (action.builtin || action.type === 'focus-stream') {
       isDisabled = false;
-    } else if (action.type === 'mqtt') {
+    } else if (action.type === 'mqtt' || action.type === 'toggle') {
       if (!action.mqttServer) {
         isDisabled = true;
       } else {
@@ -233,9 +221,20 @@ function _renderActionButtons(collectionId) {
       }
     }
 
-    const hasStateData = action.state && (action.state.topic in ACTION_STATES);
-    const isOn = hasStateData && ACTION_STATES[action.state.topic] === action.state.onValue;
-    const isUnknown = action.state && !hasStateData;
+    let isOn = false;
+    let isUnknown = false;
+    if (action.type === 'toggle') {
+      if (action.state && action.state.topic && ACTION_STATES[action.state.topic] !== undefined) {
+        isOn = ACTION_STATES[action.state.topic] === action.state.onValue;
+      } else {
+        isOn = _toggleStates[id] ?? false;
+      }
+      isUnknown = !!(action.state && action.state.topic && !(action.state.topic in ACTION_STATES));
+    } else {
+      const hasStateData = action.state && (action.state.topic in ACTION_STATES);
+      isOn = !!(hasStateData && ACTION_STATES[action.state.topic] === action.state.onValue);
+      isUnknown = !!(action.state && !hasStateData);
+    }
     const iconHtml = _renderIcon(action.icon);
     const disabledAttr = isDisabled ? ' disabled' : '';
     const disabledClass = isDisabled ? ' disabled' : '';
@@ -245,7 +244,7 @@ function _renderActionButtons(collectionId) {
 
 function _onMqttDisconnect(serverId) {
   if (serverId) {
-    Object.values(ACTIONS).forEach(a => {
+    Object.values(getMergedActions()).forEach(a => {
       if (a.state && a.mqttServer === serverId) delete ACTION_STATES[a.state.topic];
     });
   } else {
@@ -271,7 +270,7 @@ function _renderIcon(icon) {
 }
 
 function pressAction(actionId) {
-  const action = ACTIONS[actionId];
+  const action = getMergedActions()[actionId];
   if (!action) return;
 
   // Handle builtin actions (next/prev view)
@@ -294,13 +293,29 @@ function pressAction(actionId) {
 
   // MQTT actions
   if (!action.publish) return;
+  if (action.type === 'toggle' && (!action.publish.payloadOn || !action.publish.payloadOff)) return;
 
   const btn = document.querySelector(`[data-action-id="${actionId}"]`);
 
+  let payload;
+  if (action.type === 'toggle') {
+    let isOn = false;
+    if (action.state && action.state.topic && ACTION_STATES[action.state.topic] !== undefined) {
+      isOn = ACTION_STATES[action.state.topic] === action.state.onValue;
+    } else {
+      isOn = _toggleStates[actionId] ?? false;
+    }
+    payload = isOn ? action.publish.payloadOff : action.publish.payloadOn;
+    _toggleStates[actionId] = !isOn;
+    _refreshActionButtons();
+  } else {
+    payload = action.publish.payload;
+  }
+
   // Publish via named client if the action specifies a server, else fall back to global client
   const ok = action.mqttServer
-    ? mqttPublishNamed(action.mqttServer, action.publish.topic, action.publish.payload)
-    : mqttPublish(action.publish.topic, action.publish.payload);
+    ? mqttPublishNamed(action.mqttServer, action.publish.topic, payload)
+    : mqttPublish(action.publish.topic, payload);
 
   if (!ok) {
     if (btn) {
@@ -402,31 +417,114 @@ function saveKeepOpen() {
 
 // ── MQTT Discovery ────────────────────────────────────────────────────────────
 
-function _saveDiscovered() {
-  // Persist only the discovered subset (not statics, not builtins)
-  const discovered = Object.fromEntries(
-    Object.entries(ACTIONS).filter(([k]) => !_STATIC_ACTIONS.has(k) && !BUILTIN_ACTIONS[k])
-  );
-  try { localStorage.setItem(_LS_DISCOVERED_KEY, JSON.stringify(discovered)); } catch(e) {}
-  _refreshDiscoveredActions();
+let DISCOVERED_ACTIONS = {};
+let _discoveryConfig = {};
+
+function getMergedActions() {
+  return { ...DISCOVERED_ACTIONS, ...ACTIONS };
 }
 
-function handleDiscoveryMessage(topic, payload) {
-  const name = topic.split('/').pop();
-  if (payload === null || payload === '' || payload === 'null') {
-    delete ACTIONS[name];
-    _saveDiscovered();
+function _extractDiscoveryKey(topic, prefix) {
+  const withoutPrefix = topic.slice(prefix.length + 1);
+  const parts = withoutPrefix.split('/');
+  const keyParts = parts.slice(1, parts.length - 1);
+  return keyParts.join('/');
+}
+
+function _resolveMqttServer(haPayload, discoveryCfg) {
+  return discoveryCfg.mqttServer || null;
+}
+
+function parseHaPayload(component, haPayload, key, discoveryCfg) {
+  const resolvedComponent = haPayload.component || component;
+  const mqttServer = _resolveMqttServer(haPayload, discoveryCfg);
+  const base = {
+    name: key,
+    description: haPayload.name || haPayload.friendly_name || key,
+    icon: haPayload.icon,
+    mqttServer,
+  };
+  switch (resolvedComponent) {
+    case 'button':
+      return {
+        ...base,
+        type: 'mqtt',
+        icon: base.icon || 'mdi:gesture-tap-button',
+        publish: {
+          topic: haPayload.command_topic,
+          payload: haPayload.payload_press ?? 'PRESS',
+        },
+      };
+    case 'switch':
+    case 'light': {
+      const action = {
+        ...base,
+        type: 'toggle',
+        icon: base.icon || (resolvedComponent === 'light' ? 'mdi:lightbulb' : 'mdi:toggle-switch'),
+        publish: {
+          topic: haPayload.command_topic,
+          payloadOn: haPayload.payload_on ?? 'ON',
+          payloadOff: haPayload.payload_off ?? 'OFF',
+        },
+      };
+      if (haPayload.state_topic) {
+        action.state = { topic: haPayload.state_topic, onValue: haPayload.state_on ?? 'ON' };
+      }
+      return action;
+    }
+    case 'lock': {
+      const action = {
+        ...base,
+        type: 'toggle',
+        icon: base.icon || 'mdi:lock',
+        publish: {
+          topic: haPayload.command_topic,
+          payloadOn: haPayload.payload_lock ?? 'LOCK',
+          payloadOff: haPayload.payload_unlock ?? 'UNLOCK',
+        },
+      };
+      if (haPayload.state_topic) {
+        action.state = { topic: haPayload.state_topic, onValue: haPayload.state_locked ?? 'LOCKED' };
+      }
+      return action;
+    }
+    default:
+      console.warn(`[discovery] unsupported component type: ${resolvedComponent}`);
+      return null;
+  }
+}
+
+function handleDiscoveryMessage(topic, rawPayload) {
+  const prefix = _discoveryConfig.prefix || 'homeassistant';
+  const key = _extractDiscoveryKey(topic, prefix);
+  const componentFromTopic = topic.split('/')[1];
+
+  if (!rawPayload || rawPayload === '' || rawPayload === 'null') {
+    if (DISCOVERED_ACTIONS[key]) {
+      delete DISCOVERED_ACTIONS[key];
+      _refreshActionButtons();
+    }
     return;
   }
-  let parsed;
-  try { parsed = JSON.parse(payload); } catch(e) { console.warn(`discovery: invalid JSON for "${name}"`, e); return; }
-  if (_STATIC_ACTIONS.has(name)) { console.log(`discovery: static action wins for "${name}"`); return; }
-  ACTIONS[name] = { name, ...parsed };
-  _saveDiscovered();
-}
 
-function _refreshDiscoveredActions() {
-  if (ACTIONS_MODAL_OPEN) _refreshActionButtons();
+  let haPayload;
+  try {
+    haPayload = JSON.parse(rawPayload);
+  } catch (e) {
+    console.warn(`[discovery] malformed JSON on ${topic}:`, e.message);
+    return;
+  }
+
+  if (ACTIONS[key]) {
+    console.info(`[discovery] static action wins for "${key}" — skipping`);
+    return;
+  }
+
+  const action = parseHaPayload(componentFromTopic, haPayload, key, _discoveryConfig);
+  if (!action) return;
+
+  DISCOVERED_ACTIONS[key] = action;
+  _refreshActionButtons();
   if (typeof renderActionsEditor === 'function') {
     const el = document.getElementById('ae-content');
     if (el) renderActionsEditor();
@@ -436,10 +534,14 @@ function _refreshDiscoveredActions() {
 function initDiscovery(cfg) {
   if (_discoveryUnsubscriber) { _discoveryUnsubscriber(); _discoveryUnsubscriber = null; }
   if (!cfg || !cfg.enabled) return;
-  _discoveryUnsubscriber = mqttSubscribe(cfg.topic + '/+', handleDiscoveryMessage);
+  _discoveryConfig = cfg;
+  const prefix = cfg.prefix || 'homeassistant';
   if (cfg.mqttServer) {
     const servers = (_actionsConfig && _actionsConfig.mqtt && _actionsConfig.mqtt.servers) || [];
     const srv = servers.find(s => s.id === cfg.mqttServer);
     if (srv) getOrCreateMqttClient(srv.id, srv);
   }
+  const unsub1 = mqttSubscribe(`${prefix}/+/+/config`, handleDiscoveryMessage);
+  const unsub2 = mqttSubscribe(`${prefix}/+/+/+/config`, handleDiscoveryMessage);
+  _discoveryUnsubscriber = () => { unsub1(); unsub2(); };
 }
