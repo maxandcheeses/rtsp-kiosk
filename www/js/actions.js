@@ -535,12 +535,11 @@ function initDiscovery(cfg) {
   if (_discoveryUnsubscriber) { _discoveryUnsubscriber(); _discoveryUnsubscriber = null; }
   if (!cfg || !cfg.enabled) return;
   _discoveryConfig = cfg;
-  const prefix = cfg.prefix || 'homeassistant';
-  if (cfg.mqttServer) {
-    const servers = (_actionsConfig && _actionsConfig.mqtt && _actionsConfig.mqtt.servers) || [];
-    const srv = servers.find(s => s.id === cfg.mqttServer);
-    if (srv) getOrCreateMqttClient(srv.id, srv);
-  }
+  const servers = (_actionsConfig && _actionsConfig.mqtt && _actionsConfig.mqtt.servers) || [];
+  const srv = cfg.mqttServer ? servers.find(s => s.id === cfg.mqttServer) : null;
+  if (srv) getOrCreateMqttClient(srv.id, srv);
+  const prefix = (srv && srv.discoveryTopic) || cfg.prefix || 'homeassistant';
+  _discoveryConfig = { ...cfg, prefix };
   const unsub1 = mqttSubscribe(`${prefix}/+/+/config`, handleDiscoveryMessage);
   const unsub2 = mqttSubscribe(`${prefix}/+/+/+/config`, handleDiscoveryMessage);
   _discoveryUnsubscriber = () => { unsub1(); unsub2(); };

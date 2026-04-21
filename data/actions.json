@@ -1,7 +1,6 @@
 {
   "discovery": {
     "enabled": false,
-    "prefix": "homeassistant",
     "mqttServer": "home"
   },
   "mqtt": {
