@@ -2,6 +2,8 @@
 // PANEL ACTIONS — load config, open/close modal, MQTT
 // ═══════════════════════════════════════════════════════
 
+const _LS_DISCOVERED_KEY = 'rtsp-kiosk:discovered-actions';
+
 let ACTIONS       = {};  // id → action object
 let DISCOVERED_ACTIONS = {};  // id → action object (from MQTT discovery, runtime only)
 let ACTION_COLLECTIONS = {};  // id → collection object
@@ -39,6 +41,12 @@ async function loadActionsConfig() {
   ACTION_COLLECTIONS = {};
   // Keep ACTION_STATES — values are still valid if topics haven't changed
 
+  // Restore persisted discovered actions (static actions will override below)
+  try {
+    const stored = JSON.parse(localStorage.getItem(_LS_DISCOVERED_KEY) || '{}');
+    DISCOVERED_ACTIONS = stored;
+  } catch(e) { DISCOVERED_ACTIONS = {}; }
+
   try {
     const res = await fetch('/actions.json');
     if (!res.ok) { console.log('Actions: no actions.json found, skipping'); Object.assign(ACTIONS, BUILTIN_ACTIONS); return; }
@@ -51,6 +59,11 @@ async function loadActionsConfig() {
 
     // Merge builtin actions (always available, not stored in config)
     Object.assign(ACTIONS, BUILTIN_ACTIONS);
+
+    // Evict any persisted discovered actions that conflict with static actions
+    Object.keys(DISCOVERED_ACTIONS).forEach(name => {
+      if (ACTIONS[name]) delete DISCOVERED_ACTIONS[name];
+    });
 
     // Legacy single-broker support: if mqtt.broker is set directly (old schema)
     if (cfg.mqtt && cfg.mqtt.broker && !cfg.mqtt.servers) {
@@ -81,6 +94,14 @@ async function loadActionsConfig() {
     });
 
     initDiscovery(cfg.discovery);
+
+    // Per-broker discovery topics
+    const servers2 = (cfg.mqtt && cfg.mqtt.servers) || [];
+    servers2.forEach(srv => {
+      if (!srv.discoveryTopic) return;
+      const unsub = mqttSubscribe(srv.discoveryTopic + '/+', handleDiscoveryMessage);
+      _actionUnsubscribers.push(unsub);
+    });
 
     console.log(`Actions: loaded ${Object.keys(ACTIONS).length} actions, ${Object.keys(ACTION_COLLECTIONS).length} collections`);
   } catch(e) {
@@ -385,18 +406,23 @@ function saveKeepOpen() {
 
 // ── MQTT Discovery ────────────────────────────────────────────────────────────
 
+function _saveDiscovered() {
+  try { localStorage.setItem(_LS_DISCOVERED_KEY, JSON.stringify(DISCOVERED_ACTIONS)); } catch(e) {}
+  _refreshDiscoveredActions();
+}
+
 function handleDiscoveryMessage(topic, payload) {
   const name = topic.split('/').pop();
   if (payload === null || payload === '' || payload === 'null') {
     delete DISCOVERED_ACTIONS[name];
-    _refreshDiscoveredActions();
+    _saveDiscovered();
     return;
   }
   let parsed;
   try { parsed = JSON.parse(payload); } catch(e) { console.warn(`discovery: invalid JSON for "${name}"`, e); return; }
   if (ACTIONS[name]) { console.log(`discovery: static action wins for "${name}"`); return; }
   DISCOVERED_ACTIONS[name] = { name, ...parsed };
-  _refreshDiscoveredActions();
+  _saveDiscovered();
 }
 
 function _refreshDiscoveredActions() {

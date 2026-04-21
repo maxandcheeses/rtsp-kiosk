@@ -238,6 +238,7 @@ function _buildAeSrvDrawerForm(srv, isNew) {
   const basepath = srv.basepath || '';
   const showTls = connectionType === 'wss';
   const autoConnect = srv.autoConnect !== undefined ? srv.autoConnect : true;
+  const discoveryTopic = srv.discoveryTopic || '';
 
   const connTypeOpts = ['ws', 'wss'].map(t =>
     `<option value="${t}"${t === connectionType ? ' selected' : ''}>${t}</option>`
@@ -328,6 +329,12 @@ function _buildAeSrvDrawerForm(srv, isNew) {
         <div style="font-size:9px;color:rgba(255,255,255,0.25)">Supported: .crt, .pem, .key, .cer, .p12, .pfx, .der, .p7b, .p7c, .ca-bundle</div>
       </div>
     </div>
+    <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin:4px 0 -4px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">Discovery (optional)</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.25);font-family:'Courier New',monospace;margin-bottom:6px">Subscribe to this topic prefix to auto-register actions from retained MQTT messages. Listens on &lt;topic&gt;/+</div>
+    <div class="views-form-row">
+      <label style="width:140px;flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.4)">Discovery Topic</label>
+      <input class="views-input" id="ae-field-srv-discovery-topic" value="${_aeEsc(discoveryTopic)}" placeholder="kiosk/discovery">
+    </div>
   </div>
   <div class="cam-drawer-footer">
     <button class="perf-reset" onclick="closeAeDrawer()">Cancel</button>
@@ -380,6 +387,7 @@ function saveAeSrvDrawer(originalId, isNew) {
   const autoConnect     = autoConnectEl ? autoConnectEl.checked : true;
   let basepath          = (document.getElementById('ae-field-srv-basepath') || {}).value?.trim() || '';
   if (basepath && !basepath.startsWith('/')) basepath = '/' + basepath;
+  const discoveryTopic  = (document.getElementById('ae-field-srv-discovery-topic') || {}).value?.trim() || '';
 
   let valid = true;
 
@@ -433,6 +441,7 @@ function saveAeSrvDrawer(originalId, isNew) {
     ...(username ? { username } : {}),
     ...(password ? { password } : {}),
     ...(caFile || certFile || keyFile ? { tls: { caFile, certFile, keyFile } } : {}),
+    ...(discoveryTopic ? { discoveryTopic } : {}),
   };
 
   if (!AE_LOCAL.mqtt) AE_LOCAL.mqtt = { servers: [] };
@@ -766,39 +775,30 @@ function _buildAeActionsTab() {
     </tr>`;
   });
 
-  // Build discovered actions section (runtime-only, from MQTT discovery)
+  // Append discovered action rows into the main table (read-only, no edit/delete controls)
   const discoveredEntries = (typeof DISCOVERED_ACTIONS !== 'undefined')
     ? Object.values(DISCOVERED_ACTIONS).filter(a => !ACTIONS[a.name])
     : [];
-  let discoveredSection = '';
-  if (discoveredEntries.length > 0) {
-    const discoveredRows = discoveredEntries.map(action => {
-      const iconHtml = action.icon ? _renderIcon(action.icon) : '';
-      const publishSummary = action.type === 'focus-stream'
-        ? `focus (${action.timeout > 0 ? action.timeout + 's' : 'manual close'})`
-        : (action.publish ? `${_aeEsc(action.publish.topic)} → ${_aeEsc(action.publish.payload)}` : '—');
-      return `<tr>
-        <td style="width:32px"></td>
-        <td style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.5)">${_aeEsc(action.name)}<span class="action-discovered-badge">discovered</span></td>
-        <td style="font-size:11px">${_aeEsc(action.description || '')}</td>
-        <td style="font-size:18px;padding:6px 10px">${iconHtml}</td>
-        <td style="font-family:'Courier New',monospace;font-size:9px;color:rgba(255,255,255,0.4);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${publishSummary}</td>
-        <td></td>
-      </tr>`;
-    }).join('');
-    discoveredSection = `
-      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px;margin-top:16px">Discovered Actions</div>
-      <table class="streams-table" style="width:100%;margin-bottom:20px">
-        <thead><tr><th></th><th>Name</th><th>Description</th><th>Icon</th><th>Publish</th><th></th></tr></thead>
-        <tbody>${discoveredRows}</tbody>
-      </table>`;
-  }
+  const discoveredRows = discoveredEntries.map(action => {
+    const iconHtml = action.icon ? _renderIcon(action.icon) : '';
+    const publishSummary = action.type === 'focus-stream'
+      ? `focus (${action.timeout > 0 ? action.timeout + 's' : 'manual close'})`
+      : (action.publish ? `${_aeEsc(action.publish.topic)} → ${_aeEsc(action.publish.payload)}` : '—');
+    return `<tr>
+      <td style="width:32px"></td>
+      <td style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.5)">${_aeEsc(action.name)}<span class="action-discovered-badge">discovered</span></td>
+      <td style="font-size:11px">${_aeEsc(action.description || '')}</td>
+      <td style="font-size:18px;padding:6px 10px">${iconHtml}</td>
+      <td style="font-family:'Courier New',monospace;font-size:9px;color:rgba(255,255,255,0.4);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${publishSummary}</td>
+      <td></td>
+    </tr>`;
+  }).join('');
 
-  return builtinSection + discoveredSection + `<table class="streams-table" style="width:100%">
+  return builtinSection + `<table class="streams-table" style="width:100%">
     <thead><tr>
       <th></th><th>Name</th><th>Description</th><th>Icon</th><th>Publish</th><th></th>
     </tr></thead>
-    <tbody id="ae-actions-tbody">${rows}</tbody>
+    <tbody id="ae-actions-tbody">${rows}${discoveredRows}</tbody>
   </table>`;
 }
 
@@ -898,7 +898,6 @@ function _buildAeActionDrawerForm(action, isNew) {
   const pPay   = (action.publish && action.publish.payload) || '';
   const sTopic = (action.state && action.state.topic) || '';
   const sOnVal = (action.state && action.state.onValue) || '';
-
   const focusAuto = !!(action.timeout && action.timeout > 0);
   const focusTimeout = focusAuto ? action.timeout : 30;
   const focusSamePanel = !(typeof action.panel === 'number' && action.panel >= 0 && action.panel <= 7);
@@ -1097,9 +1096,9 @@ function saveAeActionDrawer(originalId, isNew) {
   const pTopic     = ptEl    ? ptEl.value.trim()    : '';
   const pPayload   = ppEl    ? ppEl.value.trim()    : '';
   const icon       = (document.getElementById('ae-field-icon')           || {}).value || '';
-  const sTopic     = (document.getElementById('ae-field-state-topic')   || {}).value.trim();
-  const sOnVal     = (document.getElementById('ae-field-state-onvalue') || {}).value.trim();
-  const type       = (document.getElementById('ae-field-type')           || {}).value || 'mqtt';
+  const sTopic     = (document.getElementById('ae-field-state-topic')     || {}).value.trim();
+  const sOnVal     = (document.getElementById('ae-field-state-onvalue')   || {}).value.trim();
+  const type       = (document.getElementById('ae-field-type')             || {}).value || 'mqtt';
   const mqttServer = (document.getElementById('ae-field-mqttserver')    || {}).value || '';
 
   let valid = true;
