@@ -89,6 +89,59 @@ node tools/mqtt-test/index.js ping
 [14:32:15] Broker: ws://localhost:9001, latency: 45ms, connected: true
 ```
 
+### Test Discovery
+
+Publish and remove test MQTT discovery entities to validate the kiosk's auto-registration feature. Discovery entities are published to the MQTT topic configured in `data/actions.json` under `discovery.topic` (defaults to `kiosk/discovery/actions`).
+
+#### Publish a Discovery Entity
+
+Publish a test discovered light action that the kiosk will auto-register:
+
+```bash
+node tools/mqtt-test/index.js discover
+npm run discover
+```
+
+This publishes a **retained** message to `<discovery-topic>/test-discovered-light` with a sample action definition. The kiosk will:
+1. Receive the discovery message
+2. Parse the JSON payload
+3. Create a new action button in the UI
+4. Accept commands on the configured `publish.topic`
+5. Display state updates from the configured `state.topic`
+
+**Output example:**
+```
+[14:32:15] Connecting to ws://localhost:9001 (home)...
+[14:32:16] [pub] kiosk/discovery/actions/test-discovered-light (retain: true)
+{
+  "description": "Test Discovered Light",
+  "icon": "mdi:lightbulb",
+  ...
+}
+[14:32:16] Discovery entity published with retain flag
+```
+
+#### Remove a Discovery Entity
+
+Remove a previously published discovery entity:
+
+```bash
+node tools/mqtt-test/index.js undiscover
+npm run undiscover
+```
+
+This publishes an **empty retained** message to `<discovery-topic>/test-discovered-light`, which:
+1. Clears the retained message from the broker
+2. Signals the kiosk to unregister the discovered action
+3. Removes the action button from the UI
+
+**Output example:**
+```
+[14:32:15] Connecting to ws://localhost:9001 (home)...
+[14:32:16] [pub] kiosk/discovery/actions/test-discovered-light (retain: true, empty)
+[14:32:16] Discovery entity removed (empty retained message published)
+```
+
 ### Show Help
 
 ```bash

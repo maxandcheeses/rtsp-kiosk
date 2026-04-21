@@ -10,6 +10,8 @@
  *   node tools/mqtt-test/index.js publish <id>      - Publish one action
  *   node tools/mqtt-test/index.js simulate          - Simulate device responses
  *   node tools/mqtt-test/index.js ping              - Test broker connectivity
+ *   node tools/mqtt-test/index.js discover          - Publish test discovery entity
+ *   node tools/mqtt-test/index.js undiscover        - Remove test discovery entity
  *   node tools/mqtt-test/index.js --help            - Show this help
  */
 
@@ -376,6 +378,137 @@ async function cmdSimulate() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Command: discover
+// ─────────────────────────────────────────────────────────────────────────
+
+async function cmdDiscover() {
+  const config = loadActionsConfig();
+
+  // Determine broker URL: prefer mqtt.servers[0].broker, fall back to mqtt.broker
+  let brokerUrl;
+  let serverId = 'unknown';
+
+  if (config.mqtt?.servers && config.mqtt.servers.length > 0) {
+    const server = config.mqtt.servers[0];
+    brokerUrl = buildBrokerUrl(server);
+    serverId = server.id || 'home';
+  } else if (config.mqtt?.broker) {
+    brokerUrl = config.mqtt.broker;
+    serverId = 'default';
+  } else {
+    logError('No MQTT broker configured in data/actions.json');
+    process.exit(1);
+  }
+
+  // Determine discovery topic
+  const discoveryTopic = config.discovery?.topic || 'kiosk/discovery/actions';
+  const fullTopic = `${discoveryTopic}/test-discovered-light`;
+
+  // Prepare discovery payload
+  const discoveryPayload = {
+    description: 'Test Discovered Light',
+    icon: 'mdi:lightbulb',
+    mqttServer: 'home',
+    publish: {
+      topic: 'test/discovered/light/set',
+      payload: 'ON',
+    },
+    state: {
+      topic: 'test/discovered/light/state',
+      onValue: 'ON',
+    },
+  };
+
+  const tlsOpts =
+    config.mqtt?.servers?.[0]?.connectionType === 'wss'
+      ? { tls: { rejectUnauthorized: false } }
+      : {};
+
+  logSuccess(`Connecting to ${maskCredentials(brokerUrl, '', '')} (${serverId})...`);
+
+  try {
+    const client = await createMqttClient(brokerUrl, '', '', 5000, tlsOpts);
+    const payloadStr = JSON.stringify(discoveryPayload, null, 2);
+
+    log(
+      `${colors.yellow}[pub]${colors.reset} ${colors.cyan}${fullTopic}${colors.reset} (retain: true)`
+    );
+    log(`${colors.green}${payloadStr}${colors.reset}`);
+
+    client.publish(fullTopic, JSON.stringify(discoveryPayload), { qos: 1, retain: true }, (err) => {
+      if (err) {
+        logError(`Publish failed: ${err.message}`);
+        process.exit(1);
+      }
+      logSuccess('Discovery entity published with retain flag');
+      client.end(() => {
+        process.exit(0);
+      });
+    });
+  } catch (e) {
+    logError(`Failed to connect: ${e.message}`);
+    process.exit(1);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Command: undiscover
+// ─────────────────────────────────────────────────────────────────────────
+
+async function cmdUndiscover() {
+  const config = loadActionsConfig();
+
+  // Determine broker URL: prefer mqtt.servers[0].broker, fall back to mqtt.broker
+  let brokerUrl;
+  let serverId = 'unknown';
+
+  if (config.mqtt?.servers && config.mqtt.servers.length > 0) {
+    const server = config.mqtt.servers[0];
+    brokerUrl = buildBrokerUrl(server);
+    serverId = server.id || 'home';
+  } else if (config.mqtt?.broker) {
+    brokerUrl = config.mqtt.broker;
+    serverId = 'default';
+  } else {
+    logError('No MQTT broker configured in data/actions.json');
+    process.exit(1);
+  }
+
+  // Determine discovery topic
+  const discoveryTopic = config.discovery?.topic || 'kiosk/discovery/actions';
+  const fullTopic = `${discoveryTopic}/test-discovered-light`;
+
+  const tlsOpts =
+    config.mqtt?.servers?.[0]?.connectionType === 'wss'
+      ? { tls: { rejectUnauthorized: false } }
+      : {};
+
+  logSuccess(`Connecting to ${maskCredentials(brokerUrl, '', '')} (${serverId})...`);
+
+  try {
+    const client = await createMqttClient(brokerUrl, '', '', 5000, tlsOpts);
+
+    log(
+      `${colors.yellow}[pub]${colors.reset} ${colors.cyan}${fullTopic}${colors.reset} (retain: true, empty)`
+    );
+
+    client.publish(fullTopic, '', { qos: 1, retain: true }, (err) => {
+      if (err) {
+        logError(`Publish failed: ${err.message}`);
+        process.exit(1);
+      }
+      logSuccess('Discovery entity removed (empty retained message published)');
+      client.end(() => {
+        process.exit(0);
+      });
+    });
+  } catch (e) {
+    logError(`Failed to connect: ${e.message}`);
+    process.exit(1);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Command: ping
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -445,6 +578,8 @@ Commands:
   publish <action-id>    Publish one action's configured payload and exit
   simulate               Loop forever, simulating device state responses
   ping                   Test broker connectivity and measure latency
+  discover               Publish a test MQTT discovery entity
+  undiscover             Remove a test MQTT discovery entity
   --help, -h             Show this help
 
 Examples:
@@ -452,6 +587,8 @@ Examples:
   node tools/mqtt-test/index.js publish lights-on
   node tools/mqtt-test/index.js simulate
   node tools/mqtt-test/index.js ping
+  node tools/mqtt-test/index.js discover
+  node tools/mqtt-test/index.js undiscover
 
 Configuration:
   Reads from data/actions.json for broker URL and all action topics.
@@ -482,6 +619,12 @@ switch (cmd) {
     break;
   case 'ping':
     cmdPing();
+    break;
+  case 'discover':
+    cmdDiscover();
+    break;
+  case 'undiscover':
+    cmdUndiscover();
     break;
   default:
     logError(`Unknown command: ${cmd}`);

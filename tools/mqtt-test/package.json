@@ -10,7 +10,9 @@
     "subscribe": "node index.js subscribe",
     "publish": "node index.js publish",
     "simulate": "node index.js simulate",
-    "ping": "node index.js ping"
+    "ping": "node index.js ping",
+    "discover": "node index.js discover",
+    "undiscover": "node index.js undiscover"
   },
   "dependencies": {
     "mqtt": "^5.10.1"
