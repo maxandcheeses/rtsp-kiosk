@@ -50,7 +50,7 @@ See `webrtc.md` for full lifecycle. The key point: index is ephemeral (DOM posit
 Re-resolves stream index at fire time (`STREAMS.findIndex`) — the view may have changed between scheduling and firing. If the stream is no longer in the active layout, the retry is silently dropped.
 
 ### `ACTIONS` / `DISCOVERED_ACTIONS` / `getMergedActions()` — actions.js
-`ACTIONS` holds static actions from `actions.json` and builtins. `DISCOVERED_ACTIONS` holds actions discovered via HA MQTT discovery. All action lookups (button rendering, `pressAction`, `openActionsModal`, `_connectServersForCollection`, `_onMqttDisconnect`) use `getMergedActions()` which returns `{ ...DISCOVERED_ACTIONS, ...ACTIONS }` — static actions win on name collision.
+`ACTIONS` holds static actions from `actions.json` and builtins. `DISCOVERED_ACTIONS` holds actions discovered via HA MQTT discovery. All action lookups (button rendering, `pressAction`, `openActionsModal`, `_connectServersForCollection`, `_onMqttDisconnect`, and collection slot dropdowns in `actions-editor.js`) use `getMergedActions()` which returns `{ ...DISCOVERED_ACTIONS, ...ACTIONS }` — static actions win on name collision. Never use `Object.values(ACTIONS)` directly to build a dropdown or list — discovered actions will be silently excluded.
 
 `_STATIC_ACTIONS` is a `Set` of names from `actions.json` or `BUILTIN_ACTIONS`. It is rebuilt on each `loadActionsConfig()` call. Discovered entries are not persisted to localStorage — retained MQTT messages replay them on reconnect/reload.
 

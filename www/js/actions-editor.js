@@ -1341,7 +1341,7 @@ function _buildAeCollectionDrawerForm(collection, isNew) {
   const slots   = (collection.actions || []).slice(0, 6);
   const numSlots = Math.min(slots.length + 1, 6); // show one extra empty slot unless at max
   const typeOrder = a => a.type === 'builtin' ? 0 : a.type === 'focus-stream' ? 1 : 2;
-  const sortedActions = Object.values(ACTIONS).sort((a, b) => typeOrder(a) - typeOrder(b));
+  const sortedActions = Object.values(getMergedActions()).sort((a, b) => typeOrder(a) - typeOrder(b));
 
   let slotsHtml = '';
   for (let i = 0; i < numSlots; i++) {
@@ -1399,7 +1399,7 @@ function _aeAddSlot(currentCount) {
   slotRow.className = 'views-form-row';
   slotRow.id = `ae-slot-row-${currentCount}`;
   const typeOrderAdd = a => a.type === 'builtin' ? 0 : a.type === 'focus-stream' ? 1 : 2;
-  const sortedActionsAdd = Object.values(ACTIONS).sort((a, b) => typeOrderAdd(a) - typeOrderAdd(b));
+  const sortedActionsAdd = Object.values(getMergedActions()).sort((a, b) => typeOrderAdd(a) - typeOrderAdd(b));
   slotRow.style.alignItems = 'center';
   slotRow.innerHTML = `
     <span class="cam-drag-handle" style="margin-right:6px;flex-shrink:0;cursor:grab">≡</span>
