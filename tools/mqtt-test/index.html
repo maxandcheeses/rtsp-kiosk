@@ -960,7 +960,12 @@
       if (!container) return;
 
       const serverIds = Object.keys(SERVERS);
-      const discoveryTopicBase = (CONFIG.discovery && CONFIG.discovery.topic) || 'kiosk/discovery/actions';
+
+      // Helper to get discovery topic base from the selected server
+      function getDiscoveryBase() {
+        const id = serverSelect.value;
+        return (SERVERS[id] && SERVERS[id].discoveryTopic) || 'kiosk/discovery/actions';
+      }
 
       // Track dirty state for auto-fill fields
       let pubTopicDirty = false;
@@ -1085,11 +1090,14 @@
       btnRow.appendChild(removeBtn);
 
       // Auto-fill logic
-      nameInput.addEventListener('input', () => {
+      function updateAutoFills() {
         const name = nameInput.value.trim();
-        if (!pubTopicDirty) pubTopicInput.value = name ? 'test/discovered/' + name + '/set' : '';
-        if (!stateTopicDirty) stateTopicInput.value = name ? 'test/discovered/' + name + '/state' : '';
-      });
+        const base = getDiscoveryBase();
+        if (!pubTopicDirty) pubTopicInput.value = name ? base + '/' + name + '/set' : '';
+        if (!stateTopicDirty) stateTopicInput.value = name ? base + '/' + name + '/state' : '';
+      }
+
+      nameInput.addEventListener('input', updateAutoFills);
 
       pubTopicInput.addEventListener('input', () => { pubTopicDirty = true; });
       stateTopicInput.addEventListener('input', () => { stateTopicDirty = true; });
@@ -1097,6 +1105,7 @@
 
       serverSelect.addEventListener('change', () => {
         if (!mqttServerDirty) mqttServerInput.value = serverSelect.value;
+        updateAutoFills();
       });
 
       // Publish Discovery handler
@@ -1119,7 +1128,7 @@
           mqttServer: mqttServerInput.value.trim() || serverId
         };
         const payloadStr = JSON.stringify(payload);
-        const fullTopic = discoveryTopicBase + '/' + name;
+        const fullTopic = getDiscoveryBase() + '/' + name;
         server.client.publish(fullTopic, payloadStr, { retain: retainCheckbox.checked, qos: 1 });
         appendLog(serverId, fullTopic, payloadStr, 'out');
       });
@@ -1135,7 +1144,7 @@
         const name = nameInput.value.trim();
         if (!name) { alert('Name is required'); return; }
 
-        const fullTopic = discoveryTopicBase + '/' + name;
+        const fullTopic = getDiscoveryBase() + '/' + name;
         server.client.publish(fullTopic, '', { retain: true, qos: 1 });
         appendLog(serverId, fullTopic, '(removed)', 'out');
       });
