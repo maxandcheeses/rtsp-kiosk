@@ -766,7 +766,35 @@ function _buildAeActionsTab() {
     </tr>`;
   });
 
-  return builtinSection + `<table class="streams-table" style="width:100%">
+  // Build discovered actions section (runtime-only, from MQTT discovery)
+  const discoveredEntries = (typeof DISCOVERED_ACTIONS !== 'undefined')
+    ? Object.values(DISCOVERED_ACTIONS).filter(a => !ACTIONS[a.name])
+    : [];
+  let discoveredSection = '';
+  if (discoveredEntries.length > 0) {
+    const discoveredRows = discoveredEntries.map(action => {
+      const iconHtml = action.icon ? _renderIcon(action.icon) : '';
+      const publishSummary = action.type === 'focus-stream'
+        ? `focus (${action.timeout > 0 ? action.timeout + 's' : 'manual close'})`
+        : (action.publish ? `${_aeEsc(action.publish.topic)} → ${_aeEsc(action.publish.payload)}` : '—');
+      return `<tr>
+        <td style="width:32px"></td>
+        <td style="font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.5)">${_aeEsc(action.name)}<span class="action-discovered-badge">discovered</span></td>
+        <td style="font-size:11px">${_aeEsc(action.description || '')}</td>
+        <td style="font-size:18px;padding:6px 10px">${iconHtml}</td>
+        <td style="font-family:'Courier New',monospace;font-size:9px;color:rgba(255,255,255,0.4);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${publishSummary}</td>
+        <td></td>
+      </tr>`;
+    }).join('');
+    discoveredSection = `
+      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px;margin-top:16px">Discovered Actions</div>
+      <table class="streams-table" style="width:100%;margin-bottom:20px">
+        <thead><tr><th></th><th>Name</th><th>Description</th><th>Icon</th><th>Publish</th><th></th></tr></thead>
+        <tbody>${discoveredRows}</tbody>
+      </table>`;
+  }
+
+  return builtinSection + discoveredSection + `<table class="streams-table" style="width:100%">
     <thead><tr>
       <th></th><th>Name</th><th>Description</th><th>Icon</th><th>Publish</th><th></th>
     </tr></thead>

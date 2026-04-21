@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════
 
 let ACTIONS       = {};  // id → action object
+let DISCOVERED_ACTIONS = {};  // id → action object (from MQTT discovery, runtime only)
 let ACTION_COLLECTIONS = {};  // id → collection object
 let ACTION_STATES = {};  // state topic → last payload string
 let ACTIONS_MODAL_OPEN = false;
@@ -10,6 +11,11 @@ let _actionsSlotIndex  = null; // which slot triggered the modal
 let _actionUnsubscribers = [];
 let _connectedServerIds = new Set();
 let _actionsConfig = null;  // full parsed config from /actions.json
+let _discoveryUnsubscriber = null;  // unsubscribe fn for MQTT discovery topic
+
+function getMergedActions() {
+  return { ...DISCOVERED_ACTIONS, ...ACTIONS };
+}
 let _focusStreamTimer    = null;
 let _focusReopenSlot    = null; // slot to reopen actions modal on focus close
 
@@ -29,6 +35,7 @@ async function loadActionsConfig() {
   _actionUnsubscribers.forEach(fn => fn());
   _actionUnsubscribers = [];
   ACTIONS            = {};
+  DISCOVERED_ACTIONS = {};
   ACTION_COLLECTIONS = {};
   // Keep ACTION_STATES — values are still valid if topics haven't changed
 
@@ -73,6 +80,8 @@ async function loadActionsConfig() {
       }
     });
 
+    initDiscovery(cfg.discovery);
+
     console.log(`Actions: loaded ${Object.keys(ACTIONS).length} actions, ${Object.keys(ACTION_COLLECTIONS).length} collections`);
   } catch(e) {
     console.warn('Actions: failed to load actions.json', e);
@@ -87,7 +96,7 @@ function _connectServersForCollection(collectionId) {
 
   const needed = new Set();
   (collection.actions || []).forEach(actionId => {
-    const action = ACTIONS[actionId];
+    const action = getMergedActions()[actionId];
     if (action && action.type === 'mqtt' && action.mqttServer) needed.add(action.mqttServer);
   });
 
@@ -117,13 +126,13 @@ function openActionsModal(slotIndex) {
   const slotCollections = view && view.slotCollections;
   const collectionId = slotCollections && slotCollections[slotIndex];
   if (!collectionId) return;
-  if (!ACTION_COLLECTIONS[collectionId] && !ACTIONS[collectionId]) {
+  if (!ACTION_COLLECTIONS[collectionId] && !getMergedActions()[collectionId]) {
     console.warn(`Actions: "${collectionId}" not found as collection or action`);
     return;
   }
 
   // Direct action (not a collection) — execute immediately, no modal
-  if (!ACTION_COLLECTIONS[collectionId] && ACTIONS[collectionId]) {
+  if (!ACTION_COLLECTIONS[collectionId] && getMergedActions()[collectionId]) {
     _actionsSlotIndex = slotIndex;
     pressAction(collectionId);
     _actionsSlotIndex = null;
@@ -161,7 +170,7 @@ function closeActionsModal() {
 function _renderActionButtons(collectionId) {
   // Support direct action assignment (slotCollections can reference an action id directly)
   let collection = ACTION_COLLECTIONS[collectionId];
-  if (!collection && ACTIONS[collectionId]) {
+  if (!collection && getMergedActions()[collectionId]) {
     collection = { id: collectionId, name: '', actions: [collectionId] };
   }
   if (!collection) return;
@@ -169,11 +178,11 @@ function _renderActionButtons(collectionId) {
   // Connect/disconnect named MQTT servers as needed for this collection
   _connectServersForCollection(collectionId);
 
-  const _typeOrder = id => { const a = ACTIONS[id]; if (!a) return 2; if (a.type === 'builtin') return 0; if (a.type === 'focus-stream') return 1; return 2; };
+  const _typeOrder = id => { const a = getMergedActions()[id]; if (!a) return 2; if (a.type === 'builtin') return 0; if (a.type === 'focus-stream') return 1; return 2; };
   const actionIds = (collection.actions || []).slice().sort((a, b) => _typeOrder(a) - _typeOrder(b)).slice(0, 6);
   const statusEl = document.getElementById('actions-mqtt-status');
   if (statusEl) {
-    const hasMqtt = actionIds.some(id => ACTIONS[id] && ACTIONS[id].publish);
+    const hasMqtt = actionIds.some(id => getMergedActions()[id] && getMergedActions()[id].publish);
     statusEl.style.display = hasMqtt ? '' : 'none';
   }
   if (collection.actions && collection.actions.length > 6) {
@@ -185,7 +194,7 @@ function _renderActionButtons(collectionId) {
   const grid = document.getElementById('actions-grid');
   grid.setAttribute('data-count', actionIds.length);
   grid.innerHTML = actionIds.map(id => {
-    const action = ACTIONS[id];
+    const action = getMergedActions()[id];
     if (!action) { console.warn(`Actions: action "${id}" not found`); return ''; }
 
     // Determine if the action's MQTT server is present and connected
@@ -219,7 +228,7 @@ function _renderActionButtons(collectionId) {
 
 function _onMqttDisconnect(serverId) {
   if (serverId) {
-    Object.values(ACTIONS).forEach(a => {
+    Object.values(getMergedActions()).forEach(a => {
       if (a.state && a.mqttServer === serverId) delete ACTION_STATES[a.state.topic];
     });
   } else {
@@ -245,7 +254,7 @@ function _renderIcon(icon) {
 }
 
 function pressAction(actionId) {
-  const action = ACTIONS[actionId];
+  const action = getMergedActions()[actionId];
   if (!action) return;
 
   // Handle builtin actions (next/prev view)
@@ -372,4 +381,39 @@ function saveKeepOpen() {
   const el = document.getElementById('actions-keep-open');
   if (!el) return;
   try { localStorage.setItem('actionsKeepOpen', el.checked ? 'true' : 'false'); } catch(e) {}
+}
+
+// ── MQTT Discovery ────────────────────────────────────────────────────────────
+
+function handleDiscoveryMessage(topic, payload) {
+  const name = topic.split('/').pop();
+  if (payload === null || payload === '' || payload === 'null') {
+    delete DISCOVERED_ACTIONS[name];
+    _refreshDiscoveredActions();
+    return;
+  }
+  let parsed;
+  try { parsed = JSON.parse(payload); } catch(e) { console.warn(`discovery: invalid JSON for "${name}"`, e); return; }
+  if (ACTIONS[name]) { console.log(`discovery: static action wins for "${name}"`); return; }
+  DISCOVERED_ACTIONS[name] = { name, ...parsed };
+  _refreshDiscoveredActions();
+}
+
+function _refreshDiscoveredActions() {
+  if (ACTIONS_MODAL_OPEN) _refreshActionButtons();
+  if (typeof renderActionsEditor === 'function') {
+    const el = document.getElementById('ae-content');
+    if (el) renderActionsEditor();
+  }
+}
+
+function initDiscovery(cfg) {
+  if (_discoveryUnsubscriber) { _discoveryUnsubscriber(); _discoveryUnsubscriber = null; }
+  if (!cfg || !cfg.enabled) return;
+  _discoveryUnsubscriber = mqttSubscribe(cfg.topic + '/+', handleDiscoveryMessage);
+  if (cfg.mqttServer) {
+    const servers = (_actionsConfig && _actionsConfig.mqtt && _actionsConfig.mqtt.servers) || [];
+    const srv = servers.find(s => s.id === cfg.mqttServer);
+    if (srv) getOrCreateMqttClient(srv.id, srv);
+  }
 }
