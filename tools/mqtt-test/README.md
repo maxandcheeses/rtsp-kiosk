@@ -142,6 +142,76 @@ This publishes an **empty retained** message to `<discovery-topic>/test-discover
 [14:32:16] Discovery entity removed (empty retained message published)
 ```
 
+### Publish Custom Discovery Entity
+
+Publish a custom MQTT discovery entity with user-specified properties instead of using the hardcoded test entity:
+
+```bash
+node tools/mqtt-test/index.js publish-discovery <name> [options]
+npm run publish-discovery -- <name> [options]
+```
+
+**Options** (in `key=value` format):
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `description` | string | `<name>` | Human-readable name for the action |
+| `icon` | string | `mdi:toggle-switch` | Material Design icon identifier |
+| `mqttServer` | string | `home` | MQTT server ID this action publishes to |
+| `publishTopic` | string | `test/discovered/<name>/set` | Topic where control commands are sent |
+| `publishPayload` | string | `ON` | Default payload to publish on control |
+| `stateTopic` | string | `test/discovered/<name>/state` | Topic where state feedback is received |
+| `stateOnValue` | string | `ON` | State value that indicates "on" |
+| `retain` | boolean | `true` | Whether to retain the discovery message |
+| `remove` | boolean | `false` | If `true`, publish empty message to remove the entity |
+
+**Examples:**
+
+Publish a bedroom light:
+```bash
+node tools/mqtt-test/index.js publish-discovery bedroom-light description="Bedroom Light" icon=mdi:lightbulb
+```
+
+Publish a hallway motion sensor with custom topics:
+```bash
+node tools/mqtt-test/index.js publish-discovery hallway-sensor description="Hallway Motion" icon=mdi:motion-sensor publishTopic=home/hallway/motion/detect stateTopic=home/hallway/motion/state stateOnValue=ACTIVE
+```
+
+Publish a device-specific outlet with specific server and payloads:
+```bash
+node tools/mqtt-test/index.js publish-discovery living-outlet description="Living Room Outlet" icon=mdi:power-socket-us mqttServer=home-wss publishPayload="{\"power\": true}" stateOnValue=ON
+```
+
+Remove a previously published custom discovery entity:
+```bash
+node tools/mqtt-test/index.js publish-discovery hallway-sensor remove=true
+```
+
+Publish non-retained (volatile) discovery entity:
+```bash
+node tools/mqtt-test/index.js publish-discovery temp-sensor description="Temp Sensor" retain=false
+```
+
+**Output example:**
+```
+[14:32:15] Connecting to ws://localhost:9001 (home)...
+[14:32:16] [pub] kiosk/discovery/actions/bedroom-light (retain: true)
+{
+  "description": "Bedroom Light",
+  "icon": "mdi:lightbulb",
+  "mqttServer": "home",
+  "publish": {
+    "topic": "test/discovered/bedroom-light/set",
+    "payload": "ON"
+  },
+  "state": {
+    "topic": "test/discovered/bedroom-light/state",
+    "onValue": "ON"
+  }
+}
+[14:32:16] Discovery entity published successfully
+```
+
 ### Show Help
 
 ```bash

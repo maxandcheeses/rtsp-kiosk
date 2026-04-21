@@ -12,7 +12,8 @@
     "simulate": "node index.js simulate",
     "ping": "node index.js ping",
     "discover": "node index.js discover",
-    "undiscover": "node index.js undiscover"
+    "undiscover": "node index.js undiscover",
+    "publish-discovery": "node index.js publish-discovery"
   },
   "dependencies": {
     "mqtt": "^5.10.1"

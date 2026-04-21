@@ -6,13 +6,14 @@
  * A CLI tool for testing MQTT functionality locally.
  *
  * Usage:
- *   node tools/mqtt-test/index.js subscribe         - Listen to all state topics
- *   node tools/mqtt-test/index.js publish <id>      - Publish one action
- *   node tools/mqtt-test/index.js simulate          - Simulate device responses
- *   node tools/mqtt-test/index.js ping              - Test broker connectivity
- *   node tools/mqtt-test/index.js discover          - Publish test discovery entity
- *   node tools/mqtt-test/index.js undiscover        - Remove test discovery entity
- *   node tools/mqtt-test/index.js --help            - Show this help
+ *   node tools/mqtt-test/index.js subscribe              - Listen to all state topics
+ *   node tools/mqtt-test/index.js publish <id>           - Publish one action
+ *   node tools/mqtt-test/index.js simulate               - Simulate device responses
+ *   node tools/mqtt-test/index.js ping                   - Test broker connectivity
+ *   node tools/mqtt-test/index.js discover               - Publish test discovery entity
+ *   node tools/mqtt-test/index.js undiscover             - Remove test discovery entity
+ *   node tools/mqtt-test/index.js publish-discovery      - Publish custom discovery entity
+ *   node tools/mqtt-test/index.js --help                 - Show this help
  */
 
 const fs = require('fs');
@@ -509,6 +510,140 @@ async function cmdUndiscover() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Command: publish-discovery
+// ─────────────────────────────────────────────────────────────────────────
+
+function parseCliOptions(args) {
+  const options = {};
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg.includes('=')) {
+      const [key, ...valueParts] = arg.split('=');
+      const value = valueParts.join('='); // In case value contains '='
+
+      // Parse boolean flags
+      if (value === 'true') {
+        options[key] = true;
+      } else if (value === 'false') {
+        options[key] = false;
+      } else {
+        options[key] = value;
+      }
+    }
+  }
+  return options;
+}
+
+async function cmdPublishDiscovery(name, argsList) {
+  if (!name) {
+    logError('Usage: node tools/mqtt-test/index.js publish-discovery <name> [options]');
+    logError('Options: description="..." icon="..." mqttServer="..." publishTopic="..." publishPayload="..." stateTopic="..." stateOnValue="..." retain=true/false remove=true/false');
+    process.exit(1);
+  }
+
+  const config = loadActionsConfig();
+
+  // Determine broker URL: prefer mqtt.servers[0].broker, fall back to mqtt.broker
+  let brokerUrl;
+  let serverId = 'unknown';
+
+  if (config.mqtt?.servers && config.mqtt.servers.length > 0) {
+    const server = config.mqtt.servers[0];
+    brokerUrl = buildBrokerUrl(server);
+    serverId = server.id || 'home';
+  } else if (config.mqtt?.broker) {
+    brokerUrl = config.mqtt.broker;
+    serverId = 'default';
+  } else {
+    logError('No MQTT broker configured in data/actions.json');
+    process.exit(1);
+  }
+
+  // Parse CLI options
+  const opts = parseCliOptions(argsList);
+
+  // Extract option values with defaults
+  const description = opts.description || name;
+  const icon = opts.icon || 'mdi:toggle-switch';
+  const mqttServer = opts.mqttServer || 'home';
+  const publishTopic = opts.publishTopic || `test/discovered/${name}/set`;
+  const publishPayload = opts.publishPayload || 'ON';
+  const stateTopic = opts.stateTopic || `test/discovered/${name}/state`;
+  const stateOnValue = opts.stateOnValue || 'ON';
+  const retain = opts.retain !== false; // Default to true unless explicitly false
+  const remove = opts.remove === true; // Only true if explicitly set to true
+
+  // Determine discovery topic
+  const discoveryTopic = config.discovery?.topic || 'kiosk/discovery/actions';
+  const fullTopic = `${discoveryTopic}/${name}`;
+
+  const tlsOpts =
+    config.mqtt?.servers?.[0]?.connectionType === 'wss'
+      ? { tls: { rejectUnauthorized: false } }
+      : {};
+
+  logSuccess(`Connecting to ${maskCredentials(brokerUrl, '', '')} (${serverId})...`);
+
+  try {
+    const client = await createMqttClient(brokerUrl, '', '', 5000, tlsOpts);
+
+    if (remove) {
+      // Publish empty retained message to remove
+      log(
+        `${colors.yellow}[pub]${colors.reset} ${colors.cyan}${fullTopic}${colors.reset} (retain: true, empty)`
+      );
+
+      client.publish(fullTopic, '', { qos: 1, retain: true }, (err) => {
+        if (err) {
+          logError(`Publish failed: ${err.message}`);
+          process.exit(1);
+        }
+        logSuccess('Discovery entity removed (empty retained message published)');
+        client.end(() => {
+          process.exit(0);
+        });
+      });
+    } else {
+      // Prepare discovery payload
+      const discoveryPayload = {
+        description,
+        icon,
+        mqttServer,
+        publish: {
+          topic: publishTopic,
+          payload: publishPayload,
+        },
+        state: {
+          topic: stateTopic,
+          onValue: stateOnValue,
+        },
+      };
+
+      const payloadStr = JSON.stringify(discoveryPayload, null, 2);
+
+      log(
+        `${colors.yellow}[pub]${colors.reset} ${colors.cyan}${fullTopic}${colors.reset} (retain: ${retain})`
+      );
+      log(`${colors.green}${payloadStr}${colors.reset}`);
+
+      client.publish(fullTopic, JSON.stringify(discoveryPayload), { qos: 1, retain }, (err) => {
+        if (err) {
+          logError(`Publish failed: ${err.message}`);
+          process.exit(1);
+        }
+        logSuccess('Discovery entity published successfully');
+        client.end(() => {
+          process.exit(0);
+        });
+      });
+    }
+  } catch (e) {
+    logError(`Failed to connect: ${e.message}`);
+    process.exit(1);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Command: ping
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -574,13 +709,14 @@ Usage:
   node tools/mqtt-test/index.js <command> [args]
 
 Commands:
-  subscribe              Listen to all action state topics and print incoming messages
-  publish <action-id>    Publish one action's configured payload and exit
-  simulate               Loop forever, simulating device state responses
-  ping                   Test broker connectivity and measure latency
-  discover               Publish a test MQTT discovery entity
-  undiscover             Remove a test MQTT discovery entity
-  --help, -h             Show this help
+  subscribe                        Listen to all action state topics and print incoming messages
+  publish <action-id>              Publish one action's configured payload and exit
+  simulate                         Loop forever, simulating device state responses
+  ping                             Test broker connectivity and measure latency
+  discover                         Publish a test MQTT discovery entity
+  undiscover                       Remove a test MQTT discovery entity
+  publish-discovery <name> [opts]  Publish custom MQTT discovery entity
+  --help, -h                       Show this help
 
 Examples:
   node tools/mqtt-test/index.js subscribe
@@ -589,6 +725,8 @@ Examples:
   node tools/mqtt-test/index.js ping
   node tools/mqtt-test/index.js discover
   node tools/mqtt-test/index.js undiscover
+  node tools/mqtt-test/index.js publish-discovery bedroom-light description="Bedroom Light" icon=mdi:lightbulb
+  node tools/mqtt-test/index.js publish-discovery hallway-switch remove=true
 
 Configuration:
   Reads from data/actions.json for broker URL and all action topics.
@@ -625,6 +763,9 @@ switch (cmd) {
     break;
   case 'undiscover':
     cmdUndiscover();
+    break;
+  case 'publish-discovery':
+    cmdPublishDiscovery(args[0], args.slice(1));
     break;
   default:
     logError(`Unknown command: ${cmd}`);
