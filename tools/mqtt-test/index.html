@@ -255,6 +255,11 @@
   <h2>Command Log <span style="opacity:0.4;font-size:10px">(messages published by kiosk)</span></h2>
   <div id="log" class="log"></div>
 
+  <h2>Publish Discovery</h2>
+  <div id="discoverySection">
+    <!-- Populated by renderDiscoverySection() -->
+  </div>
+
   <h2>External Servers</h2>
 
   <!-- Saved servers list -->
@@ -497,6 +502,9 @@
         connectServer(server);
         connectObserver(server);
       });
+
+      // 7. Render discovery section now that SERVERS is populated
+      renderDiscoverySection();
     }
 
     function getCertStatusText(server) {
@@ -946,6 +954,200 @@
     }
 
     init();
+
+    function renderDiscoverySection() {
+      const container = document.getElementById('discoverySection');
+      if (!container) return;
+
+      const serverIds = Object.keys(SERVERS);
+      const discoveryTopicBase = (CONFIG.discovery && CONFIG.discovery.topic) || 'kiosk/discovery/actions';
+
+      // Track dirty state for auto-fill fields
+      let pubTopicDirty = false;
+      let stateTopicDirty = false;
+      let mqttServerDirty = false;
+
+      // Helper to create a labeled input
+      function makeInput(id, type, placeholder, defaultValue, style) {
+        const el = document.createElement('input');
+        el.type = type || 'text';
+        el.id = 'disc-' + id;
+        if (placeholder) el.placeholder = placeholder;
+        if (defaultValue !== undefined && defaultValue !== null) el.value = defaultValue;
+        if (style) Object.assign(el.style, style);
+        return el;
+      }
+
+      function makeLabel(text, forId) {
+        const el = document.createElement('label');
+        el.textContent = text;
+        el.htmlFor = 'disc-' + forId;
+        el.style.fontSize = '11px';
+        el.style.color = 'rgba(255,255,255,0.4)';
+        el.style.flexShrink = '0';
+        el.style.marginRight = '4px';
+        return el;
+      }
+
+      function makeCell(label, input) {
+        const cell = document.createElement('div');
+        cell.style.display = 'flex';
+        cell.style.alignItems = 'center';
+        cell.style.gap = '6px';
+        cell.style.flex = '1';
+        cell.style.minWidth = '0';
+        if (label) cell.appendChild(label);
+        cell.appendChild(input);
+        return cell;
+      }
+
+      function makeRow(cells) {
+        const row = document.createElement('div');
+        row.className = 'form-group';
+        row.style.gap = '16px';
+        cells.forEach(c => row.appendChild(c));
+        return row;
+      }
+
+      // Server selector
+      const serverSelect = document.createElement('select');
+      serverSelect.id = 'disc-server';
+      serverIds.forEach(id => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = id;
+        serverSelect.appendChild(opt);
+      });
+      const serverRow = makeRow([makeCell(makeLabel('Server', 'server'), serverSelect)]);
+
+      // Name + Description
+      const nameInput = makeInput('name', 'text', 'action-name', '', { flex: '1', minWidth: '100px' });
+      const descInput = makeInput('desc', 'text', 'My Action', '', { flex: '1', minWidth: '100px' });
+      const nameDescRow = makeRow([
+        makeCell(makeLabel('Name', 'name'), nameInput),
+        makeCell(makeLabel('Description', 'desc'), descInput)
+      ]);
+
+      // Icon + mqttServer
+      const iconInput = makeInput('icon', 'text', 'mdi:toggle-switch', 'mdi:toggle-switch', { flex: '1', minWidth: '120px' });
+      const mqttServerInput = makeInput('mqttServer', 'text', 'home', serverIds[0] || '', { flex: '1', minWidth: '100px' });
+      const iconMqttRow = makeRow([
+        makeCell(makeLabel('Icon', 'icon'), iconInput),
+        makeCell(makeLabel('mqttServer', 'mqttServer'), mqttServerInput)
+      ]);
+
+      // Publish topic + payload
+      const pubTopicInput = makeInput('pubTopic', 'text', 'home/device/set', '', { flex: '1', minWidth: '160px' });
+      const pubPayloadInput = makeInput('pubPayload', 'text', 'ON', 'ON', { flex: '1', minWidth: '80px' });
+      const pubRow = makeRow([
+        makeCell(makeLabel('Publish topic', 'pubTopic'), pubTopicInput),
+        makeCell(makeLabel('Payload', 'pubPayload'), pubPayloadInput)
+      ]);
+
+      // State topic + on-value
+      const stateTopicInput = makeInput('stateTopic', 'text', 'home/device/state', '', { flex: '1', minWidth: '160px' });
+      const stateOnInput = makeInput('stateOn', 'text', 'ON', 'ON', { flex: '1', minWidth: '80px' });
+      const stateRow = makeRow([
+        makeCell(makeLabel('State topic', 'stateTopic'), stateTopicInput),
+        makeCell(makeLabel('On-value', 'stateOn'), stateOnInput)
+      ]);
+
+      // Retain checkbox + buttons
+      const retainLabel = document.createElement('label');
+      retainLabel.style.display = 'flex';
+      retainLabel.style.alignItems = 'center';
+      retainLabel.style.gap = '6px';
+      retainLabel.style.fontSize = '11px';
+      retainLabel.style.color = 'rgba(255,255,255,0.5)';
+      retainLabel.style.flexShrink = '0';
+      const retainCheckbox = document.createElement('input');
+      retainCheckbox.type = 'checkbox';
+      retainCheckbox.id = 'disc-retain';
+      retainCheckbox.checked = true;
+      retainLabel.appendChild(retainCheckbox);
+      retainLabel.appendChild(document.createTextNode('Retain'));
+
+      const publishBtn = document.createElement('button');
+      publishBtn.className = 'switch-btn on';
+      publishBtn.style.padding = '6px 16px';
+      publishBtn.style.fontSize = '11px';
+      publishBtn.textContent = 'Publish Discovery';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'send';
+      removeBtn.textContent = 'Remove';
+
+      const btnRow = document.createElement('div');
+      btnRow.className = 'form-group';
+      btnRow.style.gap = '10px';
+      btnRow.appendChild(retainLabel);
+      btnRow.appendChild(publishBtn);
+      btnRow.appendChild(removeBtn);
+
+      // Auto-fill logic
+      nameInput.addEventListener('input', () => {
+        const name = nameInput.value.trim();
+        if (!pubTopicDirty) pubTopicInput.value = name ? 'test/discovered/' + name + '/set' : '';
+        if (!stateTopicDirty) stateTopicInput.value = name ? 'test/discovered/' + name + '/state' : '';
+      });
+
+      pubTopicInput.addEventListener('input', () => { pubTopicDirty = true; });
+      stateTopicInput.addEventListener('input', () => { stateTopicDirty = true; });
+      mqttServerInput.addEventListener('input', () => { mqttServerDirty = true; });
+
+      serverSelect.addEventListener('change', () => {
+        if (!mqttServerDirty) mqttServerInput.value = serverSelect.value;
+      });
+
+      // Publish Discovery handler
+      publishBtn.addEventListener('click', () => {
+        const serverId = serverSelect.value;
+        const server = SERVERS[serverId];
+        if (!server || !server.client || !server.client.connected) {
+          alert('Not connected to ' + serverId);
+          return;
+        }
+        const name = nameInput.value.trim();
+        if (!name) { alert('Name is required'); return; }
+
+        const payload = {
+          name: name,
+          description: descInput.value.trim() || name,
+          icon: iconInput.value.trim() || 'mdi:toggle-switch',
+          publish: { topic: pubTopicInput.value.trim(), payload: pubPayloadInput.value },
+          state: { topic: stateTopicInput.value.trim(), onValue: stateOnInput.value },
+          mqttServer: mqttServerInput.value.trim() || serverId
+        };
+        const payloadStr = JSON.stringify(payload);
+        const fullTopic = discoveryTopicBase + '/' + name;
+        server.client.publish(fullTopic, payloadStr, { retain: retainCheckbox.checked, qos: 1 });
+        appendLog(serverId, fullTopic, payloadStr, 'out');
+      });
+
+      // Remove handler
+      removeBtn.addEventListener('click', () => {
+        const serverId = serverSelect.value;
+        const server = SERVERS[serverId];
+        if (!server || !server.client || !server.client.connected) {
+          alert('Not connected to ' + serverId);
+          return;
+        }
+        const name = nameInput.value.trim();
+        if (!name) { alert('Name is required'); return; }
+
+        const fullTopic = discoveryTopicBase + '/' + name;
+        server.client.publish(fullTopic, '', { retain: true, qos: 1 });
+        appendLog(serverId, fullTopic, '(removed)', 'out');
+      });
+
+      container.innerHTML = '';
+      container.appendChild(serverRow);
+      container.appendChild(nameDescRow);
+      container.appendChild(iconMqttRow);
+      container.appendChild(pubRow);
+      container.appendChild(stateRow);
+      container.appendChild(btnRow);
+    }
 
     // External Server functionality with localStorage profiles
     const EXTERNAL_CLIENTS = {}; // profileId → { client, connected }
