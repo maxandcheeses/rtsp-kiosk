@@ -4,8 +4,8 @@
 
 const _LS_DISCOVERED_KEY = 'rtsp-kiosk:discovered-actions';
 
-let ACTIONS       = {};  // id → action object
-let DISCOVERED_ACTIONS = {};  // id → action object (from MQTT discovery, runtime only)
+let ACTIONS       = {};  // id → action object (static + discovered merged; static wins)
+let _STATIC_ACTIONS = new Set();  // names that came from actions.json or builtins
 let ACTION_COLLECTIONS = {};  // id → collection object
 let ACTION_STATES = {};  // state topic → last payload string
 let ACTIONS_MODAL_OPEN = false;
@@ -15,9 +15,6 @@ let _connectedServerIds = new Set();
 let _actionsConfig = null;  // full parsed config from /actions.json
 let _discoveryUnsubscriber = null;  // unsubscribe fn for MQTT discovery topic
 
-function getMergedActions() {
-  return { ...DISCOVERED_ACTIONS, ...ACTIONS };
-}
 let _focusStreamTimer    = null;
 let _focusReopenSlot    = null; // slot to reopen actions modal on focus close
 
@@ -37,33 +34,32 @@ async function loadActionsConfig() {
   _actionUnsubscribers.forEach(fn => fn());
   _actionUnsubscribers = [];
   ACTIONS            = {};
-  DISCOVERED_ACTIONS = {};
+  _STATIC_ACTIONS    = new Set();
   ACTION_COLLECTIONS = {};
   // Keep ACTION_STATES — values are still valid if topics haven't changed
 
-  // Restore persisted discovered actions (static actions will override below)
+  // Restore persisted discovered actions into ACTIONS first (static will override below)
   try {
     const stored = JSON.parse(localStorage.getItem(_LS_DISCOVERED_KEY) || '{}');
-    DISCOVERED_ACTIONS = stored;
-  } catch(e) { DISCOVERED_ACTIONS = {}; }
+    Object.assign(ACTIONS, stored);
+  } catch(e) {}
 
   try {
     const res = await fetch('/actions.json');
-    if (!res.ok) { console.log('Actions: no actions.json found, skipping'); Object.assign(ACTIONS, BUILTIN_ACTIONS); return; }
+    if (!res.ok) { console.log('Actions: no actions.json found, skipping'); Object.assign(ACTIONS, BUILTIN_ACTIONS); _STATIC_ACTIONS = new Set(Object.keys(BUILTIN_ACTIONS)); return; }
     const cfg = await res.json();
 
     _actionsConfig = cfg;
 
-    (cfg.actions      || []).forEach(a => { ACTIONS[a.name] = a; });
+    (cfg.actions      || []).forEach(a => { ACTIONS[a.name] = a; _STATIC_ACTIONS.add(a.name); });
     (cfg.collections  || []).forEach(g => { ACTION_COLLECTIONS[g.id] = g; });
 
     // Merge builtin actions (always available, not stored in config)
     Object.assign(ACTIONS, BUILTIN_ACTIONS);
+    Object.keys(BUILTIN_ACTIONS).forEach(k => _STATIC_ACTIONS.add(k));
 
-    // Evict any persisted discovered actions that conflict with static actions
-    Object.keys(DISCOVERED_ACTIONS).forEach(name => {
-      if (ACTIONS[name]) delete DISCOVERED_ACTIONS[name];
-    });
+    // Re-save localStorage to evict any persisted discovered entries now superseded by static actions
+    _saveDiscovered();
 
     // Legacy single-broker support: if mqtt.broker is set directly (old schema)
     if (cfg.mqtt && cfg.mqtt.broker && !cfg.mqtt.servers) {
@@ -117,7 +113,7 @@ function _connectServersForCollection(collectionId) {
 
   const needed = new Set();
   (collection.actions || []).forEach(actionId => {
-    const action = getMergedActions()[actionId];
+    const action = ACTIONS[actionId];
     if (action && action.type === 'mqtt' && action.mqttServer) needed.add(action.mqttServer);
   });
 
@@ -147,13 +143,13 @@ function openActionsModal(slotIndex) {
   const slotCollections = view && view.slotCollections;
   const collectionId = slotCollections && slotCollections[slotIndex];
   if (!collectionId) return;
-  if (!ACTION_COLLECTIONS[collectionId] && !getMergedActions()[collectionId]) {
+  if (!ACTION_COLLECTIONS[collectionId] && !ACTIONS[collectionId]) {
     console.warn(`Actions: "${collectionId}" not found as collection or action`);
     return;
   }
 
   // Direct action (not a collection) — execute immediately, no modal
-  if (!ACTION_COLLECTIONS[collectionId] && getMergedActions()[collectionId]) {
+  if (!ACTION_COLLECTIONS[collectionId] && ACTIONS[collectionId]) {
     _actionsSlotIndex = slotIndex;
     pressAction(collectionId);
     _actionsSlotIndex = null;
@@ -191,7 +187,7 @@ function closeActionsModal() {
 function _renderActionButtons(collectionId) {
   // Support direct action assignment (slotCollections can reference an action id directly)
   let collection = ACTION_COLLECTIONS[collectionId];
-  if (!collection && getMergedActions()[collectionId]) {
+  if (!collection && ACTIONS[collectionId]) {
     collection = { id: collectionId, name: '', actions: [collectionId] };
   }
   if (!collection) return;
@@ -199,11 +195,11 @@ function _renderActionButtons(collectionId) {
   // Connect/disconnect named MQTT servers as needed for this collection
   _connectServersForCollection(collectionId);
 
-  const _typeOrder = id => { const a = getMergedActions()[id]; if (!a) return 2; if (a.type === 'builtin') return 0; if (a.type === 'focus-stream') return 1; return 2; };
+  const _typeOrder = id => { const a = ACTIONS[id]; if (!a) return 2; if (a.type === 'builtin') return 0; if (a.type === 'focus-stream') return 1; return 2; };
   const actionIds = (collection.actions || []).slice().sort((a, b) => _typeOrder(a) - _typeOrder(b)).slice(0, 6);
   const statusEl = document.getElementById('actions-mqtt-status');
   if (statusEl) {
-    const hasMqtt = actionIds.some(id => getMergedActions()[id] && getMergedActions()[id].publish);
+    const hasMqtt = actionIds.some(id => ACTIONS[id] && ACTIONS[id].publish);
     statusEl.style.display = hasMqtt ? '' : 'none';
   }
   if (collection.actions && collection.actions.length > 6) {
@@ -215,7 +211,7 @@ function _renderActionButtons(collectionId) {
   const grid = document.getElementById('actions-grid');
   grid.setAttribute('data-count', actionIds.length);
   grid.innerHTML = actionIds.map(id => {
-    const action = getMergedActions()[id];
+    const action = ACTIONS[id];
     if (!action) { console.warn(`Actions: action "${id}" not found`); return ''; }
 
     // Determine if the action's MQTT server is present and connected
@@ -249,7 +245,7 @@ function _renderActionButtons(collectionId) {
 
 function _onMqttDisconnect(serverId) {
   if (serverId) {
-    Object.values(getMergedActions()).forEach(a => {
+    Object.values(ACTIONS).forEach(a => {
       if (a.state && a.mqttServer === serverId) delete ACTION_STATES[a.state.topic];
     });
   } else {
@@ -275,7 +271,7 @@ function _renderIcon(icon) {
 }
 
 function pressAction(actionId) {
-  const action = getMergedActions()[actionId];
+  const action = ACTIONS[actionId];
   if (!action) return;
 
   // Handle builtin actions (next/prev view)
@@ -407,21 +403,25 @@ function saveKeepOpen() {
 // ── MQTT Discovery ────────────────────────────────────────────────────────────
 
 function _saveDiscovered() {
-  try { localStorage.setItem(_LS_DISCOVERED_KEY, JSON.stringify(DISCOVERED_ACTIONS)); } catch(e) {}
+  // Persist only the discovered subset (not statics, not builtins)
+  const discovered = Object.fromEntries(
+    Object.entries(ACTIONS).filter(([k]) => !_STATIC_ACTIONS.has(k) && !BUILTIN_ACTIONS[k])
+  );
+  try { localStorage.setItem(_LS_DISCOVERED_KEY, JSON.stringify(discovered)); } catch(e) {}
   _refreshDiscoveredActions();
 }
 
 function handleDiscoveryMessage(topic, payload) {
   const name = topic.split('/').pop();
   if (payload === null || payload === '' || payload === 'null') {
-    delete DISCOVERED_ACTIONS[name];
+    delete ACTIONS[name];
     _saveDiscovered();
     return;
   }
   let parsed;
   try { parsed = JSON.parse(payload); } catch(e) { console.warn(`discovery: invalid JSON for "${name}"`, e); return; }
-  if (ACTIONS[name]) { console.log(`discovery: static action wins for "${name}"`); return; }
-  DISCOVERED_ACTIONS[name] = { name, ...parsed };
+  if (_STATIC_ACTIONS.has(name)) { console.log(`discovery: static action wins for "${name}"`); return; }
+  ACTIONS[name] = { name, ...parsed };
   _saveDiscovered();
 }
 

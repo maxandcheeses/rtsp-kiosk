@@ -776,9 +776,7 @@ function _buildAeActionsTab() {
   });
 
   // Append discovered action rows into the main table (read-only, no edit/delete controls)
-  const discoveredEntries = (typeof DISCOVERED_ACTIONS !== 'undefined')
-    ? Object.values(DISCOVERED_ACTIONS).filter(a => !ACTIONS[a.name])
-    : [];
+  const discoveredEntries = Object.values(ACTIONS).filter(a => !_STATIC_ACTIONS.has(a.name) && !BUILTIN_ACTIONS[a.name]);
   const discoveredRows = discoveredEntries.map(action => {
     const iconHtml = action.icon ? _renderIcon(action.icon) : '';
     const publishSummary = action.type === 'focus-stream'
