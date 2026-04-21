@@ -491,6 +491,101 @@ function parseHaPayload(component, haPayload, key, discoveryCfg) {
       }
       return action;
     }
+    case 'binary_sensor': {
+      const bsDcIcon = {
+        motion: 'mdi:motion-sensor', door: 'mdi:door', window: 'mdi:window-closed',
+        smoke: 'mdi:smoke-detector', moisture: 'mdi:water', connectivity: 'mdi:network',
+      };
+      const action = {
+        ...base,
+        type: 'mqtt',
+        icon: base.icon || bsDcIcon[haPayload.device_class] || 'mdi:radiobox-marked',
+        publish: null,
+      };
+      if (haPayload.state_topic) {
+        action.state = { topic: haPayload.state_topic, onValue: haPayload.payload_on ?? 'ON' };
+      }
+      return action;
+    }
+    case 'sensor': {
+      const sDcIcon = {
+        temperature: 'mdi:thermometer', humidity: 'mdi:water-percent', battery: 'mdi:battery',
+        power: 'mdi:flash', energy: 'mdi:lightning-bolt',
+      };
+      const action = {
+        ...base,
+        type: 'mqtt',
+        icon: base.icon || sDcIcon[haPayload.device_class] || 'mdi:gauge',
+        publish: null,
+      };
+      if (haPayload.state_topic) {
+        action.state = {
+          topic: haPayload.state_topic,
+          onValue: null,
+          unit: haPayload.unit_of_measurement || '',
+        };
+      }
+      return action;
+    }
+    case 'cover': {
+      const coverIcon = haPayload.device_class === 'garage' ? 'mdi:garage' : 'mdi:window-shutter';
+      const action = {
+        ...base,
+        type: 'toggle',
+        icon: base.icon || coverIcon,
+        publish: {
+          topic: haPayload.command_topic,
+          payloadOn: haPayload.payload_open ?? 'OPEN',
+          payloadOff: haPayload.payload_close ?? 'CLOSE',
+        },
+      };
+      if (haPayload.state_topic) {
+        action.state = { topic: haPayload.state_topic, onValue: haPayload.state_open ?? 'open' };
+      }
+      return action;
+    }
+    case 'fan': {
+      const action = {
+        ...base,
+        type: 'toggle',
+        icon: base.icon || 'mdi:fan',
+        publish: {
+          topic: haPayload.command_topic,
+          payloadOn: haPayload.payload_on ?? 'ON',
+          payloadOff: haPayload.payload_off ?? 'OFF',
+        },
+      };
+      if (haPayload.state_topic) {
+        action.state = { topic: haPayload.state_topic, onValue: haPayload.state_on ?? 'ON' };
+      }
+      return action;
+    }
+    case 'scene':
+      return {
+        ...base,
+        type: 'mqtt',
+        icon: base.icon || 'mdi:palette',
+        publish: {
+          topic: haPayload.command_topic || haPayload.topic,
+          payload: haPayload.payload_on ?? 'ON',
+        },
+      };
+    case 'select': {
+      const selectOpts = haPayload.options || [];
+      const action = {
+        ...base,
+        type: 'mqtt',
+        icon: base.icon || 'mdi:format-list-bulleted',
+        publish: {
+          topic: haPayload.command_topic,
+          payload: selectOpts[0] ?? '',
+        },
+      };
+      if (haPayload.state_topic) {
+        action.state = { topic: haPayload.state_topic, onValue: null };
+      }
+      return action;
+    }
     default:
       console.warn(`[discovery] unsupported component type: ${resolvedComponent}`);
       return null;
