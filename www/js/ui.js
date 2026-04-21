@@ -38,8 +38,10 @@ document.addEventListener('fullscreenchange', () => {
 //   Escape — close any open modal
 // ═══════════════════════════════════════════════════════
 let _activeSettingsTab = 'general';
+let _logTabInterval = null;
 
 function closeAllModals() {
+  if (_logTabInterval) { clearInterval(_logTabInterval); _logTabInterval = null; }
   document.getElementById('settings-modal').classList.remove('open');
   // Close cam stream test modal if open
   if (typeof closeCamStreamTest === 'function') closeCamStreamTest();
@@ -67,6 +69,11 @@ function activateSettingsTab(tab) {
     renderActionsTab();
   }
   if (tab === 'streams') renderStreamsTab();
+  if (_logTabInterval) { clearInterval(_logTabInterval); _logTabInterval = null; }
+  if (tab === 'log') {
+    renderLogTab();
+    _logTabInterval = setInterval(renderLogTab, 2000);
+  }
   const footerDescriptions = {
     general:     'Keyboard shortcuts and global preferences.',
     cameras:     'Manage IP cameras and RTSP stream sources.',
@@ -74,6 +81,7 @@ function activateSettingsTab(tab) {
     actions:     'Automate kiosk behavior using MQTT events.',
     performance: 'Tune WebRTC streaming quality and behavior.',
     streams:     'Monitor live stream health and connection status.',
+    log:         'Diagnostic event log.',
   };
   setSettingsFooter(footerDescriptions[tab] || '');
 }
@@ -307,5 +315,56 @@ document.addEventListener('mousemove', () => {
   cursorTimer = setTimeout(() => { document.body.style.cursor = 'none'; }, 3000);
   showSettingsBtn();
 });
+
+// ─── Log tab ────────────────────────────────────────────
+function activateLogSubtab(subtab) {
+  document.querySelectorAll('.log-subtab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.subtab === subtab)
+  );
+  document.querySelectorAll('.log-subtab-panel').forEach(p => p.style.display = 'none');
+  const panel = document.getElementById('log-subtab-' + subtab);
+  if (panel) panel.style.display = 'flex';
+}
+
+function renderLogTab() {
+  const entries = window.mqttGetLog ? window.mqttGetLog() : [];
+  const container = document.getElementById('mqtt-log-entries');
+  if (!container) return;
+  if (!entries.length) {
+    container.innerHTML = '<div style="color:rgba(255,255,255,0.25);font-size:11px;padding:8px 0">No events yet.</div>';
+    return;
+  }
+  container.innerHTML = entries.map(e => {
+    const ts = e.ts instanceof Date ? e.ts : new Date(e.ts);
+    const hh = String(ts.getHours()).padStart(2,'0');
+    const mm = String(ts.getMinutes()).padStart(2,'0');
+    const ss = String(ts.getSeconds()).padStart(2,'0');
+    const ms = String(ts.getMilliseconds()).padStart(3,'0');
+    const tsStr = `${hh}:${mm}:${ss}.${ms}`;
+    const dir = e.dir || '';
+    const broker = e.brokerId ? `[${e.brokerId}]` : '';
+    const rawPayload = e.payload != null ? String(e.payload) : '';
+    const truncated = rawPayload.length > 120 ? rawPayload.slice(0, 120) + '…' : rawPayload;
+    const payloadHtml = rawPayload
+      ? `<span class="mqtt-log-payload" onclick="this.classList.toggle('expanded');this.textContent=this.classList.contains('expanded')?${JSON.stringify(rawPayload)}:${JSON.stringify(truncated)}">${_escHtml(truncated)}</span>`
+      : '';
+    return `<div class="mqtt-log-entry">
+      <span class="mqtt-log-ts">${tsStr}</span>
+      <span class="mqtt-log-badge mqtt-log-badge-${_escHtml(dir)}">${_escHtml(dir)}</span>
+      <span class="mqtt-log-broker">${_escHtml(broker)}</span>
+      ${e.topic ? `<span class="mqtt-log-topic">${_escHtml(e.topic)}</span>` : ''}
+      ${payloadHtml}
+    </div>`;
+  }).join('');
+}
+
+function _escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function clearMqttLog() {
+  if (window.mqttGetLog) { const log = window.mqttGetLog(); log.splice(0, log.length); }
+  renderLogTab();
+}
 
 // Note: markInteracted listeners are registered in boot.js after debug.js loads

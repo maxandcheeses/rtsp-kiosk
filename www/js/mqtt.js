@@ -1,3 +1,15 @@
+// ── MQTT event log ──────────────────────────────────────
+const _mqttLog = [];
+const _MQTT_LOG_MAX = 500;
+
+function _logMqtt(entry) {
+  entry.ts = new Date();
+  _mqttLog.unshift(entry);
+  if (_mqttLog.length > _MQTT_LOG_MAX) _mqttLog.length = _MQTT_LOG_MAX;
+}
+
+window.mqttGetLog = () => _mqttLog;
+
 // ═══════════════════════════════════════════════════════
 // MQTT CLIENT
 // ═══════════════════════════════════════════════════════
@@ -31,6 +43,7 @@ function getOrCreateMqttClient(serverId, serverCfg) {
   client._reconnDelay = 1000;
   client._reconnTimer = null;
   client.on('connect', () => {
+    _logMqtt({ dir: 'CONNECT', brokerId: serverId });
     client._reconnDelay = 1000;
     if (client._reconnTimer) { clearTimeout(client._reconnTimer); client._reconnTimer = null; }
     console.log(`MQTT: named client "${serverId}" connected`);
@@ -38,12 +51,14 @@ function getOrCreateMqttClient(serverId, serverCfg) {
     _updateMqttStatusIndicator();
   });
   client.on('message', (topic, payload) => {
+    _logMqtt({ dir: 'IN', brokerId: serverId, topic, payload: payload.toString() });
     _extraSubscriptions.forEach(sub => {
       if (sub.topic === topic) sub.callback(topic, payload.toString());
     });
   });
-  client.on('error', (err) => { console.log(`MQTT: named client "${serverId}" error:`, err); _updateMqttStatusIndicator(); });
+  client.on('error', (err) => { _logMqtt({ dir: 'ERROR', brokerId: serverId, payload: err.message }); console.log(`MQTT: named client "${serverId}" error:`, err); _updateMqttStatusIndicator(); });
   client.on('close', () => {
+    _logMqtt({ dir: 'CLOSE', brokerId: serverId });
     console.log(`MQTT: named client "${serverId}" closed`);
     _updateMqttStatusIndicator();
     if (typeof _onMqttDisconnect === 'function') _onMqttDisconnect(serverId);
@@ -52,6 +67,7 @@ function getOrCreateMqttClient(serverId, serverCfg) {
       client._reconnTimer = null;
       if (_mqttClients.has(serverId)) {
         console.log(`MQTT: named client "${serverId}" reconnecting (backoff ${client._reconnDelay}ms)`);
+        _logMqtt({ dir: 'RECONNECT', brokerId: serverId });
         client.reconnect();
         _updateMqttStatusIndicator();
       }
@@ -89,6 +105,7 @@ function _mqttScheduleReconnect() {
     _mqttReconnTimer = null;
     if (_mqttClient) {
       console.log(`MQTT: reconnecting (backoff ${_mqttReconnDelay}ms)`);
+      _logMqtt({ dir: 'RECONNECT', brokerId: 'legacy' });
       _mqttClient.reconnect();
       _mqttConnecting = true;
       _updateMqttStatusIndicator();
@@ -133,12 +150,14 @@ function startMQTT() {
   _updateMqttStatusIndicator();
 
   _mqttClient.on('connect', () => {
+    _logMqtt({ dir: 'CONNECT', brokerId: 'legacy' });
     _mqttConnecting = false;
     _mqttConnected = true;
     _mqttReconnDelay = 1000;
     if (_mqttReconnTimer) { clearTimeout(_mqttReconnTimer); _mqttReconnTimer = null; }
     const queued = _mqttPublishQueue.splice(0);
     queued.forEach(q => _mqttClient.publish(q.topic, q.payload, { qos: 1 }));
+    queued.forEach(q => _logMqtt({ dir: 'OUT', brokerId: 'legacy', topic: q.topic, payload: q.payload }));
     if (queued.length) console.log(`MQTT: flushed ${queued.length} queued publish(es)`);
     _updateMqttStatusIndicator();
     console.log('MQTT: connected');
@@ -148,11 +167,13 @@ function startMQTT() {
   });
 
   _mqttClient.on('error', err => {
+    _logMqtt({ dir: 'ERROR', brokerId: 'legacy', payload: err.message });
     console.error('MQTT error:', err);
     _mqttConnected = false;
     _updateMqttStatusIndicator();
   });
   _mqttClient.on('close', () => {
+    _logMqtt({ dir: 'CLOSE', brokerId: 'legacy' });
     _mqttConnected = false;
     _updateMqttStatusIndicator();
     if (typeof _onMqttDisconnect === 'function') _onMqttDisconnect();
@@ -160,6 +181,7 @@ function startMQTT() {
   });
 
   _mqttClient.on('message', (topic, payload) => {
+    _logMqtt({ dir: 'IN', brokerId: 'legacy', topic, payload: payload.toString() });
     let data;
     try { data = JSON.parse(payload.toString()); }
     catch(e) {
@@ -241,29 +263,34 @@ function mqttConnect(broker, username, password) {
   _updateMqttStatusIndicator();
 
   _mqttClient.on('connect', () => {
+    _logMqtt({ dir: 'CONNECT', brokerId: 'actions' });
     _mqttConnecting = false;
     _mqttConnected = true;
     _mqttReconnDelay = 1000;
     if (_mqttReconnTimer) { clearTimeout(_mqttReconnTimer); _mqttReconnTimer = null; }
     const queued = _mqttPublishQueue.splice(0);
     queued.forEach(q => _mqttClient.publish(q.topic, q.payload, { qos: 1 }));
+    queued.forEach(q => _logMqtt({ dir: 'OUT', brokerId: 'actions', topic: q.topic, payload: q.payload }));
     if (queued.length) console.log(`MQTT: flushed ${queued.length} queued publish(es)`);
     _updateMqttStatusIndicator();
     console.log('MQTT (actions): connected');
     _extraSubscriptions.forEach(sub => _mqttClient.subscribe(sub.topic, { qos: 1 }));
   });
   _mqttClient.on('error', err => {
+    _logMqtt({ dir: 'ERROR', brokerId: 'actions', payload: err.message });
     console.error('MQTT (actions) error:', err);
     _mqttConnected = false;
     _updateMqttStatusIndicator();
   });
   _mqttClient.on('close', () => {
+    _logMqtt({ dir: 'CLOSE', brokerId: 'actions' });
     _mqttConnected = false;
     _updateMqttStatusIndicator();
     if (typeof _onMqttDisconnect === 'function') _onMqttDisconnect();
     _mqttScheduleReconnect();
   });
   _mqttClient.on('message', (topic, payload) => {
+    _logMqtt({ dir: 'IN', brokerId: 'actions', topic, payload: payload.toString() });
     _extraSubscriptions.forEach(sub => {
       if (sub.topic === topic) sub.callback(topic, payload.toString());
     });
@@ -300,6 +327,7 @@ function mqttPublish(topic, payload) {
     return false;
   }
   _mqttClient.publish(topic, payload, { qos: 1 });
+  _logMqtt({ dir: 'OUT', brokerId: 'legacy', topic, payload });
   return true;
 }
 
@@ -309,6 +337,7 @@ function mqttPublishNamed(serverId, topic, payload) {
   const client = _mqttClients.get(serverId);
   if (!client || !client.connected) return false;
   client.publish(topic, payload, { qos: 1 });
+  _logMqtt({ dir: 'OUT', brokerId: serverId, topic, payload });
   return true;
 }
 
@@ -366,16 +395,16 @@ function _updateMqttStatusIndicator() {
   const el = document.getElementById('actions-mqtt-status');
   if (!el) return;
 
-  // Determine which MQTT server IDs are needed by the current modal's group
+  // Determine which MQTT server IDs are needed by the current modal's collection
   let neededServerIds = new Set();
   if (typeof _actionsSlotIndex !== 'undefined' && _actionsSlotIndex !== null &&
       typeof getView === 'function' && typeof activeView !== 'undefined') {
     const view = getView(activeView);
-    const slotGroups = view && view.slotGroups;
-    const groupId = slotGroups && slotGroups[_actionsSlotIndex];
-    const group = groupId && typeof ACTION_GROUPS !== 'undefined' && ACTION_GROUPS[groupId];
-    if (group) {
-      (group.actions || []).forEach(actionId => {
+    const slotCollections = view && view.slotCollections;
+    const collectionId = slotCollections && slotCollections[_actionsSlotIndex];
+    const collection = collectionId && typeof ACTION_COLLECTIONS !== 'undefined' && ACTION_COLLECTIONS[collectionId];
+    if (collection) {
+      (collection.actions || []).forEach(actionId => {
         const action = typeof ACTIONS !== 'undefined' && ACTIONS[actionId];
         if (action && action.type === 'mqtt' && action.mqttServer) {
           neededServerIds.add(action.mqttServer);

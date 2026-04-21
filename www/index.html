@@ -818,6 +818,26 @@
     .settings-tab-btn { width:100%; text-align:left; padding:11px 12px; min-height:44px; background:transparent; border:1px solid transparent; border-radius:4px; color:rgba(255,255,255,0.5); font-family:'Courier New',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; }
     .settings-tab-btn:hover { color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.04); }
     .settings-tab-btn.active { color:rgba(255,255,255,0.9); background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.2); }
+    /* ─── Log tab ─── */
+    #stab-log { overflow:hidden; display:flex; flex-direction:column; }
+    .log-subtab-nav { display:flex; gap:6px; margin-bottom:12px; flex-shrink:0; }
+    .log-subtab-btn { padding:5px 14px; border:1px solid rgba(255,255,255,0.15); border-radius:12px; background:transparent; color:rgba(255,255,255,0.45); font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
+    .log-subtab-btn:hover { color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.04); }
+    .log-subtab-btn.active { border-color:rgba(255,255,255,0.35); color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.07); }
+    .mqtt-log-entry { display:flex; gap:8px; align-items:baseline; padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.04); flex-wrap:nowrap; }
+    .mqtt-log-ts { color:rgba(255,255,255,0.3); flex-shrink:0; font-size:10px; }
+    .mqtt-log-badge { flex-shrink:0; font-size:9px; font-weight:700; letter-spacing:0.08em; padding:1px 5px; border-radius:3px; text-transform:uppercase; }
+    .mqtt-log-badge-IN         { background:rgba(59,130,246,0.25); color:rgba(147,197,253,0.9); }
+    .mqtt-log-badge-OUT        { background:rgba(34,197,94,0.2);   color:rgba(134,239,172,0.9); }
+    .mqtt-log-badge-CONNECT    { background:rgba(20,184,166,0.2);  color:rgba(94,234,212,0.9); }
+    .mqtt-log-badge-DISCONNECT { background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.4); }
+    .mqtt-log-badge-CLOSE      { background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.4); }
+    .mqtt-log-badge-RECONNECT  { background:rgba(249,115,22,0.2);  color:rgba(253,186,116,0.9); }
+    .mqtt-log-badge-ERROR      { background:rgba(239,68,68,0.2);   color:rgba(252,165,165,0.9); }
+    .mqtt-log-broker  { color:rgba(255,255,255,0.35); flex-shrink:0; font-size:10px; }
+    .mqtt-log-topic   { color:rgba(255,255,255,0.55); flex-shrink:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mqtt-log-payload { color:rgba(255,255,255,0.6); flex-shrink:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+    .mqtt-log-payload.expanded { white-space:pre-wrap; word-break:break-all; overflow:visible; }
     .settings-content { flex:1; display:flex; flex-direction:column; overflow:hidden; position:relative; min-height:0; }
     .settings-tab-panel { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; padding:32px 68px 32px 40px; }
 
@@ -939,6 +959,7 @@
       <button class="settings-tab-btn" data-tab="actions" onclick="activateSettingsTab('actions')">Actions</button>
       <button class="settings-tab-btn" data-tab="performance" onclick="activateSettingsTab('performance')">Performance</button>
       <button class="settings-tab-btn" data-tab="streams" onclick="activateSettingsTab('streams')">Streams</button>
+      <button class="settings-tab-btn" data-tab="log" onclick="activateSettingsTab('log')">Log</button>
     </div>
     <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
     <div class="settings-content">
@@ -1164,6 +1185,20 @@
             </thead>
             <tbody id="streams-tbody"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Log tab -->
+      <div id="stab-log" class="settings-tab-panel" style="display:none">
+        <div class="log-subtab-nav">
+          <button class="log-subtab-btn active" data-subtab="mqtt" onclick="activateLogSubtab('mqtt')">MQTT</button>
+        </div>
+        <div id="log-subtab-mqtt" class="log-subtab-panel" style="display:flex;flex-direction:column;flex:1;min-height:0">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-shrink:0">
+            <span style="font-size:11px;color:rgba(255,255,255,0.4);font-family:'Courier New',monospace;letter-spacing:0.08em;text-transform:uppercase">MQTT Events</span>
+            <button class="perf-reset" style="margin-left:auto;padding:0 14px;min-height:32px;font-size:10px" onclick="clearMqttLog()">Clear</button>
+          </div>
+          <div id="mqtt-log-entries" style="flex:1;overflow-y:auto;min-height:0;font-family:'Courier New',monospace;font-size:11px;line-height:1.6;"></div>
         </div>
       </div>
 
