@@ -1291,14 +1291,8 @@ function _buildAeCollectionDrawerForm(collection, isNew) {
   const description = collection.description || '';
   const slots   = (collection.actions || []).slice(0, 6);
   const numSlots = Math.min(slots.length + 1, 6); // show one extra empty slot unless at max
-  const allActions = (AE_LOCAL && AE_LOCAL.actions) || [];
-
   const typeOrder = a => a.type === 'builtin' ? 0 : a.type === 'focus-stream' ? 1 : 2;
-  const builtins = typeof BUILTIN_ACTIONS !== 'undefined' ? Object.values(BUILTIN_ACTIONS) : [];
-  const mergedMap = new Map();
-  builtins.forEach(a => mergedMap.set(a.name, a));
-  allActions.forEach(a => { if (!mergedMap.has(a.name)) mergedMap.set(a.name, a); });
-  const sortedActions = [...mergedMap.values()].sort((a, b) => typeOrder(a) - typeOrder(b));
+  const sortedActions = Object.values(ACTIONS).sort((a, b) => typeOrder(a) - typeOrder(b));
 
   let slotsHtml = '';
   for (let i = 0; i < numSlots; i++) {
@@ -1348,7 +1342,6 @@ function _buildAeCollectionDrawerForm(collection, isNew) {
 
 function _aeAddSlot(currentCount) {
   if (currentCount >= 6) return;
-  const allActions = (AE_LOCAL && AE_LOCAL.actions) || [];
   const container = document.getElementById('ae-slots-container');
   if (!container) return;
 
@@ -1356,12 +1349,8 @@ function _aeAddSlot(currentCount) {
   const slotRow = document.createElement('div');
   slotRow.className = 'views-form-row';
   slotRow.id = `ae-slot-row-${currentCount}`;
-  const typeOrderAdd = a => (a.type === 'builtin' || a.type === 'focus-stream') ? 0 : 1;
-  const builtinsAdd = typeof BUILTIN_ACTIONS !== 'undefined' ? Object.values(BUILTIN_ACTIONS) : [];
-  const mergedMapAdd = new Map();
-  builtinsAdd.forEach(a => mergedMapAdd.set(a.name, a));
-  allActions.forEach(a => { if (!mergedMapAdd.has(a.name)) mergedMapAdd.set(a.name, a); });
-  const sortedActionsAdd = [...mergedMapAdd.values()].sort((a, b) => typeOrderAdd(a) - typeOrderAdd(b));
+  const typeOrderAdd = a => a.type === 'builtin' ? 0 : a.type === 'focus-stream' ? 1 : 2;
+  const sortedActionsAdd = Object.values(ACTIONS).sort((a, b) => typeOrderAdd(a) - typeOrderAdd(b));
   slotRow.style.alignItems = 'center';
   slotRow.innerHTML = `
     <span class="cam-drag-handle" style="margin-right:6px;flex-shrink:0;cursor:grab">≡</span>
