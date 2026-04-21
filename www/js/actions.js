@@ -494,6 +494,38 @@ function parseHaPayload(component, haPayload, key, discoveryCfg) {
   }
 }
 
+function handleNativeDiscoveryMessage(topic, rawPayload) {
+  const key = topic.split('/').pop();
+
+  if (!rawPayload || rawPayload === '' || rawPayload === 'null') {
+    if (DISCOVERED_ACTIONS[key]) {
+      delete DISCOVERED_ACTIONS[key];
+      _refreshActionButtons();
+    }
+    return;
+  }
+
+  let action;
+  try {
+    action = JSON.parse(rawPayload);
+  } catch (e) {
+    console.warn(`[discovery] malformed JSON on ${topic}:`, e.message);
+    return;
+  }
+
+  if (ACTIONS[key]) {
+    console.info(`[discovery] static action wins for "${key}" — skipping`);
+    return;
+  }
+
+  DISCOVERED_ACTIONS[key] = { name: key, ...action };
+  _refreshActionButtons();
+  if (typeof renderActionsEditor === 'function') {
+    const el = document.getElementById('ae-content');
+    if (el) renderActionsEditor();
+  }
+}
+
 function handleDiscoveryMessage(topic, rawPayload) {
   const prefix = _discoveryConfig.prefix || 'homeassistant';
   const key = _extractDiscoveryKey(topic, prefix);
@@ -542,5 +574,6 @@ function initDiscovery(cfg) {
   _discoveryConfig = { ...cfg, prefix };
   const unsub1 = mqttSubscribe(`${prefix}/+/+/config`, handleDiscoveryMessage);
   const unsub2 = mqttSubscribe(`${prefix}/+/+/+/config`, handleDiscoveryMessage);
-  _discoveryUnsubscriber = () => { unsub1(); unsub2(); };
+  const unsub3 = mqttSubscribe(`${prefix}/+`, handleNativeDiscoveryMessage);
+  _discoveryUnsubscriber = () => { unsub1(); unsub2(); unsub3(); };
 }

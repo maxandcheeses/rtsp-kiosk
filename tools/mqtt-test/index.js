@@ -401,7 +401,8 @@ async function cmdDiscover() {
     process.exit(1);
   }
 
-  const prefix = config.discovery?.prefix || 'homeassistant';
+  const discoverySrv = config.mqtt?.servers?.find(s => s.id === config.discovery?.mqttServer);
+  const prefix = discoverySrv?.discoveryTopic || config.discovery?.prefix || 'homeassistant';
   const fullTopic = `${prefix}/switch/kiosk-test-light/config`;
 
   const discoveryPayload = {
@@ -471,7 +472,8 @@ async function cmdUndiscover() {
     process.exit(1);
   }
 
-  const prefix = config.discovery?.prefix || 'homeassistant';
+  const discoverySrv = config.mqtt?.servers?.find(s => s.id === config.discovery?.mqttServer);
+  const prefix = discoverySrv?.discoveryTopic || config.discovery?.prefix || 'homeassistant';
   const fullTopic = `${prefix}/switch/kiosk-test-light/config`;
 
   const tlsOpts =
@@ -568,9 +570,9 @@ async function cmdPublishDiscovery(name, argsList) {
   const retain = opts.retain !== false; // Default to true unless explicitly false
   const remove = opts.remove === true; // Only true if explicitly set to true
 
-  // Determine discovery topic
-  const discoveryTopic = config.discovery?.topic || 'kiosk/discovery/actions';
-  const fullTopic = `${discoveryTopic}/${name}`;
+  const discoverySrv = config.mqtt?.servers?.find(s => s.id === config.discovery?.mqttServer);
+  const discoveryPrefix = discoverySrv?.discoveryTopic || config.discovery?.prefix || 'homeassistant';
+  const fullTopic = `${discoveryPrefix}/${name}`;
 
   const tlsOpts =
     config.mqtt?.servers?.[0]?.connectionType === 'wss'
