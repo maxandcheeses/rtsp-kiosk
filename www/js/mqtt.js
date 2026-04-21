@@ -15,6 +15,19 @@ window.mqttGetLog = () => _mqttLog;
 // ═══════════════════════════════════════════════════════
 let _mqttClient = null;
 
+function _mqttTopicMatches(filter, topic) {
+  // MQTT wildcard matching: + matches one level, # matches remainder
+  if (filter === topic) return true;
+  const fp = filter.split('/');
+  const tp = topic.split('/');
+  for (let i = 0; i < fp.length; i++) {
+    if (fp[i] === '#') return true;
+    if (fp[i] !== '+' && fp[i] !== tp[i]) return false;
+    if (i === fp.length - 1 && i < tp.length - 1) return false;
+  }
+  return fp.length === tp.length;
+}
+
 // Named MQTT client pool — keyed by server id (for actions multi-server support)
 const _mqttClients = new Map();
 
@@ -53,7 +66,7 @@ function getOrCreateMqttClient(serverId, serverCfg) {
   client.on('message', (topic, payload) => {
     _logMqtt({ dir: 'IN', brokerId: serverId, topic, payload: payload.toString() });
     _extraSubscriptions.forEach(sub => {
-      if (sub.topic === topic) sub.callback(topic, payload.toString());
+      if (_mqttTopicMatches(sub.topic, topic)) sub.callback(topic, payload.toString());
     });
   });
   client.on('error', (err) => { _logMqtt({ dir: 'ERROR', brokerId: serverId, payload: err.message }); console.log(`MQTT: named client "${serverId}" error:`, err); _updateMqttStatusIndicator(); });
@@ -237,7 +250,7 @@ function startMQTT() {
   // Dispatch to extra subscribers (raw payload string, not JSON-parsed)
   _mqttClient.on('message', (topic, payload) => {
     _extraSubscriptions.forEach(sub => {
-      if (sub.topic === topic) sub.callback(topic, payload.toString());
+      if (_mqttTopicMatches(sub.topic, topic)) sub.callback(topic, payload.toString());
     });
   });
 }
@@ -292,7 +305,7 @@ function mqttConnect(broker, username, password) {
   _mqttClient.on('message', (topic, payload) => {
     _logMqtt({ dir: 'IN', brokerId: 'actions', topic, payload: payload.toString() });
     _extraSubscriptions.forEach(sub => {
-      if (sub.topic === topic) sub.callback(topic, payload.toString());
+      if (_mqttTopicMatches(sub.topic, topic)) sub.callback(topic, payload.toString());
     });
   });
 }
