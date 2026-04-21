@@ -15,6 +15,7 @@ let _toggleStates = {};
 let _connectedServerIds = new Set();
 let _actionsConfig = null;  // full parsed config from /actions.json
 let _discoveryUnsubscriber = null;  // unsubscribe fn for MQTT discovery topic
+let _discoveredStateUnsubs = {};    // state.topic → unsubscribe fn for discovered actions
 
 let _focusStreamTimer    = null;
 let _focusReopenSlot    = null; // slot to reopen actions modal on focus close
@@ -34,6 +35,8 @@ async function loadActionsConfig() {
   // Clean up any previous subscriptions from a prior load
   _actionUnsubscribers.forEach(fn => fn());
   _actionUnsubscribers = [];
+  Object.values(_discoveredStateUnsubs).forEach(fn => fn());
+  _discoveredStateUnsubs = {};
   ACTIONS            = {};
   DISCOVERED_ACTIONS = {};
   _STATIC_ACTIONS    = new Set();
@@ -499,6 +502,12 @@ function handleNativeDiscoveryMessage(topic, rawPayload) {
 
   if (!rawPayload || rawPayload === '' || rawPayload === 'null') {
     if (DISCOVERED_ACTIONS[key]) {
+      const existing = DISCOVERED_ACTIONS[key];
+      if (existing.state && existing.state.topic && _discoveredStateUnsubs[existing.state.topic]) {
+        _discoveredStateUnsubs[existing.state.topic]();
+        delete _discoveredStateUnsubs[existing.state.topic];
+        delete ACTION_STATES[existing.state.topic];
+      }
       delete DISCOVERED_ACTIONS[key];
       _refreshActionButtons();
     }
@@ -519,6 +528,16 @@ function handleNativeDiscoveryMessage(topic, rawPayload) {
   }
 
   DISCOVERED_ACTIONS[key] = { name: key, ...action };
+
+  if (action.state && action.state.topic && !_discoveredStateUnsubs[action.state.topic]) {
+    const stateTopic = action.state.topic;
+    const unsub = mqttSubscribe(stateTopic, (t, payload) => {
+      ACTION_STATES[t] = payload;
+      if (ACTIONS_MODAL_OPEN) _refreshActionButtons();
+    });
+    _discoveredStateUnsubs[stateTopic] = unsub;
+  }
+
   _refreshActionButtons();
   if (typeof renderActionsEditor === 'function') {
     const el = document.getElementById('ae-content');
@@ -533,6 +552,12 @@ function handleDiscoveryMessage(topic, rawPayload) {
 
   if (!rawPayload || rawPayload === '' || rawPayload === 'null') {
     if (DISCOVERED_ACTIONS[key]) {
+      const existing = DISCOVERED_ACTIONS[key];
+      if (existing.state && existing.state.topic && _discoveredStateUnsubs[existing.state.topic]) {
+        _discoveredStateUnsubs[existing.state.topic]();
+        delete _discoveredStateUnsubs[existing.state.topic];
+        delete ACTION_STATES[existing.state.topic];
+      }
       delete DISCOVERED_ACTIONS[key];
       _refreshActionButtons();
     }
@@ -556,6 +581,16 @@ function handleDiscoveryMessage(topic, rawPayload) {
   if (!action) return;
 
   DISCOVERED_ACTIONS[key] = action;
+
+  if (action.state && action.state.topic && !_discoveredStateUnsubs[action.state.topic]) {
+    const stateTopic = action.state.topic;
+    const unsub = mqttSubscribe(stateTopic, (t, payload) => {
+      ACTION_STATES[t] = payload;
+      if (ACTIONS_MODAL_OPEN) _refreshActionButtons();
+    });
+    _discoveredStateUnsubs[stateTopic] = unsub;
+  }
+
   _refreshActionButtons();
   if (typeof renderActionsEditor === 'function') {
     const el = document.getElementById('ae-content');
