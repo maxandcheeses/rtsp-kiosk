@@ -131,3 +131,4 @@ extras/
 # Database files
 *.db
 *.sqlite
+.claude/projects/
